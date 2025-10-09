@@ -15,7 +15,6 @@
     .btn.ghost{background:#f8fafc} .btn.primary{background:#0ea5e9;border:0;color:#fff}
     main{max-width:1100px;margin:0 auto;padding:16px;position:relative;min-height:70vh}
 
-    /* Reference list */
     .toolbar{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin:6px 0 14px}
     .card{background:#fff;border-radius:14px;box-shadow:var(--shadow);margin:12px 0;padding:10px;border:1px solid #e5e7eb}
     .qhead{display:flex;align-items:center;gap:10px;font-weight:800}
@@ -25,7 +24,6 @@
     .pager{display:flex;gap:10px;align-items:center}
     .muted{color:var(--muted)}
 
-    /* Play mode (Random / AI) */
     #playView{display:none}
     #playCard{background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:18px;border:1px solid #e5e7eb}
     #qtext{font-size:18px;font-weight:800;margin:0 0 8px}
@@ -38,11 +36,10 @@
     .pill{padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:13px}
     .timer{font-weight:800}
 
-    /* Setup modal */
     .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:20}
     .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:18px;max-width:420px;width:92%}
     .row{display:flex;gap:10px;align-items:center;margin:10px 0}
-    select, input[type=number]{padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+    select{padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
   </style>
 </head>
 <body>
@@ -61,7 +58,6 @@
     <div class="title" id="pageTitle">Quiz</div>
     <div class="sub" id="pageSub">Answers only • 10 per page</div>
 
-    <!-- Reference list view (for category pages) -->
     <div class="toolbar" id="listToolbar">
       <button class="btn" id="showAll">Show all answers</button>
       <button class="btn" id="hideAll">Hide all</button>
@@ -76,7 +72,6 @@
       </div>
     </div>
 
-    <!-- Play view (Random / AI) -->
     <div id="playView">
       <div id="playCard">
         <div class="muted" id="meta"></div>
@@ -99,7 +94,6 @@
     </div>
   </main>
 
-  <!-- Setup Modal -->
   <div class="modal-bg" id="setupBg">
     <div class="modal">
       <div style="font-weight:800;font-size:18px" id="setupTitle">Setup</div>
@@ -129,7 +123,6 @@
   </div>
 
 <script>
-// ===== Config (same list as index) =====
 window.GS_CONFIG = {
   sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
   categories: [
@@ -147,60 +140,55 @@ window.GS_CONFIG = {
   ]
 };
 
-// ===== helpers =====
+// ---------- helpers ----------
 function csvToRows(csv){
-  var rows=[],row=[],s='',q=false;
-  for (var i=0;i<csv.length;i++){
-    var ch=csv[i], nx=csv[i+1];
+  const rows=[]; let row=[]; let s=''; let q=false;
+  for (let i=0;i<csv.length;i++){
+    const ch = csv[i], nx = csv[i+1];
     if(q){
-      if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else { q=false; } }
-      else { s+=ch; }
-    }else{
-      if(ch=='"') q=true;
-      else if(ch==','){ row.push(s); s=''; }
-      else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; }
-      else if(ch!='\r'){ s+=ch; }
+      if(ch === '"'){ if(nx === '"'){ s+='"'; i++; } else { q=false; } }
+      else s += ch;
+    } else {
+      if(ch === '"') q=true;
+      else if(ch === ','){ row.push(s); s=''; }
+      else if(ch === '\n'){ row.push(s); rows.push(row); row=[]; s=''; }
+      else if(ch !== '\r'){ s += ch; }
     }
   }
-  if(s.length||row.length){ row.push(s); rows.push(row); }
+  if(s.length || row.length){ row.push(s); rows.push(row); }
   return rows;
 }
 function rowsToObjects(rows){
-  if(!rows||!rows.length) return [];
-  var head=rows[0].map(function(h){ return (h||'').toString().trim().toLowerCase(); });
-  var out=[];
-  for(var r=1;r<rows.length;r++){
-    var o={}, rr=rows[r];
-    for(var c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
+  if(!rows || !rows.length) return [];
+  const head = rows[0].map(h => (h||'').toString().trim().toLowerCase());
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const o={}, rr=rows[r]||[];
+    for(let c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
     if(Object.values(o).join('').length) out.push(o);
   }
   return out;
 }
 function normalize(o){
-  var id=parseInt(o.id,10);
-  var item={ id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
-  ['A','B','C','D'].forEach(function(k){ var v=o['opt'+k]; if(v) item['opt'+k]=v; });
+  const id = parseInt(o.id,10);
+  const item = { id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
+  ['A','B','C','D'].forEach(k => { const v=o['opta'.replace('a',k.toLowerCase())]||o['opt'+k]; if(v) item['opt'+k]=v; });
   if(o.correct) item.correct=o.correct;
   return item;
 }
-function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
 function fetchCSV(sheetId, sheet){
-  var url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(sheetId)+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheet);
-  return fetch(url, {mode:'cors'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
+  const url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(sheetId)+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheet);
+  return fetch(url,{mode:'cors'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
 }
-function getParams(){
-  var q=Object.create(null);
-  location.search.replace(/^[?]/,'').split('&').forEach(function(p){ if(!p) return; var kv=p.split('='); q[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); });
+function params(){
+  const q=Object.create(null);
+  location.search.replace(/^\?/,'').split('&').forEach(p=>{ if(!p) return; const [k,v]=p.split('='); q[decodeURIComponent(k)]=decodeURIComponent(v||''); });
   return q;
 }
 
-// ===== Data stores =====
-let DATA=[]; let TITLE='Quiz';
-let PER=10, page=1;
-let playMode=false, aiMode=false, timerPerQ=0, tHandle=null, tLeft=0;
-let order=[], idx=0, scoreUser=0, scoreAI=0;
-
-// ===== Reference list (category) =====
+// ---------- list (reference) view ----------
+let DATA=[]; let PER=10; let page=1;
 function renderList(){
   document.getElementById('listToolbar').style.display='flex';
   document.getElementById('listFoot').style.display='flex';
@@ -211,51 +199,42 @@ function renderList(){
   const start=(page-1)*PER, end=Math.min(start+PER,total);
   document.getElementById('rangeText').textContent = total?('Showing '+(start+1)+'–'+end+' of '+total):'Showing 0–0';
   document.getElementById('pageCount').textContent = 'Page '+page+' / '+pages;
+
   const list=document.getElementById('list'); list.innerHTML='';
   DATA.slice(start,end).forEach(function(it,i){
-    const idx=start+i+1;
+    const no=start+i+1;
     const card=document.createElement('div'); card.className='card';
     const head=document.createElement('div'); head.className='qhead';
-    head.innerHTML='<div class="qno">'+idx+'</div><div style="flex:1">'+it.q+'</div>';
+    head.innerHTML='<div class="qno">'+no+'</div><div style="flex:1">'+it.q+'</div>';
     const btn=document.createElement('button'); btn.className='btn ghost'; btn.textContent='Show Answer';
     const ans=document.createElement('div'); ans.className='answer'; ans.textContent=(it.a||it.correct||'').toString();
     btn.onclick=function(){ ans.style.display=ans.style.display==='block'?'none':'block'; btn.textContent=ans.style.display==='block'?'Hide Answer':'Show Answer'; };
     card.appendChild(head); card.appendChild(btn); card.appendChild(ans); list.appendChild(card);
   });
-  document.getElementById('prevBtn').disabled=page<=1; document.getElementById('nextBtn').disabled=page>=pages;
-}
-document.getElementById('showAll').onclick=function(){
-  Array.from(document.querySelectorAll('.answer')).forEach(x=>x.style.display='block');
-  Array.from(document.querySelectorAll('.card .btn.ghost')).forEach(x=>x.textContent='Hide Answer');
-};
-document.getElementById('hideAll').onclick=function(){
-  Array.from(document.querySelectorAll('.answer')).forEach(x=>x.style.display='none');
-  Array.from(document.querySelectorAll('.card .btn.ghost')).forEach(x=>x.textContent='Show Answer');
-};
-document.getElementById('prevBtn').onclick=function(){ if(page>1){ page--; renderList(); } };
-document.getElementById('nextBtn').onclick=function(){ page++; renderList(); };
 
-// ===== Play mode (Random / AI) =====
-function exitPlay(){
-  clearInterval(tHandle); tHandle=null;
-  document.getElementById('playView').style.display='none';
-  document.getElementById('listToolbar').style.display='flex';
-  document.getElementById('listFoot').style.display='flex';
+  document.getElementById('prevBtn').disabled=page<=1;
+  document.getElementById('nextBtn').disabled=page>=pages;
 }
+document.getElementById('showAll').onclick=()=>{ document.querySelectorAll('.answer').forEach(x=>x.style.display='block'); document.querySelectorAll('.card .btn.ghost').forEach(x=>x.textContent='Hide Answer'); };
+document.getElementById('hideAll').onclick=()=>{ document.querySelectorAll('.answer').forEach(x=>x.style.display='none'); document.querySelectorAll('.card .btn.ghost').forEach(x=>x.textContent='Show Answer'); };
+document.getElementById('prevBtn').onclick=()=>{ if(page>1){ page--; renderList(); } };
+document.getElementById('nextBtn').onclick=()=>{ page++; renderList(); };
+
+// ---------- play (random / ai) ----------
+let order=[], idx=0, scoreUser=0, scoreAI=0, aiMode=false, timerPerQ=0, tHandle=null;
 function setupPlay(title, needsTimer){
-  playMode=true; aiMode=needsTimer;
+  aiMode = needsTimer;
   document.getElementById('setupTitle').textContent = title+' – Setup';
   document.getElementById('timerRow').style.display = needsTimer ? 'flex' : 'none';
   document.getElementById('setupBg').style.display='flex';
 }
-document.getElementById('cancelSetup').onclick=function(){ document.getElementById('setupBg').style.display='none'; };
-document.getElementById('startSetup').onclick=function(){
+document.getElementById('cancelSetup').onclick=()=>{ document.getElementById('setupBg').style.display='none'; };
+document.getElementById('startSetup').onclick=()=>{
   const cnt=parseInt(document.getElementById('countSel').value,10);
   timerPerQ = (document.getElementById('timerRow').style.display!=='none') ? parseInt(document.getElementById('secsSel').value,10) : 0;
   document.getElementById('setupBg').style.display='none';
   startPlay(cnt);
 };
-
 function startPlay(count){
   const all = window.__play_data || [];
   order = shuffle(all.slice());
@@ -266,12 +245,23 @@ function startPlay(count){
   document.getElementById('playView').style.display='block';
   renderPlay();
 }
-
+function exitPlay(){
+  clearInterval(tHandle); tHandle=null;
+  document.getElementById('playView').style.display='none';
+  document.getElementById('listToolbar').style.display='flex';
+  document.getElementById('listFoot').style.display='flex';
+}
 function renderPlay(){
   clearInterval(tHandle); tHandle=null;
-  const progress=document.getElementById('progress'); const qtext=document.getElementById('qtext');
-  const opts=document.getElementById('opts'); const ans=document.getElementById('answer'); const revealBtn=document.getElementById('revealBtn');
-  const meta=document.getElementById('meta'); const score=document.getElementById('score'); const timerBox=document.getElementById('timerBox'); const timeLeft=document.getElementById('timeLeft');
+  const progress=document.getElementById('progress');
+  const qtext=document.getElementById('qtext');
+  const opts=document.getElementById('opts');
+  const ans=document.getElementById('answer');
+  const revealBtn=document.getElementById('revealBtn');
+  const meta=document.getElementById('meta');
+  const score=document.getElementById('score');
+  const timerBox=document.getElementById('timerBox');
+  const timeLeft=document.getElementById('timeLeft');
 
   if(!order.length){ qtext.textContent='No questions'; opts.innerHTML=''; ans.style.display='none'; progress.textContent='0/0'; return; }
   const it=order[idx];
@@ -295,20 +285,19 @@ function renderPlay(){
     if(aiMode){
       const kids=Array.from(opts.children); if(kids.length){ const pick=kids[(Math.random()*kids.length)|0]; pick.setAttribute('data-ai','1'); }
       if(timerPerQ>0){
-        document.getElementById('timerBox').style.display='inline-block';
-        let tLeft = timerPerQ; timeLeft.textContent = tLeft;
+        timerBox.style.display='inline-block';
+        let remaining = timerPerQ; timeLeft.textContent = remaining;
         tHandle = setInterval(function(){
-          tLeft--; timeLeft.textContent = tLeft;
-          if(tLeft<=0){ clearInterval(tHandle); tHandle=null; choose('__timeout__', it, true); setTimeout(function(){ next(); }, 600); }
+          remaining--; timeLeft.textContent = remaining;
+          if(remaining<=0){ clearInterval(tHandle); tHandle=null; choose('__timeout__', it); setTimeout(()=>next(), 600); }
         }, 1000);
-      } else { document.getElementById('timerBox').style.display='none'; }
-    } else { document.getElementById('timerBox').style.display='none'; }
+      } else { timerBox.style.display='none'; }
+    } else { timerBox.style.display='none'; }
   } else {
     const note=document.createElement('div'); note.className='muted'; note.textContent='No options available for this question.';
     opts.appendChild(note);
   }
 }
-
 function choose(val,it){
   clearInterval(tHandle); tHandle=null;
   const correctText=(it.correct&&it.correct.trim())||(it.a||'').trim();
@@ -319,7 +308,7 @@ function choose(val,it){
     else if(t===val) el.classList.add('wrong');
     el.disabled=true;
   });
-  if(val.trim()===correctText) scoreUser++;
+  if(val && val.trim()===correctText) scoreUser++;
   if(aiMode){
     const aiChosen=opts.querySelector('[data-ai="1"]');
     if(aiChosen && aiChosen.textContent.trim()===correctText) scoreAI++;
@@ -330,41 +319,43 @@ function next(){ if(idx<order.length-1){ idx++; renderPlay(); } }
 function prev(){ if(idx>0){ idx--; renderPlay(); } }
 function reveal(){ document.getElementById('answer').style.display='block'; }
 
-// ===== Loader depending on mode =====
+// ---------- data loader ----------
 function loadData(){
-  var params=getParams(); var mode=params.mode||''; var cat=params.cat||''; const cfg=GS_CONFIG;
+  const p=params(); const mode=p.mode||''; const cat=p.cat||''; const cfg=GS_CONFIG;
+
   if(mode==='random'){
     document.getElementById('pageTitle').textContent='Random Quiz';
     document.getElementById('pageSub').textContent='Choose how many • random across all categories';
     document.getElementById('listToolbar').style.display='none';
     document.getElementById('listFoot').style.display='none';
-    return Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t))))).then(all=>{
-      window.__play_data = all.flat().map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
-      setupPlay('Random Quiz', false);
-    });
+    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t)))))
+      .then(all=>{
+        window.__play_data = all.flat().map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
+        setupPlay('Random Quiz', false);
+      });
   } else if(mode==='ai'){
     document.getElementById('pageTitle').textContent='AI vs You';
     document.getElementById('pageSub').textContent='Timed MCQ across all categories';
     document.getElementById('listToolbar').style.display='none';
     document.getElementById('listFoot').style.display='none';
-    return Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t))))).then(all=>{
-      window.__play_data = all.flat().map(normalize).filter(x=>x.optA||x.optB||x.optC||x.optD);
-      setupPlay('AI vs You', true);
-    });
+    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t)))))
+      .then(all=>{
+        window.__play_data = all.flat().map(normalize).filter(x=>x.optA||x.optB||x.optC||x.optD);
+        setupPlay('AI vs You', true);
+      });
   } else if(cat){
     const entry=(cfg.categories||[]).find(x=>x.key===cat)||(cfg.categories||[]).find(x=>x.sheet===cat);
     document.getElementById('pageTitle').textContent = entry?entry.title:cat;
-    return fetchCSV(cfg.sheetId, entry?entry.sheet:cat).then(txt=>{
+    fetchCSV(cfg.sheetId, entry?entry.sheet:cat).then(txt=>{
       DATA=rowsToObjects(csvToRows(txt)).map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
       renderList();
     });
   } else {
-    DATA=[]; renderList(); return Promise.resolve();
+    DATA=[]; renderList();
   }
 }
 
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ loadData(); });
-else loadData();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadData); else loadData();
 </script>
 </body>
 </html>
