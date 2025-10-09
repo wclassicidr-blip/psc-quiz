@@ -97,6 +97,136 @@ window.GS_CONFIG = {
 </script>
 </head>
 <body>
+  <!-- ===== GOOGLE SHEETS QUIZ LOADER (publishedId + auto gid) ===== -->
+<script>
+/* CONFIG — uses your published link */
+window.GS_CONFIG = {
+  enabled: true,
+  publishedId: "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A",
+  categories: [
+    // Give each tab's exact name as it appears in the Sheet tabs:
+    { key:"gst_malayalam",       title:"GST Malayalam",       sheet:"GST Malayalam",       mode:"answers" },
+    { key:"lakes_in_kerala",     title:"Lakes in Kerala",     sheet:"Lakes in Kerala",     mode:"answers" },
+    { key:"indian_independence", title:"ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം", sheet:"Indian Independence", mode:"answers" }
+  ]
+};
+
+/* LOADER — fetch CSV for each tab, inject tiles even if your app has no hooks */
+(function(){
+  if (!window.GS_CONFIG || !GS_CONFIG.enabled) return;
+
+  var log = function(){ try{ console.log.apply(console, arguments);}catch(e){} };
+  function csvToRows(csv){
+    var rows=[],row=[],s='',q=false;
+    for (var i=0;i<csv.length;i++){ var ch=csv[i], nx=csv[i+1];
+      if(q){ if(ch=='"'){ if(nx=='"'){s+='"'; i++;} else {q=false;} } else { s+=ch; } }
+      else { if(ch=='"') q=true; else if(ch==','){ row.push(s); s=''; } else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; } else if(ch!='\r'){ s+=ch; } }
+    }
+    if(s.length||row.length){ row.push(s); rows.push(row); }
+    return rows;
+  }
+  function rowsToObjects(rows){
+    if(!rows||!rows.length) return [];
+    var head=rows[0].map(function(h){return (h||'').toString().trim().toLowerCase();});
+    var out=[];
+    for(var r=1;r<rows.length;r++){
+      var o={}, rr=rows[r];
+      for(var c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
+      if(Object.values(o).join('').length) out.push(o);
+    }
+    return out;
+  }
+  function normalize(o){
+    var id=parseInt(o.id,10);
+    var item={ id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
+    if(o.opta) item.optA=o.opta; if(o.optb) item.optB=o.optb; if(o.optc) item.optC=o.optc; if(o.optd) item.optD=o.optd; if(o.correct) item.correct=o.correct;
+    return item;
+  }
+
+  // --- publishedId helpers ---
+  var P = GS_CONFIG.publishedId;
+  function fetchCSV_gID(gid){
+    var url='https://docs.google.com/spreadsheets/d/e/'+encodeURIComponent(P)+'/pub?gid='+encodeURIComponent(gid)+'&single=true&output=csv';
+    return fetch(url,{mode:'cors'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
+  }
+  function fetchPubHTML(){
+    var url='https://docs.google.com/spreadsheets/d/e/'+encodeURIComponent(P)+'/pubhtml';
+    return fetch(url,{mode:'cors'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
+  }
+  function mapTitlesToGids(html){
+    // works on published HTML — finds ?gid=##### links and their visible titles
+    var map={}, re=/href="[^"]*\\?gid=(\\d+)[^"]*"[^>]*>([^<]+)<\\/a>/g, m;
+    while((m=re.exec(html))){ map[m[2].trim()] = m[1]; }
+    return map;
+  }
+
+  // Ensure globals used by your app (or create them if missing)
+  window.bank   = window.bank   || {};
+  window.MODE   = window.MODE   || {};
+  window.LABELS = window.LABELS || {};
+  window.start  = window.start  || function(cat){
+    // Minimal fallback viewer so you can test loading now
+    var data = bank[cat] || [];
+    var host = document.getElementById('gs-view') || (function(){
+      var d=document.createElement('div'); d.id='gs-view'; d.style.cssText='max-width:860px;margin:24px auto;padding:16px;background:#fff;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,.08)';
+      document.body.appendChild(d); return d;
+    })();
+    host.innerHTML = '<h2 style="margin:0 0 12px">'+(LABELS[cat]?.title||cat)+'</h2>'
+      + data.map(function(x,i){ return '<div style="padding:10px 0;border-top:1px solid #eee"><b>'+(i+1)+'.</b> '+x.q
+        +(x.a?'<div style="opacity:.8;padding-top:6px">Ans: '+x.a+'</div>':'')+'</div>'; }).join('');
+    window.scrollTo({top:host.offsetTop-20,behavior:'smooth'});
+  };
+
+  function ensureTileArea(){
+    var tiles = document.getElementById('tiles');
+    if (tiles) return tiles;
+    var wrap = document.getElementById('gs-cats');
+    if (!wrap){
+      wrap = document.createElement('div');
+      wrap.id='gs-cats';
+      wrap.style.cssText='max-width:1100px;margin:24px auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px';
+      var h=document.createElement('h3'); h.textContent='Google Sheets Categories';
+      h.style.cssText='max-width:1100px;margin:24px auto 8px;font:600 18px/1.2 system-ui,Segoe UI,Roboto';
+      (document.querySelector('main')||document.body).appendChild(h);
+      (document.querySelector('main')||document.body).appendChild(wrap);
+    }
+    return wrap;
+  }
+  function addTile(key, title){
+    var tiles = ensureTileArea();
+    if (tiles.querySelector('[data-gs="'+key+'"]')) return;
+    var b=document.createElement('button');
+    b.setAttribute('data-gs', key);
+    b.style.cssText='text-align:left;padding:16px 18px;border:none;border-radius:14px;background:#eef7ff;box-shadow:0 6px 16px rgba(0,0,0,.06);cursor:pointer';
+    b.innerHTML='<div style="font-weight:700">'+title+'</div><div style="opacity:.7;font-size:13px">From Google Sheets</div>';
+    b.onclick=function(){ start(key); };
+    tiles.appendChild(b);
+  }
+
+  // Load flow:
+  fetchPubHTML()
+    .then(function(html){
+      var titleToGid = mapTitlesToGids(html);
+      var tasks = (GS_CONFIG.categories||[]).map(function(c){
+        var gid = c.gid || titleToGid[c.sheet] || titleToGid[c.title];
+        if (!gid){ log('No gid found for', c); return Promise.resolve(); }
+        return fetchCSV_gID(gid).then(function(csv){
+          var objs = rowsToObjects(csvToRows(csv)).map(normalize);
+          if (!objs.length){ log('No rows in', c.title); return; }
+          bank[c.key] = objs;
+          MODE[c.key] = c.mode || 'answers';
+          LABELS[c.key] = { title: c.title, sub: 'From Google Sheets' };
+          addTile(c.key, c.title);
+        });
+      });
+      return Promise.all(tasks);
+    })
+    .then(function(){ log('%cGoogle Sheet loaded','background:#063;color:#fff;padding:2px 6px;border-radius:6px'); })
+    .catch(function(e){ console.warn('GS load error:', e); });
+})();
+</script>
+<!-- ===== END GOOGLE SHEETS QUIZ LOADER ===== -->
+
 <header>
   <div class="wrap row brand gap-12">
     <div class="row gap-12"><div class="badge">PSC</div><div class="title"><b>PSC Guru</b><small>Kerala PSC Exam Prep</small></div></div>
