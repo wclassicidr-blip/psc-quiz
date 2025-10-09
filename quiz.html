@@ -1,0 +1,370 @@
+<!doctype html>
+<html lang="ml">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PSC Guru – Quiz</title>
+  <style>
+    :root{--bg:#eef7ee;--ink:#0f172a;--muted:#64748b;--green:#d9f99d;--card:#fff;--shadow:0 10px 30px rgba(0,0,0,.08);}
+    *{box-sizing:border-box} html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7;z-index:10}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px;display:flex;gap:12px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:#2f8f50;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
+    .title{font-size:28px;font-weight:800;margin:16px 0 6px}
+    .sub{color:var(--muted)}
+    .btn{padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    .btn.ghost{background:#f8fafc} .btn.primary{background:#0ea5e9;border:0;color:#fff}
+    main{max-width:1100px;margin:0 auto;padding:16px;position:relative;min-height:70vh}
+
+    /* Reference list */
+    .toolbar{display:flex;gap:10px;align-items:center;justify-content:flex-end;margin:6px 0 14px}
+    .card{background:#fff;border-radius:14px;box-shadow:var(--shadow);margin:12px 0;padding:10px;border:1px solid #e5e7eb}
+    .qhead{display:flex;align-items:center;gap:10px;font-weight:800}
+    .qno{width:42px;height:32px;border-radius:999px;background:#d9f99d;display:grid;place-items:center;margin-right:6px}
+    .answer{margin-top:10px;background:#e6f7d6;border-radius:10px;padding:12px;display:none}
+    .foot{position:sticky;bottom:0;background:var(--bg);box-shadow:0 -8px 20px rgba(0,0,0,.06);display:flex;gap:10px;align-items:center;justify-content:space-between;margin:18px 0;padding:8px 0;z-index:5}
+    .pager{display:flex;gap:10px;align-items:center}
+    .muted{color:var(--muted)}
+
+    /* Play mode (Random / AI) */
+    #playView{display:none}
+    #playCard{background:#fff;border-radius:18px;box-shadow:var(--shadow);padding:18px;border:1px solid #e5e7eb}
+    #qtext{font-size:18px;font-weight:800;margin:0 0 8px}
+    .opts{display:grid;gap:10px;margin-top:12px}
+    .opt{border:1px solid #e5e7eb;border-radius:12px;padding:10px 12px;background:#fafafa;cursor:pointer}
+    .opt:hover{background:#f3f4f6}
+    .opt.correct{background:#dcfce7;border-color:#16a34a}
+    .opt.wrong{background:#fee2e2;border-color:#ef4444}
+    .playbar{position:sticky;bottom:0;background:var(--bg);box-shadow:0 -8px 20px rgba(0,0,0,.06);display:flex;gap:10px;align-items:center;justify-content:space-between;margin-top:12px;padding:10px 0;z-index:6}
+    .pill{padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:13px}
+    .timer{font-weight:800}
+
+    /* Setup modal */
+    .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.35);display:none;align-items:center;justify-content:center;z-index:20}
+    .modal{background:#fff;border-radius:16px;box-shadow:var(--shadow);padding:18px;max-width:420px;width:92%}
+    .row{display:flex;gap:10px;align-items:center;margin:10px 0}
+    select, input[type=number]{padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;background:#fff}
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap">
+      <div class="logo">PSC</div>
+      <div style="font-weight:800">PSC Guru <div class="sub" style="font-weight:600">Kerala PSC Exam Prep</div></div>
+      <div style="margin-left:auto;display:flex;gap:8px">
+        <a href="index.html"><button class="btn">Home</button></a>
+        <a href="quiz.html"><button class="btn">Quiz</button></a>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <div class="title" id="pageTitle">Quiz</div>
+    <div class="sub" id="pageSub">Answers only • 10 per page</div>
+
+    <!-- Reference list view (for category pages) -->
+    <div class="toolbar" id="listToolbar">
+      <button class="btn" id="showAll">Show all answers</button>
+      <button class="btn" id="hideAll">Hide all</button>
+    </div>
+    <div id="list"></div>
+    <div class="foot" id="listFoot">
+      <div class="muted" id="rangeText">Showing 0–0</div>
+      <div class="pager">
+        <button class="btn" id="prevBtn">← Previous</button>
+        <div class="muted" id="pageCount">Page 1 / 1</div>
+        <button class="btn" id="nextBtn">Next →</button>
+      </div>
+    </div>
+
+    <!-- Play view (Random / AI) -->
+    <div id="playView">
+      <div id="playCard">
+        <div class="muted" id="meta"></div>
+        <h3 id="qtext">…</h3>
+        <div class="opts" id="opts"></div>
+        <button class="btn ghost" id="revealBtn" onclick="reveal()">Show Answer</button>
+        <div class="answer" id="answer" style="display:none"></div>
+        <div class="playbar">
+          <div style="display:flex;gap:8px;align-items:center">
+            <div class="pill" id="progress">0/0</div>
+            <div class="pill timer" id="timerBox" style="display:none">⏱ <span id="timeLeft">0</span>s</div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn" onclick="prev()">◀ Prev</button>
+            <button class="btn primary" onclick="next()">Next ▶</button>
+          </div>
+        </div>
+      </div>
+      <div style="margin-top:10px"><button class="btn" onclick="exitPlay()">Back</button> <span class="muted" id="score"></span></div>
+    </div>
+  </main>
+
+  <!-- Setup Modal -->
+  <div class="modal-bg" id="setupBg">
+    <div class="modal">
+      <div style="font-weight:800;font-size:18px" id="setupTitle">Setup</div>
+      <div class="row">
+        <label style="min-width:140px">Questions:</label>
+        <select id="countSel">
+          <option value="5">5</option>
+          <option value="10" selected>10</option>
+          <option value="15">15</option>
+          <option value="20">20</option>
+          <option value="25">25</option>
+          <option value="50">50</option>
+          <option value="0">All</option>
+        </select>
+      </div>
+      <div class="row" id="timerRow" style="display:none">
+        <label style="min-width:140px">Seconds / question:</label>
+        <select id="secsSel">
+          <option>10</option><option selected>15</option><option>20</option><option>30</option><option>45</option><option>60</option>
+        </select>
+      </div>
+      <div class="row" style="justify-content:flex-end">
+        <button class="btn" id="cancelSetup">Cancel</button>
+        <button class="btn primary" id="startSetup">Start</button>
+      </div>
+    </div>
+  </div>
+
+<script>
+// ===== Config (same list as index) =====
+window.GS_CONFIG = {
+  sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
+  categories: [
+    { key: "information_technology",           sheet: "Information Technology",           title: "Information Technology" },
+    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  title: "Civil Police/ Excise Officer" },
+    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     title: "സാമൂഹ്യക്ഷേമം" },
+    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           title: "രസതന്ത്രം – Chemistry" },
+    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
+    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    title: "GST Malayalam" },
+    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
+    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  title: "കലയും – സാഹിത്യവും" },
+    { key: "cyber_law",                        sheet: "Cyber Law",                        title: "Cyber Law" },
+    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  title: "Lakes in Kerala" },
+    { key: "indian_independence_en",           sheet: "Indian Independence",              title: "Indian Independence" }
+  ]
+};
+
+// ===== helpers =====
+function csvToRows(csv){
+  var rows=[],row=[],s='',q=false;
+  for (var i=0;i<csv.length;i++){
+    var ch=csv[i], nx=csv[i+1];
+    if(q){
+      if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else { q=false; } }
+      else { s+=ch; }
+    }else{
+      if(ch=='"') q=true;
+      else if(ch==','){ row.push(s); s=''; }
+      else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; }
+      else if(ch!='\r'){ s+=ch; }
+    }
+  }
+  if(s.length||row.length){ row.push(s); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows||!rows.length) return [];
+  var head=rows[0].map(function(h){ return (h||'').toString().trim().toLowerCase(); });
+  var out=[];
+  for(var r=1;r<rows.length;r++){
+    var o={}, rr=rows[r];
+    for(var c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
+    if(Object.values(o).join('').length) out.push(o);
+  }
+  return out;
+}
+function normalize(o){
+  var id=parseInt(o.id,10);
+  var item={ id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
+  ['A','B','C','D'].forEach(function(k){ var v=o['opt'+k]; if(v) item['opt'+k]=v; });
+  if(o.correct) item.correct=o.correct;
+  return item;
+}
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function fetchCSV(sheetId, sheet){
+  var url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(sheetId)+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheet);
+  return fetch(url, {mode:'cors'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
+}
+function getParams(){
+  var q=Object.create(null);
+  location.search.replace(/^[?]/,'').split('&').forEach(function(p){ if(!p) return; var kv=p.split('='); q[decodeURIComponent(kv[0])]=decodeURIComponent(kv[1]||''); });
+  return q;
+}
+
+// ===== Data stores =====
+let DATA=[]; let TITLE='Quiz';
+let PER=10, page=1;
+let playMode=false, aiMode=false, timerPerQ=0, tHandle=null, tLeft=0;
+let order=[], idx=0, scoreUser=0, scoreAI=0;
+
+// ===== Reference list (category) =====
+function renderList(){
+  document.getElementById('listToolbar').style.display='flex';
+  document.getElementById('listFoot').style.display='flex';
+  document.getElementById('playView').style.display='none';
+
+  const total=DATA.length, pages=Math.max(1, Math.ceil(total/PER));
+  if(page>pages) page=pages;
+  const start=(page-1)*PER, end=Math.min(start+PER,total);
+  document.getElementById('rangeText').textContent = total?('Showing '+(start+1)+'–'+end+' of '+total):'Showing 0–0';
+  document.getElementById('pageCount').textContent = 'Page '+page+' / '+pages;
+  const list=document.getElementById('list'); list.innerHTML='';
+  DATA.slice(start,end).forEach(function(it,i){
+    const idx=start+i+1;
+    const card=document.createElement('div'); card.className='card';
+    const head=document.createElement('div'); head.className='qhead';
+    head.innerHTML='<div class="qno">'+idx+'</div><div style="flex:1">'+it.q+'</div>';
+    const btn=document.createElement('button'); btn.className='btn ghost'; btn.textContent='Show Answer';
+    const ans=document.createElement('div'); ans.className='answer'; ans.textContent=(it.a||it.correct||'').toString();
+    btn.onclick=function(){ ans.style.display=ans.style.display==='block'?'none':'block'; btn.textContent=ans.style.display==='block'?'Hide Answer':'Show Answer'; };
+    card.appendChild(head); card.appendChild(btn); card.appendChild(ans); list.appendChild(card);
+  });
+  document.getElementById('prevBtn').disabled=page<=1; document.getElementById('nextBtn').disabled=page>=pages;
+}
+document.getElementById('showAll').onclick=function(){
+  Array.from(document.querySelectorAll('.answer')).forEach(x=>x.style.display='block');
+  Array.from(document.querySelectorAll('.card .btn.ghost')).forEach(x=>x.textContent='Hide Answer');
+};
+document.getElementById('hideAll').onclick=function(){
+  Array.from(document.querySelectorAll('.answer')).forEach(x=>x.style.display='none');
+  Array.from(document.querySelectorAll('.card .btn.ghost')).forEach(x=>x.textContent='Show Answer');
+};
+document.getElementById('prevBtn').onclick=function(){ if(page>1){ page--; renderList(); } };
+document.getElementById('nextBtn').onclick=function(){ page++; renderList(); };
+
+// ===== Play mode (Random / AI) =====
+function exitPlay(){
+  clearInterval(tHandle); tHandle=null;
+  document.getElementById('playView').style.display='none';
+  document.getElementById('listToolbar').style.display='flex';
+  document.getElementById('listFoot').style.display='flex';
+}
+function setupPlay(title, needsTimer){
+  playMode=true; aiMode=needsTimer;
+  document.getElementById('setupTitle').textContent = title+' – Setup';
+  document.getElementById('timerRow').style.display = needsTimer ? 'flex' : 'none';
+  document.getElementById('setupBg').style.display='flex';
+}
+document.getElementById('cancelSetup').onclick=function(){ document.getElementById('setupBg').style.display='none'; };
+document.getElementById('startSetup').onclick=function(){
+  const cnt=parseInt(document.getElementById('countSel').value,10);
+  timerPerQ = (document.getElementById('timerRow').style.display!=='none') ? parseInt(document.getElementById('secsSel').value,10) : 0;
+  document.getElementById('setupBg').style.display='none';
+  startPlay(cnt);
+};
+
+function startPlay(count){
+  const all = window.__play_data || [];
+  order = shuffle(all.slice());
+  if(count>0) order = order.slice(0, Math.min(count, order.length));
+  idx=0; scoreUser=0; scoreAI=0;
+  document.getElementById('listToolbar').style.display='none';
+  document.getElementById('listFoot').style.display='none';
+  document.getElementById('playView').style.display='block';
+  renderPlay();
+}
+
+function renderPlay(){
+  clearInterval(tHandle); tHandle=null;
+  const progress=document.getElementById('progress'); const qtext=document.getElementById('qtext');
+  const opts=document.getElementById('opts'); const ans=document.getElementById('answer'); const revealBtn=document.getElementById('revealBtn');
+  const meta=document.getElementById('meta'); const score=document.getElementById('score'); const timerBox=document.getElementById('timerBox'); const timeLeft=document.getElementById('timeLeft');
+
+  if(!order.length){ qtext.textContent='No questions'; opts.innerHTML=''; ans.style.display='none'; progress.textContent='0/0'; return; }
+  const it=order[idx];
+  meta.textContent = (aiMode?'AI vs You':'Random Quiz') + ' • Question ' + (idx+1);
+  progress.textContent = (idx+1)+' / '+order.length;
+  score.textContent = aiMode ? ('You '+scoreUser+' : '+scoreAI+' AI') : '';
+
+  qtext.textContent = it.q;
+  ans.style.display='none'; ans.textContent = it.a ? 'Answer: '+it.a : '';
+  opts.innerHTML='';
+
+  const hasMCQ = !!(it.optA||it.optB||it.optC||it.optD);
+  revealBtn.style.display = hasMCQ ? 'none' : 'inline-block';
+  if(hasMCQ){
+    ['A','B','C','D'].forEach(function(k){
+      const v=it['opt'+k]; if(!v) return;
+      const d=document.createElement('button'); d.className='opt'; d.textContent=v;
+      d.onclick=function(){ choose(v,it); };
+      opts.appendChild(d);
+    });
+    if(aiMode){
+      const kids=Array.from(opts.children); if(kids.length){ const pick=kids[(Math.random()*kids.length)|0]; pick.setAttribute('data-ai','1'); }
+      if(timerPerQ>0){
+        document.getElementById('timerBox').style.display='inline-block';
+        let tLeft = timerPerQ; timeLeft.textContent = tLeft;
+        tHandle = setInterval(function(){
+          tLeft--; timeLeft.textContent = tLeft;
+          if(tLeft<=0){ clearInterval(tHandle); tHandle=null; choose('__timeout__', it, true); setTimeout(function(){ next(); }, 600); }
+        }, 1000);
+      } else { document.getElementById('timerBox').style.display='none'; }
+    } else { document.getElementById('timerBox').style.display='none'; }
+  } else {
+    const note=document.createElement('div'); note.className='muted'; note.textContent='No options available for this question.';
+    opts.appendChild(note);
+  }
+}
+
+function choose(val,it){
+  clearInterval(tHandle); tHandle=null;
+  const correctText=(it.correct&&it.correct.trim())||(it.a||'').trim();
+  const opts=document.getElementById('opts');
+  Array.from(opts.children).forEach(function(el){
+    const t=el.textContent.trim();
+    if(t===correctText) el.classList.add('correct');
+    else if(t===val) el.classList.add('wrong');
+    el.disabled=true;
+  });
+  if(val.trim()===correctText) scoreUser++;
+  if(aiMode){
+    const aiChosen=opts.querySelector('[data-ai="1"]');
+    if(aiChosen && aiChosen.textContent.trim()===correctText) scoreAI++;
+  }
+  document.getElementById('score').textContent = aiMode ? ('You '+scoreUser+' : '+scoreAI+' AI') : '';
+}
+function next(){ if(idx<order.length-1){ idx++; renderPlay(); } }
+function prev(){ if(idx>0){ idx--; renderPlay(); } }
+function reveal(){ document.getElementById('answer').style.display='block'; }
+
+// ===== Loader depending on mode =====
+function loadData(){
+  var params=getParams(); var mode=params.mode||''; var cat=params.cat||''; const cfg=GS_CONFIG;
+  if(mode==='random'){
+    document.getElementById('pageTitle').textContent='Random Quiz';
+    document.getElementById('pageSub').textContent='Choose how many • random across all categories';
+    document.getElementById('listToolbar').style.display='none';
+    document.getElementById('listFoot').style.display='none';
+    return Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t))))).then(all=>{
+      window.__play_data = all.flat().map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
+      setupPlay('Random Quiz', false);
+    });
+  } else if(mode==='ai'){
+    document.getElementById('pageTitle').textContent='AI vs You';
+    document.getElementById('pageSub').textContent='Timed MCQ across all categories';
+    document.getElementById('listToolbar').style.display='none';
+    document.getElementById('listFoot').style.display='none';
+    return Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t))))).then(all=>{
+      window.__play_data = all.flat().map(normalize).filter(x=>x.optA||x.optB||x.optC||x.optD);
+      setupPlay('AI vs You', true);
+    });
+  } else if(cat){
+    const entry=(cfg.categories||[]).find(x=>x.key===cat)||(cfg.categories||[]).find(x=>x.sheet===cat);
+    document.getElementById('pageTitle').textContent = entry?entry.title:cat;
+    return fetchCSV(cfg.sheetId, entry?entry.sheet:cat).then(txt=>{
+      DATA=rowsToObjects(csvToRows(txt)).map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
+      renderList();
+    });
+  } else {
+    DATA=[]; renderList(); return Promise.resolve();
+  }
+}
+
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', function(){ loadData(); });
+else loadData();
+</script>
+</body>
+</html>
