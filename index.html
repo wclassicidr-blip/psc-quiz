@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="ml">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>PSC Guru</title>
+  <style>
+    :root{--bg:#eef7ee;--ink:#0f172a;--muted:#64748b;--card:#fff;--shadow:0 10px 30px rgba(0,0,0,.08);}
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7;z-index:30}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px;display:flex;gap:12px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:#2f8f50;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
+    .btn{padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    .title{max-width:1100px;margin:18px auto 0;padding:0 16px;font-size:22px;font-weight:900}
+    main{max-width:1100px;margin:10px auto;padding:0 16px 90px}
+    .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:12px}
+    .qcard{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e7eb;box-shadow:var(--shadow);cursor:pointer}
+    .qcard:hover{transform:translateY(-1px)}
+    .sub{color:var(--muted);font-size:13px;margin-top:4px}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px}
+    .cat{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between}
+    .tag{font-size:12px;color:#6b7280}
+    .pill{padding:4px 8px;border-radius:999px;background:#f1f5f9;border:1px solid #e5e7eb}
+    footer{position:sticky;bottom:0;border-top:1px solid #e5e7eb;background:color-mix(in oklab, #eef7ee 90%, #fff 10%);padding:10px 16px}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="logo">PSC</div>
+    <div style="font-weight:800">PSC Guru <div style="color:#64748b;font-weight:600">Kerala PSC Exam Prep</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <a href="/"><button class="btn">Home</button></a>
+      <a href="quiz.html"><button class="btn">Quiz</button></a>
+    </div>
+  </div>
+</header>
+
+<div class="title">Quick Quiz</div>
+<main>
+  <div class="quick">
+    <a href="quiz.html?mode=random" style="text-decoration:none;color:inherit">
+      <div class="qcard">
+        <div style="font-weight:900">Random Quiz</div>
+        <div class="sub">Pick how many questions • all categories</div>
+      </div>
+    </a>
+    <a href="quiz.html?mode=ai" style="text-decoration:none;color:inherit">
+      <div class="qcard">
+        <div style="font-weight:900">AI vs You</div>
+        <div class="sub">Timed MCQ • computer guesses vs your answers</div>
+      </div>
+    </a>
+  </div>
+
+  <div class="title" style="margin:18px 0 0">Quiz Categories</div>
+  <div class="grid" id="cats"></div>
+</main>
+
+<footer>
+  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between">
+    <div class="tag">© 2025 PSC Guru • Tea Green UI</div>
+    <a class="pill" href="https://docs.google.com/spreadsheets/d/16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o/edit" target="_blank">Google Sheets</a>
+  </div>
+</footer>
+
+<script>
+const CONFIG = {
+  sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
+  categories: [
+    { key: "gst_malayalam", title: "GST Malayalam" },
+    { key: "lakes_in_kerala", title: "Lakes in Kerala" },
+    { key: "indian_independence_ml", title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
+    { key: "arts_lit", title: "കലയും – സാഹിത്യവും" },
+    { key: "cyber_law", title: "Cyber Law" },
+    { key: "information_technology", title: "Information Technology" },
+    { key: "civil_police_excise_officer_mod", title: "Civil Police/ Excise Officer" },
+    { key: "samuhyakshamam", title: "സാമൂഹ്യക്ഷേമം" },
+    { key: "chemistry", title: "രസതന്ത്രം – Chemistry" },
+    { key: "physical_science", title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
+    { key: "indian_independence_en", title: "Indian Independence" }
+  ]
+};
+const cats=document.getElementById('cats');
+CONFIG.categories.forEach(c=>{
+  const a=document.createElement('a');
+  a.href=`quiz.html?cat=${encodeURIComponent(c.key)}`;
+  a.style.textDecoration='none'; a.style.color='inherit';
+  a.innerHTML=`<div class="cat"><div><div style="font-weight:800">${c.title}</div><div class="tag">From Google Sheets</div></div><div class="pill">Open ▶</div></div>`;
+  cats.appendChild(a);
+});
+</script>
+</body>
+</html>
