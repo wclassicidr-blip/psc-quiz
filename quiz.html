@@ -1,301 +1,356 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Quiz • PSC Guru</title>
-  <style>
-    :root{
-      --bg:#eef7ef;
-      --card:#fff;
-      --ink:#0b2b19;
-      --muted:#5a6f63;
-      --brand:#2aa86f;
-      --brand-ghost:#e8f7f0;
-      --danger:#e85a5a;
-      --ok:#2dbb74;
-      --ring:rgba(42,168,111,.25)
-    }
-    *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    a{color:inherit;text-decoration:none}
-    .container{max-width:1100px;margin:0 auto;padding:24px}
-    header{position:sticky;top:0;background:linear-gradient(#e3f2e7,#eef7ef);border-bottom:1px solid #dfeee5;backdrop-filter:saturate(180%) blur(8px);z-index:10}
-    header .bar{display:flex;align-items:center;gap:12px;padding:10px 14px}
-    .logo{display:flex;align-items:center;gap:10px;font-weight:700}
-    .logo-badge{width:34px;height:34px;border-radius:8px;background:#1e7f55;color:#fff;display:grid;place-items:center;font-weight:800}
-    .spacer{flex:1}
-    .pill{display:inline-block;background:#fff;border:1px solid #dfeee5;padding:6px 14px;border-radius:22px}
-    .pill:hover{box-shadow:0 0 0 2px var(--ring)}
-    main h1{margin:10px 0 14px 0;font-size:28px}
-    .warn{background:#fff7e5;border:1px solid #ffe0a6;color:#5f4200;padding:12px 14px;border-radius:12px}
-    .controls{display:flex;gap:10px;margin:10px 0 16px}
-    .btn{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid #dfeee5;padding:8px 12px;border-radius:10px;cursor:pointer}
-    .btn:hover{box-shadow:0 0 0 2px var(--ring)}
-    .qa{background:var(--card);border:1px solid #dfeee5;border-radius:16px;padding:16px;margin:12px 0}
-    .q-top{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-    .q-no{width:28px;height:28px;border-radius:8px;background:var(--brand-ghost);color:#0d6b43;display:grid;place-items:center;font-weight:700}
-    .q-text{font-size:17px;font-weight:600}
-    .opts{display:grid;gap:8px;margin-top:12px}
-    .opt{all:unset;display:flex;align-items:center;gap:10px;border:1px solid #e7efe9;background:#fff;padding:10px 12px;border-radius:12px;cursor:pointer}
-    .opt:hover{box-shadow:0 0 0 2px var(--ring)}
-    .opt-letter{display:inline-grid;place-items:center;width:28px;height:28px;border-radius:8px;background:#f3f7f5;color:#4b5e53;font-weight:700}
-    .opt.correct{border-color:#bfead3;background:#f2fbf7}
-    .opt.wrong{border-color:#f2c4c4;background:#fff6f6}
-    .answer{margin-top:10px;padding:10px 12px;border-radius:12px;background:#f4faf6;border:1px dashed #cdebdc}
-    .hide{display:none}
-    .footnote{margin-top:18px;color:var(--muted);font-size:13px}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quiz • PSC Guru</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#eef6ee;
+    --card:#ffffff;
+    --ink:#123319;
+    --muted:#6c7a6f;
+    --accent:#2f7d32;
+    --accent-2:#eaf6eb;
+    --danger:#b73a3a;
+    --danger-2:#fdecec;
+    --ring:rgba(18,51,25,.08);
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Segoe UI Emoji;
+    color:var(--ink);
+    background:linear-gradient(180deg,#f3faf3, #e9f4e9);
+  }
+  .wrap{max-width:980px;margin:0 auto;padding:28px 20px 120px}
+  header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
+  h1{font-size:28px;margin:6px 0 18px}
+  .note{background:#fff8ea;border:1px solid #ffe4b9;color:#7a4d0b;border-radius:10px;padding:12px 14px;margin:10px 0}
+  .card{background:var(--card);border:1px solid #edf3ee;border-radius:16px;box-shadow:0 6px 30px var(--ring);padding:18px}
+  .q{text-wrap:balance;font-weight:600;margin:0 0 12px}
+  .opt{display:flex;gap:12px;flex-direction:column}
+  .btn{
+    border:1px solid #e8efe8;background:#fff;border-radius:12px;
+    padding:12px 14px;cursor:pointer;text-align:left;font:600 15px/1.3 Inter;
+    transition:.15s;box-shadow:0 1px 0 rgba(0,0,0,.02)
+  }
+  .btn:hover{background:#fafdf9;border-color:#dfeae0}
+  .btn.correct{background:var(--accent-2);border-color:#cfe9d0;color:#0e4e17}
+  .btn.wrong{background:var(--danger-2);border-color:#f8c9c9;color:#802d2d}
+  .meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px;margin-top:6px}
+  .footer{
+    position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.86);
+    backdrop-filter:blur(8px);border-top:1px solid #edf1ee
+  }
+  .bar{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:12px 18px}
+  .pill{padding:8px 12px;border-radius:999px;border:1px solid #e6efe6;background:#fff;color:#1d3f25;font-weight:600;cursor:pointer}
+  .pill.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .pill.secondary{background:#fff}
+  .pill:disabled{opacity:.5;cursor:not-allowed}
+  .sp{flex:1}
+  .timer{font-weight:700;color:#0d4f1a}
+  .grid{display:grid;gap:14px}
+  .hide{display:none}
+  .summary h2{margin:0 0 14px}
+  table{width:100%;border-collapse:collapse}
+  th,td{padding:10px 12px;border-bottom:1px solid #eef3ee;font-size:14px;vertical-align:top}
+  th{background:#f6fbf6;text-align:left}
+  .ok{color:#0f6b2e;font-weight:700}
+  .no{color:#b73a3a;font-weight:700}
+</style>
 </head>
 <body>
-  <header>
-    <div class="bar container">
-      <div class="logo">
-        <div class="logo-badge">PSC</div>
-        <div>PSC Guru</div>
+  <div class="wrap">
+    <header>
+      <div style="display:flex;align-items:center;gap:10px">
+        <a href="index.html" class="pill secondary">Home</a>
+        <a href="quiz.html" class="pill secondary">Quiz</a>
       </div>
-      <div class="spacer"></div>
-      <a class="pill" href="index.html">Home</a>
-      <!-- IMPORTANT: keep this pointing to category list to avoid entering quiz with no sheet -->
-      <a class="pill" href="index.html#categories">Quiz</a>
+      <div class="timer" id="timer">00:00</div>
+    </header>
+
+    <h1 id="title">Quiz</h1>
+
+    <div id="alert" class="note hide"></div>
+
+    <div id="stage" class="grid"></div>
+
+    <div id="summary" class="summary card hide"></div>
+  </div>
+
+  <div class="footer">
+    <div class="bar">
+      <button id="prev" class="pill secondary">← Prev</button>
+      <button id="reveal" class="pill secondary">Show Answer</button>
+      <span class="sp"></span>
+      <div id="pager" class="pill secondary">1 / 1</div>
+      <button id="next" class="pill primary">Next →</button>
     </div>
-  </header>
+  </div>
 
-  <main class="container">
-    <h1>Quiz</h1>
-    <div id="notice" class="warn hide"></div>
+<script>
+/* ================= CONFIG ================= */
+const GS_SHEET_ID =
+  localStorage.getItem('PSC_SHEET_ID') ||
+  "16iIOLKAKfzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // fallback
 
-    <div class="controls">
-      <button id="showAll" class="btn">Show all answers</button>
-      <button id="hideAll" class="btn">Hide all</button>
-    </div>
+// timer (seconds per quiz; set 0 to disable)
+const QUIZ_TIME = 0; // unlimited by default
 
-    <div id="list"></div>
+/* =============== UTILITIES ================= */
+const qs   = (s, el=document) => el.querySelector(s);
+const qsa  = (s, el=document) => [...el.querySelectorAll(s)];
+const enc  = s => encodeURIComponent(s);
+const sleep= ms => new Promise(r=>setTimeout(r,ms));
+const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a };
+const normKey = k => String(k||'')
+  .trim().toLowerCase()
+  .replace(/\uFEFF/g,'')           // BOM
+  .replace(/[\s\-_()/]+/g,'')      // spaces and punctuation
+; // => "opta", "answer", etc
 
-    <div class="footnote" id="meta"></div>
-  </main>
+function formatTime(sec){
+  const m = Math.floor(sec/60).toString().padStart(2,'0');
+  const s = Math.floor(sec%60).toString().padStart(2,'0');
+  return `${m}:${s}`;
+}
 
-  <script>
-    /* ================= CONFIG ================ */
-    // Your Google Sheet *document* ID (not the publish ID)
-    // Example shown in your screenshots; keep it here or replace with yours.
-    const GS_SHEET_ID = "16iIOLKAKfzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+/* ============== PARAMS ==================== */
+const params = new URLSearchParams(location.search);
+const sheetNameRaw = (params.get('sheet') || '').trim();
+const mode = params.get('mode') || 'category';
 
-    /* ============ URL helpers ============ */
-    const qs = new URLSearchParams(location.search);
-    const MODE  = (qs.get("mode") || "category").toLowerCase();
-    const SHEET = qs.get("sheet") || "";
-    const PAGE_SIZE = 9999; // show all on one page for this file
+if(!sheetNameRaw){
+  showAlert('No category selected.');
+}
+qs('#title').textContent = sheetNameRaw ? sheetNameRaw : 'Quiz';
 
-    const $ = (s, r=document) => r.querySelector(s);
-    const $$ = (s, r=document) => [...r.querySelectorAll(s)];
-    const show = (el) => el.classList.remove('hide');
-    const hide = (el) => el.classList.add('hide');
-    const setWarn = (msg) => { const n=$("#notice"); n.textContent=msg; show(n); };
+/* ============== FETCH HELPERS ============= */
+async function fetchGVizByName(name){
+  const base = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json`;
+  // 3 strategies: as-is, trimmed, and replacing slashes.
+  const tries = [
+    `${base}&sheet=${enc(name)}`,
+    `${base}&sheet=${enc(name.trim())}`,
+    `${base}&sheet=${enc(name.replace(/\//g,' / '))}` // stubborn names
+  ];
+  let lastErr=null;
+  for (const url of tries){
+    try{
+      const r = await fetch(url, {cache:'no-store'});
+      const txt = await r.text();
+      // GViz wraps JSON in a function call
+      const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/s);
+      if(!m) throw new Error("Bad GViz response");
+      const data = JSON.parse(m[1]);
+      if(data.status !== 'ok') throw new Error(data?.errors?.[0]?.detailed_message || 'GViz error');
+      return data.table;
+    }catch(e){ lastErr=e; }
+  }
+  throw lastErr || new Error('Failed to fetch GViz data');
+}
 
-    /* ======== Google Sheets gviz fetch + table-to-rows ======== */
-    async function fetchSheet(sheetName){
-      // gviz endpoint (works with public share or publish-to-web)
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheetName)}&tqx=out:json`;
-      const txt = await fetch(url).then(r=>r.text());
-      const json = JSON.parse(txt.substring(txt.indexOf('{'), txt.lastIndexOf('}')+1));
-      const cols = json.table.cols.map(c => (c.label || '').trim());
-      const rows = json.table.rows.map(r => (r.c || []).map(c => (c ? c.v : '')));
-      // If the first real row looks like headers, use it; otherwise use the column labels.
-      let headers = cols;
-      const firstRow = rows[0] || [];
-      const likelyHeader = firstRow.map(x => (x||'').toString().toLowerCase());
-      if (likelyHeader.includes('question') || likelyHeader.includes('answer')) {
-        headers = firstRow.map(x => (x||'').toString().trim());
-        rows.shift();
+function tableToObjects(table){
+  const cols = table.cols.map(c => normKey(c.label || c.id));
+  const out = [];
+  for (const row of table.rows){
+    const obj = {};
+    cols.forEach((k,i) => obj[k] = row.c[i]?.v ?? "");
+    out.push(obj);
+  }
+  return out;
+}
+
+/* ============== QUIZ STATE ================ */
+let data = [];
+let idx = 0;
+let answers = []; // for summary
+let timerStart = Date.now();
+let timerTick = null;
+
+function showAlert(msg){
+  const el = qs('#alert');
+  el.textContent = msg;
+  el.classList.remove('hide');
+}
+
+function hideAlert(){ qs('#alert').classList.add('hide'); }
+
+/* ============ RENDER QUESTION ============= */
+function render(){
+  hideAlert();
+  const s = qs('#stage');
+  s.innerHTML = '';
+  if(!data.length){ showAlert('No questions in this tab.'); return; }
+
+  const q = data[idx];
+  const card = document.createElement('div');
+  card.className = 'card';
+
+  const qEl = document.createElement('div');
+  qEl.className = 'q';
+  qEl.textContent = `${idx+1}. ${q.question}`;
+  card.appendChild(qEl);
+
+  const optBox = document.createElement('div');
+  optBox.className = 'opt';
+
+  // Build option set
+  let options = [];
+  let correctText = String(q.answer ?? q.correct ?? '').trim();
+
+  // MCQ if any optA..optD present
+  const mcqOpts = ['opta','optb','optc','optd'].map(k=>q[k]).filter(Boolean);
+  if (mcqOpts.length){
+    const pool = new Set(mcqOpts.map(String));
+    pool.add(correctText);
+    options = shuffle([...pool].map(String));
+  }else{
+    // Answers-only – show a single button to reveal
+    options = [correctText];
+  }
+
+  // remember which is correct
+  const correctIndex = options.findIndex(t => t.trim() === correctText.trim());
+  answers[idx] = {question:q.question, chosen:null, correct:correctText, options:[...options]};
+
+  options.forEach((txt, i) => {
+    const b = document.createElement('button');
+    b.className = 'btn';
+    b.innerHTML = txt;
+    b.onclick = () => {
+      // prevent re-answering
+      if (answers[idx].chosen!=null) return;
+      answers[idx].chosen = txt;
+
+      const isCorrect = (i === correctIndex);
+      if (isCorrect){ b.classList.add('correct'); } else { b.classList.add('wrong'); }
+      // mark correct one
+      qsa('.btn', card)[correctIndex]?.classList.add('correct');
+    };
+    optBox.appendChild(b);
+  });
+
+  card.appendChild(optBox);
+  s.appendChild(card);
+
+  qs('#pager').textContent = `${idx+1} / ${data.length}`;
+  qs('#prev').disabled = (idx===0);
+  qs('#next').disabled = (idx>=data.length-1);
+}
+
+/* ============== SUMMARY =================== */
+function showSummary(){
+  const box = qs('#summary');
+  box.classList.remove('hide');
+  const total = answers.length;
+  const got = answers.filter(a => a && a.chosen!=null && a.chosen.trim()===a.correct.trim()).length;
+  const timeSpent = (Date.now()-timerStart)/1000;
+
+  let html = `<h2>Quiz Summary</h2>
+    <p><strong>Score:</strong> ${got} / ${total} &nbsp;•&nbsp; <strong>Time:</strong> ${formatTime(timeSpent)}</p>
+    <div class="card" style="padding:0">
+    <table>
+      <thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct</th></tr></thead>
+      <tbody>`;
+
+  answers.forEach((a,i)=>{
+    if(!a) return;
+    const ok = a.chosen!=null && a.chosen.trim()===a.correct.trim();
+    html += `<tr>
+      <td>${i+1}</td>
+      <td>${a.question}</td>
+      <td class="${ok?'ok':'no'}">${a.chosen ?? '—'}</td>
+      <td>${a.correct}</td>
+    </tr>`;
+  });
+
+  html += `</tbody></table></div>`;
+  box.innerHTML = html;
+  // scroll to summary
+  box.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+/* ============== TIMER ===================== */
+function startTimer(){
+  if(!QUIZ_TIME){ // unlimited
+    timerTick = setInterval(()=>{
+      const t = (Date.now()-timerStart)/1000;
+      qs('#timer').textContent = formatTime(t);
+    },1000);
+    return;
+  }
+  let remain = QUIZ_TIME;
+  qs('#timer').textContent = formatTime(remain);
+  timerTick = setInterval(()=>{
+    remain -= 1;
+    qs('#timer').textContent = formatTime(remain);
+    if(remain<=0){
+      clearInterval(timerTick);
+      showSummary();
+      showAlert('⏱️ Time up! Summary shown below.');
+    }
+  },1000);
+}
+
+/* ============== EVENTS ==================== */
+qs('#prev').onclick  = ()=>{ if(idx>0){ idx--; render(); } };
+qs('#next').onclick  = ()=>{ if(idx<data.length-1){ idx++; render(); } };
+qs('#reveal').onclick= ()=>{
+  const buttons = qsa('.btn');
+  if(!buttons.length) return;
+  // find correct from saved
+  const a = answers[idx];
+  if(!a) return;
+  const correctIndex = a.options.findIndex(t => t.trim()===a.correct.trim());
+  buttons.forEach((b,i)=>{
+    b.classList.toggle('correct', i===correctIndex);
+  });
+};
+
+/* ============== LOAD ====================== */
+(async function init(){
+  try{
+    if(!sheetNameRaw) return;
+
+    const table = await fetchGVizByName(sheetNameRaw);
+    const rows = tableToObjects(table);
+
+    // Map headers to normalized keys and build clean objects
+    const cleaned = rows.map(r=>{
+      const obj = {};
+      for (const k in r){
+        const nk = normKey(k);
+        obj[nk] = r[k];
       }
-      // map to objects
-      const out = rows.map(r => {
-        const obj = {};
-        headers.forEach((h,i) => obj[String(h||'').trim()] = (r[i] ?? ''));
-        return obj;
-      });
-      return out;
+      // alias support
+      obj.question = obj.question ?? obj.q ?? '';
+      obj.answer   = obj.answer   ?? obj.ans ?? obj.correct ?? '';
+      return obj;
+    }).filter(r => (r.question && (r.answer || r.opta || r.optb || r.optc || r.optd)));
+
+    if(!cleaned.length){
+      showAlert('No rows with recognizable columns. Expected columns: id, question, answer OR (optA..optD + correct). Headers are trimmed automatically.');
+      return;
     }
 
-    /* ============== Choice building and shuffling ============== */
-    const LETTERS = ['A','B','C','D'];
-    const norm = (s) => (s || '').toString().trim().replace(/\s+/g,' ').toLowerCase();
+    data = cleaned;
+    idx = 0;
+    answers = Array(data.length).fill(null);
 
-    function shuffleArray(arr){
-      for (let i=arr.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [arr[i],arr[j]]=[arr[j],arr[i]];
-      }
-      return arr;
-    }
+    startTimer();
+    render();
 
-    /**
-     * Build option objects from a question row `q`.
-     * Returns [{ text, isCorrect }, ...] SHUFFLED.
-     * Supports:
-     *   - q.correct as "A|B|C|D" OR the exact answer text
-     *   - fallbacks to q.answer if 'correct' is not set
-     */
-    function buildChoices(q){
-      // Gather options from optA..optD (case-insensitive)
-      let opts = [];
-      LETTERS.forEach(L=>{
-        const v = q['opt'+L] ?? q['opt'+L.toLowerCase()];
-        if (v !== undefined && v !== '') {
-          opts.push({ text: String(v), isCorrect:false });
-        }
-      });
-
-      // Determine correct text
-      let correctText = '';
-      if (q.correct && String(q.correct).trim() !== '') {
-        const c = String(q.correct).trim();
-        if (LETTERS.includes(c.toUpperCase())){
-          correctText = q['opt'+c.toUpperCase()] ?? q['opt'+c.toLowerCase()] ?? '';
-        } else {
-          correctText = c;
-        }
-      } else {
-        correctText = q.answer ? String(q.answer) : '';
-      }
-
-      // Mark correct by text
-      let anyMarked = false;
-      opts.forEach(o=>{
-        if (norm(o.text) === norm(correctText)) { o.isCorrect=true; anyMarked=true; }
-      });
-
-      // If the correct text wasn't in options, add it as an extra option
-      if (!anyMarked && correctText) {
-        opts.push({ text: correctText, isCorrect:true });
-      }
-
-      // De-duplicate by text while keeping a correct one if duplicates
-      const seen = new Map();
-      for (const o of opts){
-        const k = norm(o.text);
-        if (!seen.has(k) || o.isCorrect) seen.set(k,o);
-      }
-      opts = [...seen.values()];
-
-      // SHUFFLE so correct isn't always first
-      return shuffleArray(opts);
-    }
-
-    /* ============== Rendering ============== */
-    function onOptionClick(e){
-      const btn = e.currentTarget;
-      const wrap = btn.closest('.opts');
-      // disable others
-      $$('.opt', wrap).forEach(b=>b.disabled = true);
-      const isCorrect = btn.dataset.correct === '1';
-      btn.classList.add(isCorrect ? 'correct' : 'wrong');
-      if (!isCorrect){
-        // highlight the correct one
-        const good = $('.opt[data-correct="1"]', wrap);
-        if (good) good.classList.add('correct');
-      }
-    }
-
-    function renderQA(items){
-      const list = $("#list");
-      list.innerHTML = '';
-
-      items.forEach((q, idx)=>{
-        // Skip empty lines
-        const qText = (q.question ?? q.Question ?? '').toString().trim();
-        const aText = (q.answer   ?? q.Answer   ?? '').toString().trim();
-        if (!qText) return;
-
-        const card = document.createElement('div');
-        card.className = 'qa';
-
-        const top = document.createElement('div');
-        top.className = 'q-top';
-        top.innerHTML = `<div class="q-no">${idx+1}</div><div class="q-text">${qText}</div>`;
-        card.appendChild(top);
-
-        // Does this row look like MCQ (has any options)?
-        const hasAnyOption =
-          !!(q.optA ?? q.opta) ||
-          !!(q.optB ?? q.optb) ||
-          !!(q.optC ?? q.optc) ||
-          !!(q.optD ?? q.optd);
-
-        if (hasAnyOption){
-          const choices = buildChoices(q);
-          const optsWrap = document.createElement('div');
-          optsWrap.className = 'opts';
-          choices.forEach((choice, i)=>{
-            const btn = document.createElement('button');
-            btn.type='button';
-            btn.className='opt';
-            btn.dataset.correct = choice.isCorrect ? '1' : '0';
-            btn.innerHTML = `<span class="opt-letter">${String.fromCharCode(65+i)}.</span> ${choice.text}`;
-            btn.addEventListener('click', onOptionClick);
-            optsWrap.appendChild(btn);
-          });
-          card.appendChild(optsWrap);
-        } else {
-          // Simple Q/A row – show a reveal button
-          const reveal = document.createElement('div');
-          reveal.className = 'answer hide';
-          reveal.textContent = aText || '—';
-          const btn = document.createElement('button');
-          btn.className='btn';
-          btn.type='button';
-          btn.textContent = 'Show Answer';
-          btn.addEventListener('click', ()=>{
-            if (reveal.classList.contains('hide')) {
-              reveal.classList.remove('hide');
-              btn.textContent = 'Hide Answer';
-            } else {
-              reveal.classList.add('hide');
-              btn.textContent = 'Show Answer';
-            }
-          });
-          card.appendChild(btn);
-          card.appendChild(reveal);
-        }
-
-        list.appendChild(card);
-      });
-    }
-
-    /* ============== Init ============== */
-    async function init(){
-      if (MODE !== 'category'){
-        setWarn('Open quizzes from the category cards. Redirecting…');
-        setTimeout(()=>location.href='index.html#categories', 800);
-        return;
-      }
-      if (!SHEET){
-        setWarn('No category selected. Redirecting to categories…');
-        setTimeout(()=>location.href='index.html#categories', 800);
-        return;
-      }
-
-      try{
-        const rows = await fetchSheet(SHEET);
-        const clean = rows.filter(r => (r.question ?? r.Question ?? '').toString().trim() !== '');
-        if (clean.length === 0){
-          setWarn('No questions found in this tab. Check headers: question / answer / optA…optD / correct.');
-          return;
-        }
-        renderQA(clean);
-        $('#meta').textContent = `${clean.length} question(s) • Sheet: ${SHEET}`;
-      }catch(err){
-        console.error(err);
-        setWarn('Failed to load this tab. Make sure the sheet is public (or Published to the web) and the tab name matches the card.');
-      }
-    }
-
-    // Show/Hide all Q/A answers (non-MCQ)
-    $('#showAll').addEventListener('click', ()=> $$('.answer').forEach(el=>show(el)));
-    $('#hideAll').addEventListener('click',  ()=> $$('.answer').forEach(el=>hide(el)));
-
-    init();
-  </script>
+  }catch(err){
+    console.error(err);
+    showAlert(`Failed to load this tab. ${err.message || err}. Make sure the sheet is public and the tab name matches exactly.`);
+  }
+})();
+</script>
 </body>
 </html>
