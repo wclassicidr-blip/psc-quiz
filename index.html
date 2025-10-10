@@ -1,0 +1,162 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PSC Guru – Home</title>
+<style>
+:root{--bg:#eef7ee;--card:#fff;--muted:#6b7280;--ink:#0f172a;--shadow:0 10px 30px rgba(0,0,0,.08);}
+*{box-sizing:border-box}html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7}
+.wrap{max-width:1100px;margin:0 auto;padding:18px 16px;display:flex;gap:12px;align-items:center}
+.logo{width:36px;height:36px;border-radius:10px;background:#2f8f50;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
+h2.section{max-width:1100px;margin:16px auto 8px;padding:0 16px;font-size:18px}
+.grid{max-width:1100px;margin:0 auto;display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;padding:0 16px}
+.tile{border:0;background:var(--card);border-radius:18px;padding:18px 16px;text-align:left;cursor:pointer;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;gap:12px;transition:.12s}
+.tile:hover{transform:translateY(-2px);box-shadow:0 12px 34px rgba(0,0,0,.12)}
+.tile .label{font-weight:800}.tile .sub{font-size:12px;color:var(--muted);margin-top:2px}.tile .ic{opacity:.25;font-size:24px}
+.tile.quick{background:linear-gradient(135deg,#ffd5d5,#ffe9e9)}.tile.quick.blue{background:linear-gradient(135deg,#c7ddff,#e2ecff)}
+a.reset{color:inherit;text-decoration:none}
+footer{max-width:1100px;margin:32px auto 0;padding:8px 16px;color:#7a8d7f;font-size:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="logo">PSC</div>
+    <div style="font-weight:800">PSC Guru <div style="color:#4d7c57;font-weight:600">Kerala PSC Exam Prep</div></div>
+    <div style="margin-left:auto"><a class="reset" href="quiz.html"><button style="padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer">Quiz</button></a></div>
+  </div>
+</header>
+
+<h2 class="section">Quick Quiz</h2>
+<div class="grid">
+  <a class="reset" href="quiz.html?mode=random"><div class="tile quick"><div><div class="label">Random Quiz</div><div class="sub">10 questions across all categories</div></div><div class="ic">🎲</div></div></a>
+  <a class="reset" href="quiz.html?mode=ai"><div class="tile quick blue"><div><div class="label">AI vs You</div><div class="sub">Multiple choice only</div></div><div class="ic">🤖</div></div></a>
+</div>
+
+<h2 class="section">Quiz Categories</h2>
+<div class="grid" id="tiles"></div>
+
+<footer>© <span id="year"></span> PSC Guru • Tea Green UI</footer>
+
+<script>
+
+window.GS_CONFIG = {
+  enabled: true,
+  sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
+  // If you also "Publish to web", you can add publishedId: "<published-id>" for auto-discovery
+  categories: [
+  {
+    "key": "information_technology",
+    "sheet": "Information Technology",
+    "title": "Information Technology"
+  },
+  {
+    "key": "civil_police_excise_officer_mod",
+    "sheet": "Civil Police Excise Officer Mod",
+    "title": "Civil Police Excise Officer Mod"
+  },
+  {
+    "key": "cat",
+    "sheet": "സാമൂഹ്യക്ഷേമം",
+    "title": "സാമൂഹ്യക്ഷേമം"
+  },
+  {
+    "key": "cat",
+    "sheet": "രസതന്ത്രം",
+    "title": "രസതന്ത്രം"
+  },
+  {
+    "key": "cat",
+    "sheet": "ഭൗതിക ശാസ്ത്രം",
+    "title": "ഭൗതിക ശാസ്ത്രം"
+  },
+  {
+    "key": "gst_malayalam",
+    "sheet": "GST Malayalam",
+    "title": "GST Malayalam"
+  },
+  {
+    "key": "cat",
+    "sheet": "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",
+    "title": "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം"
+  },
+  {
+    "key": "cat",
+    "sheet": "കലയും – സാഹിത്യവും",
+    "title": "കലയും – സാഹിത്യവും"
+  },
+  {
+    "key": "cyber_law",
+    "sheet": "Cyber Law",
+    "title": "Cyber Law"
+  },
+  {
+    "key": "lakes_in_kerala",
+    "sheet": "Lakes in Kerala",
+    "title": "Lakes in Kerala"
+  },
+  {
+    "key": "indian_independence",
+    "sheet": "Indian Independence",
+    "title": "Indian Independence"
+  }
+]
+};
+
+// ===== CSV + helpers (same as before) =====
+function csvToRows(csv){
+  var rows=[],row=[],s='',q=false;
+  for (var i=0;i<csv.length;i++){
+    var ch=csv[i], nx=csv[i+1];
+    if(q){ if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else { q=false; } } else { s+=ch; } }
+    else {
+      if(ch=='"') q=true;
+      else if(ch==','){ row.push(s); s=''; }
+      else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; }
+      else if(ch!='\r'){ s+=ch; }
+    }
+  }
+  if(s.length||row.length){ row.push(s); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows||!rows.length) return [];
+  var head=rows[0].map(function(h){ return (h||'').toString().trim().toLowerCase(); });
+  var out=[];
+  for(var r=1;r<rows.length;r++){
+    var o={}, rr=rows[r];
+    for(var c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
+    if(Object.values(o).join('').length) out.push(o);
+  }
+  return out;
+}
+function normalize(o){
+  var id=parseInt(o.id,10);
+  var item={ id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
+  ['A','B','C','D'].forEach(function(k){ var v=o['opt'+k]; if(v) item['opt'+k]=v; });
+  if(o.correct) item.correct=o.correct;
+  return item;
+}
+function shuffle(a){ for(var i=a.length-1;i>0;i--){ var j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
+function fetchCSV(sheetId, sheet){
+  var url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(sheetId)+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheet);
+  return fetch(url, {mode:'cors'}).then(function(r){ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
+}
+
+
+// Build tiles for ALL categories from the config
+function buildTiles() {
+  const box=document.getElementById('tiles'); box.innerHTML='';
+  (GS_CONFIG.categories||[]).forEach(function(c){
+    const href='quiz.html?cat='+encodeURIComponent(c.sheet);
+    const a=document.createElement('a'); a.className='reset'; a.href=href;
+    a.innerHTML='<div class="tile"><div><div class="label">'+c.title+'</div><div class="sub">From Google Sheets</div></div><div class="ic">📘</div></div>';
+    box.appendChild(a);
+  });
+}
+document.getElementById('year').textContent=new Date().getFullYear();
+if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', buildTiles); else buildTiles();
+</script>
+</body>
+</html>
