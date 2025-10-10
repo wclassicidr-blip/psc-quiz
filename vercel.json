@@ -2,11 +2,5 @@
   "cleanUrls": true,
   "rewrites": [
     { "source": "/quiz", "destination": "/quiz.html" }
-  ],
-  "headers": [
-    { "source": "/",          "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/quiz",      "headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/index.html","headers": [{ "key": "Cache-Control", "value": "no-store" }] },
-    { "source": "/quiz.html", "headers": [{ "key": "Cache-Control", "value": "no-store" }] }
   ]
 }
