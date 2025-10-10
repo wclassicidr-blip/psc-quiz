@@ -1,89 +1,206 @@
 <!doctype html>
 <html lang="ml">
 <head>
-  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PSC Guru</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PSC Guru – Home</title>
   <style>
-    :root{--bg:#eef7ee;--ink:#0f172a;--muted:#64748b;--card:#fff;--shadow:0 10px 30px rgba(0,0,0,.08);}
+    :root{
+      --bg:#eef7ee;--ink:#0f172a;--muted:#64748b;--card:#ffffff;
+      --shadow:0 10px 30px rgba(0,0,0,.08);
+      --red:#fecaca;--blue:#dbeafe;--green:#dcfce7;--violet:#ede9fe;
+    }
     *{box-sizing:border-box}
-    html,body{margin:0;padding:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
     header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7;z-index:30}
     .wrap{max-width:1100px;margin:0 auto;padding:18px 16px;display:flex;gap:12px;align-items:center}
     .logo{width:36px;height:36px;border-radius:10px;background:#2f8f50;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
     .btn{padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
-    .title{max-width:1100px;margin:18px auto 0;padding:0 16px;font-size:22px;font-weight:900}
-    main{max-width:1100px;margin:10px auto;padding:0 16px 90px}
-    .quick{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:18px;margin-top:12px}
-    .qcard{background:#fff;border-radius:16px;padding:16px;border:1px solid #e5e7eb;box-shadow:var(--shadow);cursor:pointer;text-decoration:none;color:inherit}
-    .qcard:hover{transform:translateY(-1px)}
-    .sub{color:var(--muted);font-size:13px;margin-top:4px}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;margin-top:12px}
-    .cat{background:#fff;border:1px solid #e5e7eb;border-radius:14px;padding:14px;box-shadow:var(--shadow);display:flex;align-items:center;justify-content:space-between;text-decoration:none;color:inherit}
-    .tag{font-size:12px;color:#6b7280}
-    .pill{padding:4px 8px;border-radius:999px;background:#f1f5f9;border:1px solid #e5e7eb}
-    footer{position:sticky;bottom:0;border-top:1px solid #e5e7eb;background:color-mix(in oklab, #eef7ee 90%, #fff 10%);padding:10px 16px}
+    .section{max-width:1100px;margin:0 auto;padding:16px}
+    h2{margin:10px 0 8px}
+    .sub{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (max-width:720px){ .grid2{grid-template-columns:1fr} }
+    .card{background:var(--card);border-radius:14px;border:1px solid #e5e7eb;box-shadow:var(--shadow);padding:14px;display:flex;flex-direction:column;gap:8px}
+    .card-row{display:flex;align-items:center;gap:10px}
+    .icon{width:40px;height:40px;border-radius:12px;display:grid;place-items:center;font-weight:900}
+    .i-red{background:var(--red)} .i-blue{background:var(--blue)} .i-green{background:var(--green)} .i-violet{background:var(--violet)}
+    a.cardlink{display:block;text-decoration:none;color:inherit}
+    .pill{padding:6px 10px;border-radius:999px;background:#f1f5f9;font-size:12px;color:#0f172a}
+    .gridCats{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (min-width:960px){ .gridCats{grid-template-columns:repeat(3,minmax(0,1fr));} }
   </style>
 </head>
 <body>
 <header>
   <div class="wrap">
     <div class="logo">PSC</div>
-    <div style="font-weight:800">PSC Guru <div style="color:#64748b;font-weight:600">Kerala PSC Exam Prep</div></div>
+    <div style="font-weight:800">PSC Guru <div class="sub" style="font-weight:600">Kerala PSC Exam Prep</div></div>
     <div style="margin-left:auto;display:flex;gap:8px">
-      <a href="/"><button class="btn">Home</button></a>
+      <a href="index.html"><button class="btn">Home</button></a>
       <a href="quiz.html"><button class="btn">Quiz</button></a>
     </div>
   </div>
 </header>
 
-<div class="title">Quick Quiz</div>
 <main>
-  <div class="quick">
-    <a href="quiz.html?mode=random" class="qcard">
-      <div style="font-weight:900">Random Quiz</div>
-      <div class="sub">Pick how many questions • all categories</div>
-    </a>
-    <a href="quiz.html?mode=ai" class="qcard">
-      <div style="font-weight:900">Multiple Choice Questions</div>
-      <div class="sub">Timed MCQ • computer guesses vs your answers</div>
-    </a>
-  </div>
+  <!-- Quick Quiz -->
+  <section class="section">
+    <h2>Quick Quiz</h2>
+    <div class="grid2">
+      <a class="cardlink" href="quiz.html?mode=random">
+        <div class="card">
+          <div class="card-row">
+            <div class="icon i-red">🎲</div>
+            <div>
+              <div style="font-weight:800">Random Quiz</div>
+              <div class="sub">Pick count & play from all categories</div>
+            </div>
+          </div>
+        </div>
+      </a>
+      <a class="cardlink" href="quiz.html?mode=ai">
+        <div class="card">
+          <div class="card-row">
+            <div class="icon i-blue">🤖</div>
+            <div>
+              <div style="font-weight:800">AI vs You</div>
+              <div class="sub">Timed MCQ – computer vs your answers</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
 
-  <div class="title" style="margin:18px 0 0">Quiz Categories</div>
-  <div class="grid" id="cats"></div>
+  <!-- NEW: Study / Notifications -->
+  <section class="section">
+    <h2>Resources</h2>
+    <div class="grid2" id="resourcesRow">
+      <a class="cardlink" href="resources.html?type=study">
+        <div class="card">
+          <div class="card-row">
+            <div class="icon i-green">📚</div>
+            <div>
+              <div style="font-weight:800">Study Material</div>
+              <div class="sub">PDF notes & reading list</div>
+              <div class="pill" id="studyCount">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </a>
+      <a class="cardlink" href="resources.html?type=notices">
+        <div class="card">
+          <div class="card-row">
+            <div class="icon i-violet">📢</div>
+            <div>
+              <div style="font-weight:800">Exam Notifications</div>
+              <div class="sub">Latest PSC notifications</div>
+              <div class="pill" id="noticeCount">Loading…</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    </div>
+  </section>
+
+  <!-- Categories -->
+  <section class="section">
+    <h2>Quiz Categories</h2>
+    <div class="sub" id="catMeta">Loading categories…</div>
+    <div class="gridCats" id="catGrid"></div>
+  </section>
 </main>
 
-<footer>
-  <div style="max-width:1100px;margin:0 auto;display:flex;align-items:center;justify-content:space-between">
-    <div class="tag">© 2025 PSC Guru • Tea Green UI</div>
-    <a class="pill" href="https://docs.google.com/spreadsheets/d/16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o/edit" target="_blank">Google Sheets</a>
-  </div>
-</footer>
-
 <script>
-const CONFIG = {
+/* ----------------- CONFIG ----------------- */
+const GS_CONFIG = {
+  sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
   categories: [
-    { key: "gst_malayalam",                title: "GST Malayalam" },
-    { key: "lakes_in_kerala",              title: "Lakes in Kerala" },
-    { key: "indian_independence_ml",       title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
-    { key: "arts_lit",                     title: "കലയും – സാഹിത്യവും" },
-    { key: "cyber_law",                    title: "Cyber Law" },
-    { key: "information_technology",       title: "Information Technology" },
-    { key: "civil_police_excise_officer_mod", title: "Civil Police/ Excise Officer" },
-    { key: "samuhyakshamam",               title: "സാമൂഹ്യക്ഷേമം" },
-    { key: "chemistry",                    title: "രസതന്ത്രം – Chemistry" },
-    { key: "physical_science",             title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
-    { key: "indian_independence_en",       title: "Indian Independence" }
-  ]
+    { key: "information_technology",           sheet: "Information Technology",           title: "Information Technology" },
+    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  title: "Civil Police/ Excise Officer" },
+    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     title: "സാമൂഹ്യക്ഷേമം" },
+    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           title: "രസതന്ത്രം – Chemistry" },
+    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
+    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    title: "GST Malayalam" },
+    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
+    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  title: "കലയും – സാഹിത്യവും" },
+    { key: "cyber_law",                        sheet: "Cyber Law",                        title: "Cyber Law" },
+    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  title: "Lakes in Kerala" },
+    { key: "indian_independence_en",           sheet: "Indian Independence",              title: "Indian Independence" }
+  ],
+  resources: {
+    /* Set these to your sheet tab names */
+    studySheet:   "Study Material",
+    noticeSheet:  "Exam Notifications"
+  }
 };
-const cats=document.getElementById('cats');
-CONFIG.categories.forEach(c=>{
-  const a=document.createElement('a');
-  a.href=`quiz.html?cat=${encodeURIComponent(c.key)}`;
-  a.className='cat';
-  a.innerHTML=`<div><div style="font-weight:800">${c.title}</div><div class="tag">From Google Sheets</div></div><div class="pill">Open ▶</div>`;
-  cats.appendChild(a);
-});
+
+/* ------------- tiny CSV helpers ------------- */
+function csvToRows(csv){
+  const rows=[]; let row=[]; let s=''; let q=false;
+  for(let i=0;i<c‍sv.length;i++){
+    const ch=csv[i], nx=csv[i+1];
+    if(q){ if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else q=false; } else s+=ch; }
+    else { if(ch=='"') q=true; else if(ch==','){ row.push(s); s=''; } else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; } else if(ch!='\r'){ s+=ch; } }
+  }
+  if(s.length||row.length){ row.push(s); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows || !rows.length) return [];
+  const head = rows[0].map(h => (h||'').toString().trim().toLowerCase());
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const o={}, rr=rows[r]||[];
+    for(let c=0;c<head.length;c++) o[head[c]]=(rr[c]||'').toString().trim();
+    if(Object.values(o).join('').length) out.push(o);
+  }
+  return out;
+}
+function fetchCSV(sheetId, tabName){
+  return fetch(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`)
+    .then(r=>{ if(!r.ok) throw new Error('CSV fetch failed'); return r.text(); });
+}
+
+/* ------------- categories grid ------------- */
+function renderCategories(){
+  const grid = document.getElementById('catGrid');
+  const meta = document.getElementById('catMeta');
+  const cats = GS_CONFIG.categories || [];
+  grid.innerHTML = cats.map(c => `
+    <a class="cardlink" href="quiz.html?cat=${encodeURIComponent(c.key)}">
+      <div class="card">
+        <div style="font-weight:800">${c.title}</div>
+        <div class="sub">From Google Sheets</div>
+      </div>
+    </a>
+  `).join('');
+  meta.textContent = `${cats.length} categories`;
+}
+
+/* ------------- resources counts ------------- */
+function loadResourceCounts(){
+  const sid = GS_CONFIG.sheetId;
+  const studyTab = GS_CONFIG.resources.studySheet;
+  const noticeTab = GS_CONFIG.resources.noticeSheet;
+
+  fetchCSV(sid, studyTab).then(t=>{
+    const n = rowsToObjects(csvToRows(t)).filter(x => (x.url||x.link||x.pdf)).length;
+    document.getElementById('studyCount').textContent = `${n} items`;
+  }).catch(_=>{ document.getElementById('studyCount').textContent = '—'; });
+
+  fetchCSV(sid, noticeTab).then(t=>{
+    const n = rowsToObjects(csvToRows(t)).filter(x => (x.url||x.link)).length;
+    document.getElementById('noticeCount').textContent = `${n} items`;
+  }).catch(_=>{ document.getElementById('noticeCount').textContent = '—'; });
+}
+
+/* ------------- boot ------------- */
+(function init(){
+  renderCategories();
+  loadResourceCounts();
+})();
 </script>
 </body>
 </html>
