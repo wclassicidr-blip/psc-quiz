@@ -24,14 +24,14 @@ footer{max-width:1100px;margin:32px auto 0;padding:8px 16px;color:#7a8d7f;font-s
   <div class="wrap">
     <div class="logo">PSC</div>
     <div style="font-weight:800">PSC Guru <div style="color:#4d7c57;font-weight:600">Kerala PSC Exam Prep</div></div>
-    <div style="margin-left:auto"><a class="reset" href="/quiz"><button style="padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer">Quiz</button></a></div>
+    <div style="margin-left:auto"><a class="reset" href="quiz.html"><button style="padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer">Quiz</button></a></div>
   </div>
 </header>
 
 <h2 class="section">Quick Quiz</h2>
 <div class="grid">
-  <a class="reset" href="/quiz?mode=random"><div class="tile quick"><div><div class="label">Random Quiz</div><div class="sub">Choose how many</div></div><div class="ic">🎲</div></div></a>
-  <a class="reset" href="/quiz?mode=ai"><div class="tile quick blue"><div><div class="label">AI vs You</div><div class="sub">Timed MCQ across all categories</div></div><div class="ic">🤖</div></div></a>
+  <a class="reset" href="quiz.html?mode=random"><div class="tile quick"><div><div class="label">Random Quiz</div><div class="sub">Choose how many</div></div><div class="ic">🎲</div></div></a>
+  <a class="reset" href="quiz.html?mode=ai"><div class="tile quick blue"><div><div class="label">AI vs You</div><div class="sub">Timed MCQ across all categories</div></div><div class="ic">🤖</div></div></a>
 </div>
 
 <h2 class="section">Quiz Categories</h2>
@@ -40,7 +40,7 @@ footer{max-width:1100px;margin:32px auto 0;padding:8px 16px;color:#7a8d7f;font-s
 <footer>© <span id="year"></span> PSC Guru • Tea Green UI</footer>
 
 <script>
-/* ====== CONFIG: put your sheetId + (optionally) gid for each tab ====== */
+/* ====== CONFIG: Your Google Sheet ====== */
 window.GS_CONFIG = {
   sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
   categories: [
@@ -61,7 +61,7 @@ window.GS_CONFIG = {
 function buildTiles(){
   const box=document.getElementById('tiles'); box.innerHTML='';
   (GS_CONFIG.categories||[]).forEach(function(c){
-    const a=document.createElement('a'); a.className='reset'; a.href='/quiz?cat='+encodeURIComponent(c.key);
+    const a=document.createElement('a'); a.className='reset'; a.href='quiz.html?cat='+encodeURIComponent(c.key);
     a.innerHTML='<div class="tile"><div><div class="label">'+c.title+'</div><div class="sub">From Google Sheets</div></div><div class="ic">📘</div></div>';
     box.appendChild(a);
   });
