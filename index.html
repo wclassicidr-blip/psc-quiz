@@ -28,9 +28,7 @@
       background:linear-gradient(0deg,#e6f3e7,#e2f0e4);
       border-bottom:1px solid rgba(0,0,0,.05);
     }
-    .nav{
-      display:flex;align-items:center;justify-content:space-between;gap:16px;
-    }
+    .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
     .brand{display:flex;align-items:center;gap:12px;font-weight:800}
     .logo{
       width:40px;height:40px;border-radius:12px;background:#d7f2dc;color:#185b2b;
@@ -45,18 +43,21 @@
     h1{font-size:28px;margin:18px 0 8px}
     .muted{color:var(--muted)}
 
-    /* Quick quiz */
+    /* Card rows (2-up on desktop) */
     .row{display:grid;grid-template-columns:1fr;gap:16px}
     @media (min-width:820px){.row{grid-template-columns:1fr 1fr}}
+
     .qq-card{
       background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
-      padding:18px 18px 18px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px
+      padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px
     }
     .qq-left{display:flex;align-items:center;gap:12px}
     .qq-ico{
       width:44px;height:44px;border-radius:12px;background:#ffe6e6;display:grid;place-items:center;font-size:22px
     }
     .qq-ico.bot{background:#e7ecff}
+    .qq-ico.study{background:#e9fff1}
+    .qq-ico.notice{background:#fff3d9}
     .qq-title{font-weight:800}
     .qq-sub{font-size:13px;color:var(--muted)}
     .qq-right .pill{font-weight:700}
@@ -141,6 +142,35 @@
       </div>
     </div>
 
+    <!-- NEW: Study & Notices cards row -->
+    <h1 style="margin-top:28px">Study & Notices</h1>
+    <div class="row">
+      <div class="qq-card">
+        <div class="qq-left">
+          <div class="qq-ico study">📚</div>
+          <div>
+            <div class="qq-title">Study Material</div>
+            <div class="qq-sub">PDF links from Google Sheets</div>
+          </div>
+        </div>
+        <div class="qq-right">
+          <a class="pill" href="resources.html">Open</a>
+        </div>
+      </div>
+      <div class="qq-card">
+        <div class="qq-left">
+          <div class="qq-ico notice">🔔</div>
+          <div>
+            <div class="qq-title">Exam Notifications</div>
+            <div class="qq-sub">Latest PSC notices from Google Sheets</div>
+          </div>
+        </div>
+        <div class="qq-right">
+          <a class="pill" href="notices.html">Open</a>
+        </div>
+      </div>
+    </div>
+
     <h1 style="margin-top:28px" class="section-head">
       Quiz Categories
       <span class="count-badge" data-cat-count>0</span>
@@ -161,10 +191,8 @@
 
   <script>
     /* ============== CONFIG ============== */
-    // Your Google Sheet (document) ID
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 
-    // Tabs we ignore when falling back to the worksheet feed:
     const EXCLUDE_TABS = new Set([
       "Categories","Study Material","Exam Notifications","Resources",
       "README","Config","Sample","Sheet1","Sheet2"
@@ -175,7 +203,7 @@
     const $$ = (sel,root=document)=>[...root.querySelectorAll(sel)];
     $("#year").textContent = new Date().getFullYear();
 
-    // Very small CSV splitter that preserves quoted commas
+    // minimal CSV splitter
     function csvToRows(csv) {
       const lines = csv.trim().split(/\r?\n/);
       return lines.map(line =>
@@ -196,7 +224,6 @@
         `;
         grid.appendChild(a);
       });
-      // Update count + hide banner
       const badge = document.querySelector("[data-cat-count]");
       if (badge) badge.textContent = names.length;
       const warn = $("#cat-error");
@@ -235,15 +262,12 @@
       if (badge) badge.textContent = "0";
       if (warn) warn.hidden = false;
 
-      // 1) Try Categories tab (CSV)
       try {
         const names = await tryCategoriesCSV();
         renderCategories(names);
         return;
-      } catch (e) {
-        console.warn("Categories CSV failed:", e);
-      }
-      // 2) Fallback to worksheet feed
+      } catch (e) { console.warn("Categories CSV failed:", e); }
+
       try {
         const names = await tryWorksheetFeed();
         renderCategories(names);
@@ -253,11 +277,10 @@
       }
     }
 
-    // Search filter
     $("#search").addEventListener("input", e=>{
       const q = e.target.value.trim().toLowerCase();
       $$(".cat-card").forEach(card=>{
-        const name = $(".cat-card__title", card).textContent.toLowerCase();
+        const name = card.querySelector(".cat-card__title").textContent.toLowerCase();
         card.style.display = name.includes(q) ? "" : "none";
       });
     });
