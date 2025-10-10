@@ -3,92 +3,49 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>PSC Guru — Kerala PSC Exam Prep</title>
-  <meta name="description" content="Kerala PSC Quiz App" />
+  <title>Quiz • PSC Guru</title>
   <style>
     :root{
-      --bg:#eef7ef;
-      --card:#ffffff;
-      --brand:#2a7f3f;
-      --text:#183420;
-      --muted:#6a7f71;
-      --accent:#f0fff4;
-      --shadow:0 8px 24px rgba(0,0,0,.08);
-      --radius:16px;
+      --bg:#eef7ef;--card:#ffffff;--muted:#6a7f71;--text:#173726;--brand:#2a7f3f;
+      --shadow:0 8px 24px rgba(0,0,0,.08);--radius:16px;--ok:#1f9d55;--bad:#e02424;
     }
     *{box-sizing:border-box}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
-    }
+    body{margin:0;background:var(--bg);color:var(--text);
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;}
     .container{max-width:1120px;margin:0 auto;padding:28px 20px}
-    header{
-      background:linear-gradient(0deg,#e6f3e7,#e2f0e4);
-      border-bottom:1px solid rgba(0,0,0,.05);
-    }
-    .nav{display:flex;align-items:center;justify-content:space-between;gap:16px}
-    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
-    .logo{
-      width:40px;height:40px;border-radius:12px;background:#d7f2dc;color:#185b2b;
-      display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)
-    }
-    .navlinks{display:flex;gap:10px;flex-wrap:wrap}
-    .pill{
-      appearance:none;border:none;border-radius:999px;padding:8px 14px;
-      background:#fff;box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:600
-    }
-    .pill:hover{filter:brightness(.98)}
-    h1{font-size:28px;margin:18px 0 8px}
+    header{background:linear-gradient(0deg,#e6f3e7,#e2f0e4);border-bottom:1px solid rgba(0,0,0,.05)}
+    .nav{display:flex;align-items:center;justify-content:space-between}
+    .brand{display:flex;gap:12px;align-items:center}
+    .logo{width:40px;height:40px;border-radius:12px;background:#d7f2dc;color:#185b2b;
+      display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
     .muted{color:var(--muted)}
+    .pill{appearance:none;border:none;border-radius:999px;padding:8px 14px;background:#fff;
+      box-shadow:var(--shadow);text-decoration:none;color:inherit;font-weight:600}
+    h1{font-size:28px;margin:18px 0 8px}
+    .sub{margin-bottom:12px;color:var(--muted);font-size:14px}
 
-    /* Card rows (2-up on desktop) */
-    .row{display:grid;grid-template-columns:1fr;gap:16px}
-    @media (min-width:820px){.row{grid-template-columns:1fr 1fr}}
+    /* list + card */
+    .banner{margin:8px 0 14px;padding:12px 14px;border-radius:12px;border:1px solid #e8d5b8;background:#fff6e6;color:#7a4d00}
+    .list{display:flex;flex-direction:column;gap:12px}
+    .card{background:var(--card);border:1px solid #e8efe8;border-radius:14px;box-shadow:var(--shadow);padding:16px}
+    .q{font-weight:800;margin-bottom:8px}
+    .btn{appearance:none;border:none;border-radius:10px;padding:9px 12px;background:#f5faf6;cursor:pointer}
+    .btn-row{display:flex;gap:10px;flex-wrap:wrap}
+    .ans{margin-top:10px;padding:10px 12px;border-radius:10px;background:#f1fff4;border:1px dashed #bfe6c7;display:none}
+    .card.revealed .ans{display:block}
+    .opt{display:block;width:100%;text-align:left;border:1px solid #e8efe8;background:#fff;padding:10px 12px;border-radius:12px}
+    .opt:hover{background:#f6fbf7}
+    .opt.correct{border-color:#bde5c6;background:#f1fff4}
+    .opt.wrong{border-color:#f3c6c6;background:#fff7f7}
+    .foot{display:flex;justify-content:space-between;align-items:center;margin-top:12px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap}
+    .pager{display:flex;gap:8px;align-items:center}
+    .disabled{opacity:.45;pointer-events:none}
 
-    .qq-card{
-      background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
-      padding:18px;display:flex;align-items:center;justify-content:space-between;gap:12px
+    /* bottom sticky controls on mobile */
+    @media (max-width:768px){
+      .foot.sticky{position:sticky;bottom:8px;z-index:5}
     }
-    .qq-left{display:flex;align-items:center;gap:12px}
-    .qq-ico{
-      width:44px;height:44px;border-radius:12px;background:#ffe6e6;display:grid;place-items:center;font-size:22px
-    }
-    .qq-ico.bot{background:#e7ecff}
-    .qq-ico.study{background:#e9fff1}
-    .qq-ico.notice{background:#fff3d9}
-    .qq-title{font-weight:800}
-    .qq-sub{font-size:13px;color:var(--muted)}
-    .qq-right .pill{font-weight:700}
-
-    /* Categories */
-    .section-head{display:flex;align-items:center;gap:14px}
-    .count-badge{
-      display:inline-grid;place-items:center;
-      min-width:28px;height:28px;border-radius:999px;background:#fff;box-shadow:var(--shadow);
-      font-weight:800;color:var(--brand)
-    }
-    .search{
-      margin-top:12px;margin-bottom:10px;
-      width:100%;max-width:420px;padding:10px 12px;border-radius:12px;border:1px solid #dfe7e2;background:#fff
-    }
-    .banner{margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid #e8d5b8;background:#fff6e6;color:#7a4d00}
-    .cat-grid{
-      margin-top:8px;
-      display:grid;grid-template-columns:1fr;gap:14px
-    }
-    @media (min-width:760px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
-    @media (min-width:1080px){.cat-grid{grid-template-columns:repeat(3,1fr)}}
-    .cat-card{
-      display:block;background:var(--card);border-radius:14px;box-shadow:var(--shadow);
-      padding:16px 16px 14px 16px;text-decoration:none;color:inherit;transition:transform .06s ease;
-      border:1px solid #e9efe9
-    }
-    .cat-card:hover{transform:translateY(-2px)}
-    .cat-card__title{font-weight:800;margin:4px 0}
-    .cat-card__meta{font-size:12px;color:var(--muted)}
-    footer{padding:36px 0 24px;color:var(--muted);text-align:center}
   </style>
 </head>
 <body>
@@ -101,191 +58,240 @@
           <div class="muted" style="font-size:12px;margin-top:2px">Kerala PSC Exam Prep</div>
         </div>
       </div>
-      <nav class="navlinks">
+      <div style="display:flex;gap:10px">
+        <a class="pill" href="index.html">Home</a>
         <a class="pill" href="quiz.html">Quiz</a>
-        <a class="pill" href="resources.html">Study</a>
-        <a class="pill" href="notices.html">Notices</a>
-      </nav>
+      </div>
     </div>
   </header>
 
   <main class="container">
-    <h1>Quick Quiz</h1>
-    <div class="muted">Start instantly: random questions or play “AI vs You”.</div>
+    <h1 id="title">Quiz</h1>
+    <div id="sub" class="sub">Answers only • 10 per page</div>
 
-    <div class="row" style="margin-top:12px">
-      <!-- Random -->
-      <div class="qq-card">
-        <div class="qq-left">
-          <div class="qq-ico">🎲</div>
-          <div>
-            <div class="qq-title">Random Quiz</div>
-            <div class="qq-sub">Mixed questions across all categories</div>
-          </div>
-        </div>
-        <div class="qq-right">
-          <a class="pill" href="quiz.html?mode=random">Start</a>
-        </div>
+    <div id="warn" class="banner" hidden></div>
+
+    <div id="list" class="list"></div>
+
+    <div class="foot sticky">
+      <div class="controls">
+        <button id="showAll" class="pill">Show all answers</button>
+        <button id="hideAll" class="pill">Hide all</button>
       </div>
-      <!-- AI -->
-      <div class="qq-card">
-        <div class="qq-left">
-          <div class="qq-ico bot">🤖</div>
-          <div>
-            <div class="qq-title">AI vs You</div>
-            <div class="qq-sub">Computer guesses vs your answers (timed)</div>
-          </div>
-        </div>
-        <div class="qq-right">
-          <a class="pill" href="quiz.html?mode=ai">Play</a>
-        </div>
+      <div class="pager">
+        <button id="prev" class="pill disabled">← Previous</button>
+        <span id="pageInfo" class="muted">Page 1 / 1</span>
+        <button id="next" class="pill disabled">Next →</button>
       </div>
     </div>
-
-    <!-- NEW: Study & Notices cards row -->
-    <h1 style="margin-top:28px">Study & Notices</h1>
-    <div class="row">
-      <div class="qq-card">
-        <div class="qq-left">
-          <div class="qq-ico study">📚</div>
-          <div>
-            <div class="qq-title">Study Material</div>
-            <div class="qq-sub">PDF links from Google Sheets</div>
-          </div>
-        </div>
-        <div class="qq-right">
-          <a class="pill" href="resources.html">Open</a>
-        </div>
-      </div>
-      <div class="qq-card">
-        <div class="qq-left">
-          <div class="qq-ico notice">🔔</div>
-          <div>
-            <div class="qq-title">Exam Notifications</div>
-            <div class="qq-sub">Latest PSC notices from Google Sheets</div>
-          </div>
-        </div>
-        <div class="qq-right">
-          <a class="pill" href="notices.html">Open</a>
-        </div>
-      </div>
-    </div>
-
-    <h1 style="margin-top:28px" class="section-head">
-      Quiz Categories
-      <span class="count-badge" data-cat-count>0</span>
-    </h1>
-    <input id="search" class="search" placeholder="Search category..." />
-
-    <div id="cat-error" class="banner" hidden>
-      Unable to load category list. Please either <b>Publish the sheet to the web</b> (entire document),
-      or create a tab named <b>Categories</b> with a <code>name</code> column.
-    </div>
-
-    <div id="cat-grid" class="cat-grid"></div>
   </main>
 
-  <footer>
-    © <span id="year"></span> PSC Guru • Tea Green UI
-  </footer>
-
   <script>
-    /* ============== CONFIG ============== */
+    /* ===== CONFIG ===== */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const PAGE_SIZE = 10;
 
-    const EXCLUDE_TABS = new Set([
-      "Categories","Study Material","Exam Notifications","Resources",
-      "README","Config","Sample","Sheet1","Sheet2"
-    ]);
+    /* ===== QS helpers ===== */
+    const params = new URLSearchParams(location.search);
+    const MODE = params.get("mode") || "category";
+    const SHEET = params.get("sheet") || ""; // for category
 
-    /* ============ Utilities ============ */
+    /* ===== DOM helpers ===== */
     const $ = (sel,root=document)=>root.querySelector(sel);
-    const $$ = (sel,root=document)=>[...root.querySelectorAll(sel)];
-    $("#year").textContent = new Date().getFullYear();
+    const listEl = $("#list"), warnEl = $("#warn"), titleEl = $("#title"), subEl = $("#sub");
+    const prevBtn = $("#prev"), nextBtn = $("#next"), pageInfo = $("#pageInfo");
+    const showAllBtn = $("#showAll"), hideAllBtn = $("#hideAll");
 
-    // minimal CSV splitter
-    function csvToRows(csv) {
+    function setWarn(msg){ warnEl.textContent = msg; warnEl.hidden = !msg; }
+    function csvToRows(csv){
       const lines = csv.trim().split(/\r?\n/);
       return lines.map(line =>
         line.match(/("([^"]|"")*"|[^,])+/g)?.map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"')) ?? []
       );
     }
 
-    function renderCategories(names) {
-      const grid = $("#cat-grid");
-      grid.innerHTML = "";
-      names.forEach(name => {
-        const a = document.createElement("a");
-        a.className = "cat-card";
-        a.href = `quiz.html?mode=category&sheet=${encodeURIComponent(name)}`;
-        a.innerHTML = `
-          <div class="cat-card__title">${name}</div>
-          <div class="cat-card__meta">From Google Sheets</div>
-        `;
-        grid.appendChild(a);
-      });
-      const badge = document.querySelector("[data-cat-count]");
-      if (badge) badge.textContent = names.length;
-      const warn = $("#cat-error");
-      if (warn) warn.hidden = true;
+    function normalizeHeader(header){
+      return header.map(h => h.trim().toLowerCase());
+    }
+    function colIndex(header, names){
+      for(const n of names){
+        const i = header.indexOf(n.toLowerCase());
+        if(i>-1) return i;
+      }
+      return -1;
     }
 
-    async function tryCategoriesCSV() {
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Categories`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("CSV HTTP " + res.status);
-      const csv = await res.text();
+    /* ===== Data loading ===== */
+    async function fetchCsv(sheetName){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error(`HTTP ${res.status}`);
+      return res.text();
+    }
+
+    // Try to detect QA vs MCQ automatically
+    function parseItems(csv){
       const rows = csvToRows(csv);
-      if (!rows.length) throw new Error("CSV empty");
-      const header = rows.shift().map(h => h.trim().toLowerCase());
-      const nameIdx = header.indexOf("name");
-      if (nameIdx === -1) throw new Error("CSV has no 'name' column");
-      const names = [...new Set(rows.map(r => (r[nameIdx] || "").trim()).filter(Boolean))];
-      if (!names.length) throw new Error("CSV has no names");
-      return names;
+      if(!rows.length) return {type:"none", items:[]};
+      const header = normalizeHeader(rows.shift());
+
+      const qIdx = colIndex(header,["question","ques","q"]);
+      const aIdx = colIndex(header,["answer","ans","correct","key"]);
+      const aIdxStrict = colIndex(header,["answer","ans"]); // if present, strict QA
+
+      const oA = colIndex(header,["opta","a","optiona"]);
+      const oB = colIndex(header,["optb","b","optionb"]);
+      const oC = colIndex(header,["optc","c","optionc"]);
+      const oD = colIndex(header,["optd","d","optiond"]);
+      const corr = colIndex(header,["correct","answer","key"]);
+
+      if(qIdx>-1 && oA>-1 && oB>-1 && oC>-1 && oD>-1 && corr>-1){
+        // MCQ
+        const items = rows
+          .map(r=>{
+            const q=(r[qIdx]||"").trim();
+            const A=(r[oA]||"").trim(), B=(r[oB]||"").trim(), C=(r[oC]||"").trim(), D=(r[oD]||"").trim();
+            let correct=(r[corr]||"").trim();
+            // allow letter or text
+            let correctLetter = "";
+            const map = {A,B,C,D};
+            if(/^a$/i.test(correct)) correctLetter="A";
+            else if(/^b$/i.test(correct)) correctLetter="B";
+            else if(/^c$/i.test(correct)) correctLetter="C";
+            else if(/^d$/i.test(correct)) correctLetter="D";
+            else{
+              // match by text
+              for(const [k,v] of Object.entries(map)){
+                if(v && correct && v.toLowerCase()===correct.toLowerCase()) correctLetter=k;
+              }
+            }
+            if(!correctLetter && aIdxStrict>-1){ // sometimes 'answer' holds full text
+              const v = (r[aIdxStrict]||"").trim();
+              for(const [k,vv] of Object.entries(map)){
+                if(vv && v && vv.toLowerCase()===v.toLowerCase()) correctLetter=k;
+              }
+            }
+            return q ? {q, opts:[A,B,C,D], correct:correctLetter || "A"} : null;
+          })
+          .filter(Boolean);
+        return {type:"mcq", items};
+      }
+
+      if(qIdx>-1 && aIdx>-1){
+        // QA
+        const items = rows
+          .map(r=>{
+            const q=(r[qIdx]||"").trim();
+            const a=(r[aIdx]||"").trim();
+            return q ? {q,a} : null;
+          })
+          .filter(Boolean);
+        return {type:"qa", items};
+      }
+
+      return {type:"none", items:[]};
     }
 
-    async function tryWorksheetFeed() {
-      const url = `https://spreadsheets.google.com/feeds/worksheets/${GS_SHEET_ID}/public/values?alt=json`;
-      const res = await fetch(url, { cache: "no-store" });
-      if (!res.ok) throw new Error("Feed HTTP " + res.status);
-      const j = await res.json();
-      const names = j.feed.entry.map(e => e.title.$t)
-        .filter(n => n && !EXCLUDE_TABS.has(n));
-      if (!names.length) throw new Error("Feed empty");
-      return names;
+    /* ===== Render ===== */
+    let viewItems = [];
+    let page = 1;
+    function totalPages(){ return Math.max(1, Math.ceil(viewItems.length/PAGE_SIZE)); }
+
+    function renderPage(){
+      listEl.innerHTML = "";
+      const start = (page-1)*PAGE_SIZE;
+      const chunk = viewItems.slice(start, start+PAGE_SIZE);
+
+      chunk.forEach((it,idx)=>{
+        const card = document.createElement("div");
+        card.className = "card";
+        card.innerHTML = `<div class="q">${start+idx+1}. ${escapeHtml(it.q)}</div>`;
+        if(it.type==="qa"){
+          const btn = document.createElement("button");
+          btn.className = "btn"; btn.textContent = "Show Answer";
+          const ans = document.createElement("div");
+          ans.className = "ans"; ans.innerHTML = escapeHtml(it.a);
+          btn.addEventListener("click",()=>{
+            card.classList.toggle("revealed");
+            btn.textContent = card.classList.contains("revealed") ? "Hide Answer" : "Show Answer";
+          });
+          card.appendChild(btn); card.appendChild(ans);
+        }else{
+          // MCQ
+          const wrap = document.createElement("div");
+          wrap.className = "btn-row";
+          ["A","B","C","D"].forEach((letter,i)=>{
+            const o = document.createElement("button");
+            o.className = "opt";
+            o.innerHTML = `<b>${letter}.</b> ${escapeHtml(it.opts[i]||"")}`;
+            o.addEventListener("click",()=>{
+              // mark once
+              if(wrap.dataset.done) return;
+              wrap.dataset.done = "1";
+              $$(".opt", wrap).forEach(x=>x.disabled=true);
+              const pick = letter;
+              if(pick===it.correct){ o.classList.add("correct"); }
+              else { o.classList.add("wrong"); // also show correct
+                     const corr = $$(".opt",wrap)[["A","B","C","D"].indexOf(it.correct)];
+                     if(corr) corr.classList.add("correct"); }
+            });
+            wrap.appendChild(o);
+          });
+          card.appendChild(wrap);
+        }
+        listEl.appendChild(card);
+      });
+
+      // pager
+      const tp = totalPages();
+      pageInfo.textContent = `Page ${page} / ${tp}`;
+      prevBtn.classList.toggle("disabled", page<=1);
+      nextBtn.classList.toggle("disabled", page>=tp);
     }
 
-    async function loadCategories() {
-      const warn = $("#cat-error");
-      const badge = document.querySelector("[data-cat-count]");
-      if (badge) badge.textContent = "0";
-      if (warn) warn.hidden = false;
+    function showAll(){ $$(".card").forEach(c=>{ if(!$(".ans",c)) return; c.classList.add("revealed"); $(".btn",c).textContent="Hide Answer"; }); }
+    function hideAll(){ $$(".card").forEach(c=>{ if(!$(".ans",c)) return; c.classList.remove("revealed"); $(".btn",c).textContent="Show Answer"; }); }
 
-      try {
-        const names = await tryCategoriesCSV();
-        renderCategories(names);
-        return;
-      } catch (e) { console.warn("Categories CSV failed:", e); }
+    const $$ = (sel,root=document)=>Array.from(root.querySelectorAll(sel));
+    function escapeHtml(s){ return (s||"").replace(/[&<>"]/g,m=>({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;" }[m])); }
 
-      try {
-        const names = await tryWorksheetFeed();
-        renderCategories(names);
-      } catch (e) {
-        console.error("Worksheet feed failed:", e);
-        // keep warning visible
+    /* ===== Orchestration ===== */
+    async function init(){
+      try{
+        if(MODE==="category"){
+          if(!SHEET){ setWarn("No category selected."); return; }
+          titleEl.textContent = SHEET + " • Quiz";
+          const csv = await fetchCsv(SHEET);
+          const {type, items} = parseItems(csv);
+          if(type==="none" || !items.length){
+            setWarn("No questions found in this sheet. Make sure it has either columns (question, answer) OR (question, optA–optD, correct).");
+            return;
+          }
+          if(type==="mcq"){ subEl.textContent = "Multiple choice • 10 per page"; }
+          viewItems = items.map(q=>({...q,type}));
+          renderPage();
+        }else if(MODE==="random"){
+          titleEl.textContent = "Random Quiz";
+          setWarn("Random mode on this page needs a category. Start it from Home (Random Quiz) to mix across all sheets.");
+        }else if(MODE==="ai"){
+          titleEl.textContent = "AI vs You";
+          setWarn("AI vs You starts from Home. Pick it there to get a timed MCQ game.");
+        }else{
+          setWarn("Unknown mode.");
+        }
+      }catch(err){
+        console.error(err);
+        setWarn("Could not load questions. Is the Google Sheet published to the web and the tab name correct?");
       }
     }
 
-    $("#search").addEventListener("input", e=>{
-      const q = e.target.value.trim().toLowerCase();
-      $$(".cat-card").forEach(card=>{
-        const name = card.querySelector(".cat-card__title").textContent.toLowerCase();
-        card.style.display = name.includes(q) ? "" : "none";
-      });
-    });
+    // events
+    prevBtn.addEventListener("click", ()=>{ if(page>1){ page--; renderPage(); }});
+    nextBtn.addEventListener("click", ()=>{ if(page<totalPages()){ page++; renderPage(); }});
+    showAllBtn.addEventListener("click", showAll);
+    hideAllBtn.addEventListener("click", hideAll);
 
-    document.addEventListener("DOMContentLoaded", loadCategories);
+    document.addEventListener("DOMContentLoaded", init);
   </script>
 </body>
 </html>
