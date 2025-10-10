@@ -1,521 +1,186 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Quiz • PSC Guru</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PSC Guru • Quiz</title>
 <style>
-  :root{
-    --bg:#f3f9f2;
-    --card:#ffffff;
-    --ink:#0e3b2e;
-    --muted:#53706a;
-    --accent:#0fa66d;
-    --accent-weak:#c8efe2;
-    --danger:#d73d3d;
-    --warn:#9e6b00;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  a{color:var(--accent);text-decoration:none}
-  .wrap{max-width:1000px;margin:0 auto;padding:24px}
-  .topbar{display:flex;align-items:center;gap:8px}
-  .pill{background:#fff;border:1px solid #e6eee9;border-radius:100px;padding:6px 12px;font-size:14px}
-  .title{font-size:28px;font-weight:800;margin:18px 0 12px}
-  .subtitle{color:var(--muted);font-size:14px}
-  .alert{background:#fff9e8;border:1px solid #f6e2b0;color:#5f4a00;padding:10px 12px;border-radius:10px}
-  .card{background:var(--card);border:1px solid #e6eee9;border-radius:16px;padding:16px}
-  .question{font-size:18px;line-height:1.45}
-  .muted{color:var(--muted)}
-  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#fff;border:1px solid #e6eee9;border-radius:10px;height:36px;padding:0 12px;cursor:pointer}
-  .btn:disabled{opacity:.5;cursor:not-allowed}
-  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .btn-ghost{background:transparent;border-color:#dfe8e3}
+  :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--accent:#0fa66d;--accent-weak:#c8efe2;--line:#e6eee9}
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  .wrap{max-width:1100px;margin:0 auto;padding:24px}
   .row{display:flex;gap:10px;align-items:center}
-  .space{height:12px}
-  .opt{display:flex;align-items:flex-start;gap:10px;background:#fff;border:1px solid #e6eee9;border-radius:12px;padding:12px;cursor:pointer}
-  .opt.correct{border-color:#3fbf8a;background:#eefaf5}
-  .opt.wrong{border-color:#f2b1b1;background:#fff4f4}
-  .opt.disabled{opacity:.6;pointer-events:none}
-  .opt .badge{min-width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;border:1px solid #e6eee9;font-weight:700}
-  .opt.correct .badge{background:#19a974;color:#fff;border-color:#19a974}
-  .opt.wrong .badge{background:#ff4d4d;color:#fff;border-color:#ff4d4d}
-  .footbar{position:sticky;bottom:0;background:rgba(243,249,242,.8);backdrop-filter:saturate(1.2) blur(6px);border-top:1px solid #e6eee9}
-  .footbar .inner{max-width:1000px;margin:0 auto;padding:12px;display:flex;align-items:center;gap:8px;justify-content:space-between}
-  .kpi{display:flex;align-items:center;gap:8px;color:var(--muted)}
-  .tag{background:var(--accent-weak);color:var(--ink);border-radius:999px;padding:3px 8px;font-size:12px}
+  .right{margin-left:auto}
+  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-decoration:none;color:var(--ink)}
+  h1{margin:10px 0 16px}
+  .alert{background:#fff9e8;border:1px solid #f6e2b0;color:#5f4a00;padding:10px 12px;border-radius:10px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
+  .btn{background:#fff;border:1px solid var(--line);border-radius:10px;height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
+  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  .summary .item{border:1px solid #e6eee9;border-radius:12px;padding:12px;background:#fff}
-  .debug{margin-top:10px;padding:8px 10px;border-radius:10px;background:#eef3ff;border:1px solid #cfe0ff;color:#1c3d8f;font-size:12px}
-  @media (min-width:720px){
-    .grid{grid-template-columns:1fr 1fr}
-  }
+  .opt{border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
+  .opt.correct{border-color:#1f7c59;background:#eaf8f2}
+  .opt.wrong{border-color:#c73b3b;background:#fdeeee}
+  .stickybar{position:sticky;bottom:0;background:rgba(242,248,244,.9);backdrop-filter:saturate(160%) blur(3px);border-top:1px solid var(--line);padding:10px 0}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="topbar">
-      <a class="pill" href="index.html">Home</a>
-      <a class="pill" href="quiz.html">Quiz</a>
-      <span class="pill" id="timerPill" style="margin-left:auto;display:none"></span>
-    </div>
-
-    <h1 class="title" id="pageTitle">Quiz</h1>
-    <div id="debugBox" class="debug" style="display:none"></div>
-
-    <div id="host"></div>
+<div class="wrap">
+  <div class="row">
+    <a class="pill" href="index.html">Home</a>
+    <a class="pill" href="quiz.html">Quiz</a>
+    <div class="right pill" id="timerBox">00:00</div>
   </div>
 
-  <div class="footbar" id="footbar" style="display:none">
-    <div class="inner">
-      <div class="row">
-        <button class="btn btn-ghost" id="btnPrev">← Prev</button>
-        <button class="btn" id="btnShowAns">Show Answer</button>
-      </div>
-      <div class="kpi">
-        <span id="pager" class="tag">1 / 1</span>
-        <span id="scoreTag" class="tag" style="display:none">Score: 0</span>
-      </div>
-      <div class="row">
-        <button class="btn" id="btnFinish" style="display:none">Finish</button>
-        <button class="btn btn-primary" id="btnNext">Next →</button>
-      </div>
+  <h1 id="title">Quiz</h1>
+  <div id="warn"></div>
+  <div id="qwrap" class="card" style="display:none">
+    <div id="qtext" style="font-weight:700"></div>
+    <div style="height:8px"></div>
+    <div id="opts" class="grid"></div>
+    <div style="height:8px"></div>
+    <button id="showAnswer" class="btn">Show Answer</button>
+  </div>
+
+  <div class="stickybar">
+    <div class="row" style="justify-content:space-between">
+      <button id="prev" class="btn">← Prev</button>
+      <span id="page" class="pill">1 / 1</span>
+      <button id="next" class="btn btn-primary">Next →</button>
     </div>
   </div>
+</div>
 
 <script>
-/* ================== CONFIG ================== */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // << YOUR SHEET ID
+/* ===== CONFIG ===== */
+const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 
-/* ============= Utilities & CSV loader ============= */
-
-const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g, ' ').trim().toLowerCase();
-const slug = s => norm(s).replace(/[^\p{L}\p{N}]+/gu, '');
-const $ = sel => document.querySelector(sel);
-const host = $("#host");
-
-function getParam(name, def=''){
-  const url = new URL(location.href);
-  return url.searchParams.get(name) ?? def;
+/* ===== utilities ===== */
+const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g,' ').trim();
+const low  = s => norm(s).toLowerCase();
+async function fetchText(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(r.statusText); return r.text();}
+function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();while(R.length&&R[R.length-1].every(c=>low(c)===''))R.pop();return R;}
+async function discoverPublishedEid(sheetId){const h=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);const m=h.match(/https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/pubhtml/);return m?m[1]:null;}
+async function fetchCSVByGidRobust(sheetId,gid){
+  try{const u=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}catch{}
+  try{const eid=await discoverPublishedEid(sheetId);if(eid){const u=`https://docs.google.com/spreadsheets/d/e/${eid}/pub?gid=${gid}&single=true&output=csv`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}}catch{}
+  const u=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;const t=await fetchText(u);return parseCSV(t);
 }
-
-async function fetchText(url){
-  const res = await fetch(url, {cache:'no-store'});
-  if(!res.ok) throw new Error(`${res.status} ${res.statusText}`);
-  return res.text();
-}
-
-function parseCSV(text){
-  const rows=[]; let i=0, field='', row=[], inQ=false;
-  const pushField=()=>{row.push(field);field='';};
-  const pushRow=()=>{rows.push(row);row=[];};
-  while(i<text.length){
-    const c=text[i];
-    if(inQ){ if(c=='"'&&text[i+1]=='"'){field+='"';i+=2;continue;}
-             if(c=='"'){inQ=false;i++;continue;}
-             field+=c;i++;continue; }
-    if(c=='"'){inQ=true;i++;continue;}
-    if(c==','){pushField();i++;continue;}
-    if(c=='\r'){i++;continue;}
-    if(c=='\n'){pushField();pushRow();i++;continue;}
-    field+=c;i++;
-  }
-  pushField(); pushRow();
-  while(rows.length && rows[rows.length-1].every(c=>norm(c)==='')) rows.pop();
-  return rows;
-}
-
-async function getGidByName(sheetId, name){
-  if(!name) return null;
-  const want = slug(name);
-  const html = await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
-  const re = /#gid=(\d+)">([\s\S]*?)<\/a>/gi;
-  let m, fallback=null;
+async function getGidByName(sheetId,name){
+  const html=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
+  const re=/<a[^>]+href="[^"]*#gid=(\d+)"[^>]*>([\s\S]*?)<\/a>/gi; let m;
   while((m=re.exec(html))){
-    const gid = m[1];
-    const label = m[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
-    if(slug(label)===want) return gid;
-    if(!fallback && norm(label)===norm(name)) fallback = gid;
+    const gid=m[1];
+    const label=m[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
+    if(label===name) return gid;
   }
-  return fallback;
-}
-async function discoverPublishedEid(sheetId){
-  const html = await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
-  const m = html.match(/https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/pubhtml/);
-  return m ? m[1] : null;
-}
-async function fetchCSVByGidRobust(sheetId, gid){
-  const tried = [];
-
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;
-    tried.push(url);
-    const txt = await fetchText(url);
-    const rows = parseCSV(txt);
-    if (rows.length) return { rows, usedUrl: url, tried };
-  } catch {}
-
-  try {
-    const eid = await discoverPublishedEid(sheetId);
-    if (eid) {
-      const url = `https://docs.google.com/spreadsheets/d/e/${eid}/pub?gid=${gid}&single=true&output=csv`;
-      tried.push(url);
-      const txt = await fetchText(url);
-      const rows = parseCSV(txt);
-      if (rows.length) return { rows, usedUrl: url, tried };
-    }
-  } catch {}
-
-  try {
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
-    tried.push(url);
-    const txt = await fetchText(url);
-    const rows = parseCSV(txt);
-    if (rows.length) return { rows, usedUrl: url, tried };
-  } catch {}
-
-  throw new Error('All endpoints failed.\n' + tried.join('\n'));
+  return null;
 }
 
-/* ===== tolerant header → items ===== */
-function rowsToItems(rows){
-  if(!rows || rows.length<2) return {items:[], header:[]};
-  const header = rows[0].map(h=>h??'');
-  const H = header.map(h=>norm(h));
-  const find = pats => H.findIndex(h=>pats.some(p=>h.includes(norm(p))));
-  let id = find(['id']);
-  let q  = find(['question','ques','q','ചോദ്യം','ചോദ്യ']);
-  let a  = find(['answer','ans','a','ഉത്തരം','ഉത്തര']);
-  let oa = find(['opta','option a','choice a','a)']);
-  let ob = find(['optb','option b','choice b','b)']);
-  let oc = find(['optc','option c','choice c','c)']);
-  let od = find(['optd','option d','choice d','d)']);
-  let ck = find(['correct','key','answer key','answerkey']);
-
-  const items=[];
-  for (let r=1;r<rows.length;r++){
-    const row=rows[r].map(x=>(x??'').toString());
-    let Q = q>=0?row[q]:'';
-    let A = a>=0?row[a]:'';
-
-    if(q<0 || a<0){
-      let start=0;
-      if(id<0 && row[0] && /^\s*\d+\s*$/.test(row[0])) start=1;
-      const nonEmpty = row.map((v,i)=>({i,v})).filter(x=>norm(x.v)!='' && x.i>=start);
-      if(nonEmpty.length>=2){
-        if(q<0) Q=nonEmpty[0].v;
-        if(a<0) A=nonEmpty[1].v;
-      }
-    }
-
-    const opts = [oa>=0?row[oa]:'', ob>=0?row[ob]:'', oc>=0?row[oc]:'', od>=0?row[od]:''].filter(v=>norm(v)!='');
-    let correct = ck>=0?(row[ck]||'').trim():'';
-    if(!correct && opts.length){
-      const ix = opts.findIndex(o => norm(o)===norm(A));
-      if(ix>=0) correct = ['A','B','C','D'][ix];
-    }
-
-    if(norm(Q)!=''){
-      items.push({
-        id: (id>=0? (row[id]??'') : r).toString(),
-        q: Q, a: A, opts: opts.length?opts:null, correct
-      });
-    }
+/* ===== map rows to Qs ===== */
+function rowsToQuestions(rows){
+  if(!rows || rows.length<2) return [];
+  const H = rows[0].map(h=>low(h));
+  const ixQ   = H.findIndex(h=>['question','q','prompt'].some(k=>h.includes(k)));
+  const ixAns = H.findIndex(h=>['answer','ans','correct'].some(k=>h.includes(k)));
+  const ixA   = H.findIndex(h=>['opta','a','opt a'].some(k=>h===k));
+  const ixB   = H.findIndex(h=>['optb','b','opt b'].some(k=>h===k));
+  const ixC   = H.findIndex(h=>['optc','c','opt c'].some(k=>h===k));
+  const ixD   = H.findIndex(h=>['optd','d','opt d'].some(k=>h===k));
+  const out=[];
+  for(let i=1;i<rows.length;i++){
+    const r = rows[i].map(v=>v??'');
+    const q = ixQ>=0 ? r[ixQ] : r[0];
+    const ans = ixAns>=0 ? r[ixAns] : '';
+    const opts = [ixA,ixB,ixC,ixD].filter(x=>x>=0).map(x=>r[x]).filter(Boolean);
+    out.push({q,ans,opts});
   }
-  return {items, header};
+  return out.filter(x=>low(x.q)!=='');
 }
 
-/* ================== MCQ Engine ================== */
+/* ===== state ===== */
+const qs = new URLSearchParams(location.search);
+const byGid   = qs.get('gid');
+const bySheet = qs.get('sheet');
+const limit   = parseInt(qs.get('limit')||'0',10);
+const timerS  = parseInt(qs.get('timer')||'0',10);
 
-function shuffle(arr){
-  for(let i=arr.length-1;i>0;i--){
-    const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];
-  }
-  return arr;
+const titleEl = document.getElementById('title');
+const warnEl  = document.getElementById('warn');
+const qwrap   = document.getElementById('qwrap');
+const qtext   = document.getElementById('qtext');
+const optsEl  = document.getElementById('opts');
+const pageEl  = document.getElementById('page');
+const timerBox = document.getElementById('timerBox');
+const showBtn  = document.getElementById('showAnswer');
+
+let Q=[], idx=0, shuffledIndexes=[], reveal=false;
+
+/* ===== timer ===== */
+if(timerS>0){
+  let left=timerS;
+  const tick=()=>{const m=Math.floor(left/60).toString().padStart(2,'0');const s=(left%60).toString().padStart(2,'0');timerBox.textContent=`${m}:${s}`;left--;if(left>=0) setTimeout(tick,1000);}; tick();
 }
 
-function sample(arr, k){
-  const copy=[...arr]; shuffle(copy); return copy.slice(0, Math.min(k, copy.length));
-}
+/* ===== shuffle helper ===== */
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()* (i+1)); [arr[i],arr[j]]=[arr[j],arr[i]] } return arr }
 
-function msToClock(ms){
-  if(ms<0) ms=0;
-  const s=Math.floor(ms/1000);
-  const m=Math.floor(s/60), ss=String(s%60).padStart(2,'0');
-  return `${String(m).padStart(2,'0')}:${ss}`;
-}
+/* ===== render ===== */
+function render(){
+  if(!Q.length){ qwrap.style.display='none'; return }
+  const item = Q[idx];
+  titleEl.textContent = qs.get('title') || document.title.split('•')[0].trim();
+  qwrap.style.display = 'block';
+  qtext.textContent = `${idx+1}. ${item.q}`;
+  pageEl.textContent = `${idx+1} / ${Q.length}`;
 
-/* ================ Rendering & flow ================ */
+  // prepare MCQ: shuffle options and track correct
+  const withCorr = [...item.opts];
+  if(!withCorr.includes(item.ans) && item.ans) withCorr.push(item.ans);
+  const shuffled = shuffle(withCorr.slice());
+  const correctIndex = shuffled.findIndex(x => low(x) === low(item.ans));
 
-let state = {
-  mode: 'mcq',
-  qset: [],
-  i: 0,
-  showAnswer: false,
-  selected: {}, // id -> index
-  shuffled: {}, // id -> [{text, isCorrect}]
-  score: 0,
-  timerMs: 0,
-  timerStart: 0,
-  timerHandle: null,
-  debug: false,
-  usedUrl: '',
-  headerSeen: []
-};
-
-function setPager(){
-  $("#pager").textContent = `${state.i+1} / ${state.qset.length}`;
-}
-function setScoreTag(){
-  $("#scoreTag").style.display = 'inline-flex';
-  $("#scoreTag").textContent = `Score: ${state.score}`;
-}
-
-function startTimer(totalSec){
-  if(!totalSec) return;
-  state.timerMs = totalSec*1000;
-  state.timerStart = performance.now();
-  const pill = $("#timerPill");
-  pill.style.display = 'inline-flex';
-  const tick = ()=>{
-    const now = performance.now();
-    const left = state.timerMs - (now - state.timerStart);
-    pill.textContent = msToClock(left);
-    if(left <= 0){
-      clearInterval(state.timerHandle);
-      finishQuiz();
-    }
-  };
-  tick();
-  state.timerHandle = setInterval(tick, 200);
-}
-
-function renderMCQ(){
-  const q = state.qset[state.i];
-  host.innerHTML = '';
-  const wrap = document.createElement('div');
-  wrap.className = 'card';
-  wrap.innerHTML = `
-    <div class="row" style="justify-content:space-between;align-items:flex-start">
-      <div class="question">${q.q}</div>
-      <div class="muted">ID: ${q.id}</div>
-    </div>
-    <div class="space"></div>
-    <div id="optHost" class="grid"></div>
-  `;
-  host.appendChild(wrap);
-
-  const opts = state.shuffled[q.id];
-  const optHost = $("#optHost");
-  opts.forEach((op, idx)=>{
-    const el = document.createElement('button');
-    el.type = 'button';
-    el.className = 'opt';
-    el.innerHTML = `
-      <div class="badge">${String.fromCharCode(65+idx)}</div>
-      <div style="text-align:left">${op.text}</div>
-    `;
-    el.addEventListener('click', ()=>{
-      if(state.selected[q.id] != null) return; // already answered
-      state.selected[q.id] = idx;
-      if(op.isCorrect){ state.score++; }
-      paintOptions();
-      setScoreTag();
+  optsEl.innerHTML = '';
+  shuffled.forEach((opt,i)=>{
+    const div = document.createElement('div');
+    div.className = 'opt';
+    div.textContent = opt || '(blank)';
+    div.addEventListener('click', ()=>{
+      [...optsEl.children].forEach(c => c.classList.remove('correct','wrong'));
+      div.classList.add(i===correctIndex ? 'correct' : 'wrong');
     });
-    optHost.appendChild(el);
+    optsEl.appendChild(div);
   });
 
-  function paintOptions(){
-    const nodes = optHost.querySelectorAll('.opt');
-    nodes.forEach((n,i)=>{
-      n.classList.remove('correct','wrong','disabled');
+  // show/hide answer
+  showBtn.onclick = ()=>{
+    [...optsEl.children].forEach((div, i) => {
+      div.classList.toggle('correct', i===correctIndex);
     });
-    if(state.showAnswer){
-      nodes.forEach((n,i)=>{ 
-        if(opts[i].isCorrect) n.classList.add('correct');
-        n.classList.add('disabled');
-      });
-      return;
-    }
-    const picked = state.selected[q.id];
-    if(picked!=null){
-      nodes.forEach((n,i)=>{
-        if(i===picked){
-          n.classList.add(opts[i].isCorrect ? 'correct' : 'wrong');
-        }else if(opts[i].isCorrect){
-          n.classList.add('correct');
-        }else{
-          n.classList.add('disabled');
-        }
-      });
-    }
-  }
-  paintOptions();
-
-  // footbar controls state
-  $("#footbar").style.display = 'block';
-  $("#btnPrev").disabled = state.i===0;
-  $("#btnNext").textContent = state.i === state.qset.length-1 ? "Finish →" : "Next →";
-  $("#btnFinish").style.display = state.i === state.qset.length-1 ? 'inline-flex' : 'none';
-  $("#btnShowAns").textContent = state.showAnswer ? "Hide Answer" : "Show Answer";
-  setPager();
-}
-
-function finishQuiz(){
-  clearInterval(state.timerHandle);
-  $("#footbar").style.display = 'none';
-  const total = state.qset.length;
-  const score = state.score;
-  host.innerHTML = `
-    <div class="card summary">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div class="question" style="margin-bottom:6px">Quiz Summary</div>
-          <div class="muted">You scored <b>${score}</b> out of <b>${total}</b>.</div>
-          ${state.timerStart ? `<div class="muted">Time: ${$("#timerPill").textContent}</div>`:''}
-        </div>
-        <a class="btn" href="index.html">Home</a>
-      </div>
-      <div class="space"></div>
-      <div class="grid">
-        ${state.qset.map((q, qi)=>{
-          const opts = state.shuffled[q.id];
-          const picked = state.selected[q.id];
-          const correctIdx = opts.findIndex(o=>o.isCorrect);
-          const pickedOk = picked!=null && opts[picked]?.isCorrect;
-          const pc = picked==null ? 'muted' : pickedOk ? 'correct' : 'wrong';
-          return `
-            <div class="item">
-              <div class="muted">Q${qi+1}</div>
-              <div style="margin:6px 0">${q.q}</div>
-              <div class="muted">Your answer: <b class="${pc}">${picked==null ? '—' : opts[picked].text}</b></div>
-              <div class="muted">Correct: <b style="color:#0f7d56">${opts[correctIdx].text}</b></div>
-            </div>
-          `;
-        }).join('')}
-      </div>
-    </div>
-  `;
-}
-
-function renderList(items){
-  // minimal list view with show/hide answers
-  $("#footbar").style.display = 'none';
-  host.innerHTML = items.map((it, i)=>`
-    <div class="card" style="margin-bottom:10px">
-      <div class="question"> ${i+1}. ${it.q} </div>
-      <div class="space"></div>
-      <details>
-        <summary class="btn">Show Answer</summary>
-        <div class="space"></div>
-        <div><b>Answer:</b> ${it.a}</div>
-        ${it.opts ? `<div class="space"></div><div class="muted">Options: ${it.opts.join(' | ')}</div>`:''}
-      </details>
-    </div>
-  `).join('');
-}
-
-/* ===================== Boot ===================== */
-
-async function main(){
-  state.debug = getParam('debug','0')==='1';
-  const mode = getParam('mode','mcq').toLowerCase();
-  state.mode = mode==='list' ? 'list' : 'mcq';
-
-  const tabName = getParam('sheet','');
-  const gidParam = getParam('gid','');
-  const limit = parseInt(getParam('limit','0')||'0',10) || 0;
-  const timer = parseInt(getParam('timer','0')||'0',10) || 0;
-
-  const title = tabName || (gidParam?`gid ${gidParam}`:'Quiz');
-  $("#pageTitle").textContent = title;
-
-  let gid = gidParam;
-  if(!gid){
-    try {
-      gid = await getGidByName(GS_SHEET_ID, tabName);
-    } catch(e){}
-  }
-  if(!gid){
-    host.innerHTML = `<div class="alert">Could not find a published tab with the name <b>${tabName||'(none)'}</b>. Publish the sheet (Entire document) and ensure the tab name exactly matches the card.</div>`;
-    return;
-  }
-
-  let rows, usedUrl, tried;
-  try {
-    const res = await fetchCSVByGidRobust(GS_SHEET_ID, gid);
-    rows = res.rows; usedUrl = res.usedUrl; tried = res.tried;
-  } catch(err){
-    host.innerHTML = `<div class="alert">Failed to load this tab. Bad GViz/CSV response. Ensure the sheet is public / Published and the tab exists. <div class="space"></div><small>${(err.message||err).toString().replace(/\n/g,'<br>')}</small></div>`;
-    return;
-  }
-  state.usedUrl = usedUrl;
-
-  const { items, header } = rowsToItems(rows);
-  state.headerSeen = header;
-
-  if(state.debug){
-    const dbg = $("#debugBox");
-    dbg.style.display = 'block';
-    dbg.innerHTML = `
-      <div><b>CSV used:</b> ${state.usedUrl}</div>
-      <div><b>Header seen:</b> ${header.map(h=>`<code>${(h||'').replace(/</g,'&lt;')}</code>`).join(' , ')}</div>
-      <div><b>Total rows:</b> ${items.length}</div>
-    `;
-  }
-
-  if(!items.length){
-    host.innerHTML = `<div class="alert">No rows found in this tab (or header not recognized). Make sure first row is the header with columns like <b>question</b> and <b>answer</b>.</div>`;
-    return;
-  }
-
-  // MCQ or list?
-  if(state.mode==='list'){
-    renderList(items);
-    return;
-  }
-
-  // Prepare MCQ dataset (only rows that have options or, if not, we will display Q/A as True-False style)
-  let dataset = items.map(it=>{
-    let opts = it.opts && it.opts.length ? [...it.opts] : null;
-    if(!opts){
-      // fabricate two options (Answer / Not the answer) to allow play even without options
-      opts = [it.a, '—'];
-    }
-    // shuffle options and keep which is correct
-    const pack = opts.map(o=>({text:o, isCorrect: norm(o)===norm(it.a)}));
-    shuffle(pack);
-    return { id: it.id, q: it.q, a: it.a, pack };
-  });
-
-  if(limit>0) dataset = sample(dataset, limit);
-
-  state.qset = dataset.map(d=>({id:d.id,q:d.q,a:d.a}));
-  state.shuffled = {};
-  dataset.forEach(d=>{ state.shuffled[d.id] = d.pack; });
-
-  state.i = 0;
-  state.score = 0;
-  state.showAnswer = false;
-
-  // Bind footbar controls
-  $("#btnPrev").onclick = ()=>{ if(state.i>0){ state.i--; state.showAnswer=false; renderMCQ(); } };
-  $("#btnNext").onclick = ()=>{
-    if(state.i === state.qset.length-1){ finishQuiz(); }
-    else { state.i++; state.showAnswer=false; renderMCQ(); }
   };
-  $("#btnFinish").onclick = finishQuiz;
-  $("#btnShowAns").onclick = ()=>{ state.showAnswer = !state.showAnswer; renderMCQ(); };
-
-  setScoreTag();
-  renderMCQ();
-  startTimer(timer);
 }
 
-main().catch(err=>{
-  host.innerHTML = `<div class="alert">Unexpected error: ${String(err)}</div>`;
-});
+/* ===== navigation ===== */
+document.getElementById('prev').onclick = ()=>{ if(idx>0){idx--; render()} };
+document.getElementById('next').onclick = ()=>{ if(idx<Q.length-1){idx++; render()} };
+
+/* ===== load ===== */
+(async ()=>{
+  try{
+    let gid = byGid;
+    if(!gid && bySheet){ gid = await getGidByName(GS_SHEET_ID, bySheet); }
+    if(!gid) throw new Error('No gid or sheet specified.');
+
+    // load rows
+    const rows = await fetchCSVByGidRobust(GS_SHEET_ID, gid);
+    const all = rowsToQuestions(rows);
+    Q = limit>0 ? all.sort(()=>Math.random()-0.5).slice(0,limit) : all;
+    if(!Q.length) throw new Error('No questions found in this tab.');
+    render();
+  }catch(e){
+    warnEl.innerHTML = `<div class="alert">Failed to load this tab. ${e.message}. Make sure the sheet is <b>Public/Published</b>.</div>`;
+  }
+})();
 </script>
 </body>
 </html>
