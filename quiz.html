@@ -48,8 +48,8 @@
       <div class="logo">PSC</div>
       <div style="font-weight:800">PSC Guru <div class="sub" style="font-weight:600">Kerala PSC Exam Prep</div></div>
       <div style="margin-left:auto;display:flex;gap:8px">
-        <a href="index.html"><button class="btn">Home</button></a>
-        <a href="quiz.html"><button class="btn">Quiz</button></a>
+        <a href="/"><button class="btn">Home</button></a>
+        <a href="/quiz"><button class="btn">Quiz</button></a>
       </div>
     </div>
   </header>
@@ -123,39 +123,35 @@
   </div>
 
 <script>
+/* ====== CONFIG: paste your GIDs for each tab (more reliable than names) ====== */
 window.GS_CONFIG = {
   sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
   categories: [
-    { key: "information_technology",           sheet: "Information Technology",           title: "Information Technology" },
-    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  title: "Civil Police/ Excise Officer" },
-    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     title: "സാമൂഹ്യക്ഷേമം" },
-    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           title: "രസതന്ത്രം – Chemistry" },
-    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
-    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    title: "GST Malayalam" },
-    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
-    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  title: "കലയും – സാഹിത്യവും" },
-    { key: "cyber_law",                        sheet: "Cyber Law",                        title: "Cyber Law" },
-    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  title: "Lakes in Kerala" },
-    { key: "indian_independence_en",           sheet: "Indian Independence",              title: "Indian Independence" }
+    { key: "information_technology",           sheet: "Information Technology",           gid: "",  title: "Information Technology" },
+    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  gid: "",  title: "Civil Police/ Excise Officer" },
+    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     gid: "",  title: "സാമൂഹ്യക്ഷേമം" },
+    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           gid: "",  title: "രസതന്ത്രം – Chemistry" },
+    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       gid: "",  title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
+    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    gid: "",  title: "GST Malayalam" },
+    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             gid: "",  title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
+    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  gid: "",  title: "കലയും – സാഹിത്യവും" },
+    { key: "cyber_law",                        sheet: "Cyber Law",                        gid: "",  title: "Cyber Law" },
+    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  gid: "",  title: "Lakes in Kerala" },
+    { key: "indian_independence_en",           sheet: "Indian Independence",              gid: "",  title: "Indian Independence" }
   ]
 };
 
-// ---------- helpers ----------
+/* ---------- tiny utils ---------- */
+function params(){const q=Object.create(null);location.search.replace(/^\?/,'').split('&').forEach(p=>{if(!p)return;const[k,v]=p.split('=');q[decodeURIComponent(k)]=decodeURIComponent(v||'');});return q;}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=(Math.random()*(i+1))|0,[x,y]=[a[i],a[j]];a[i]=y;a[j]=x;}return a;}
 function csvToRows(csv){
   const rows=[]; let row=[]; let s=''; let q=false;
-  for (let i=0;i<csv.length;i++){
-    const ch = csv[i], nx = csv[i+1];
-    if(q){
-      if(ch === '"'){ if(nx === '"'){ s+='"'; i++; } else { q=false; } }
-      else s += ch;
-    } else {
-      if(ch === '"') q=true;
-      else if(ch === ','){ row.push(s); s=''; }
-      else if(ch === '\n'){ row.push(s); rows.push(row); row=[]; s=''; }
-      else if(ch !== '\r'){ s += ch; }
-    }
+  for(let i=0;i<csv.length;i++){
+    const ch=csv[i], nx=csv[i+1];
+    if(q){ if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else q=false; } else s+=ch; }
+    else { if(ch=='"') q=true; else if(ch==','){ row.push(s); s=''; } else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; } else if(ch!='\r'){ s+=ch; } }
   }
-  if(s.length || row.length){ row.push(s); rows.push(row); }
+  if(s.length||row.length){ row.push(s); rows.push(row); }
   return rows;
 }
 function rowsToObjects(rows){
@@ -164,51 +160,54 @@ function rowsToObjects(rows){
   const out=[];
   for(let r=1;r<rows.length;r++){
     const o={}, rr=rows[r]||[];
-    for(let c=0;c<head.length;c++){ o[head[c]]=(rr[c]||'').toString().trim(); }
+    for(let c=0;c<head.length;c++) o[head[c]]=(rr[c]||'').toString().trim();
     if(Object.values(o).join('').length) out.push(o);
   }
   return out;
 }
 function normalize(o){
-  const id = parseInt(o.id,10);
-  const item = { id:isNaN(id)?undefined:id, q:o.question||o.q||'', a:o.answer||o.a||'' };
-  ['A','B','C','D'].forEach(k => { const v=o['opta'.replace('a',k.toLowerCase())]||o['opt'+k]; if(v) item['opt'+k]=v; });
+  const item = { q:o.question||o.q||'', a:o.answer||o.a||'' };
+  // options support (optA/optB/optC/optD or opta/optb...)
+  ['A','B','C','D'].forEach(K=>{
+    const k1='opt'+K, k2='opt'+K.toLowerCase(), k3='opta'.replace('a',K.toLowerCase());
+    item['opt'+K]=o[k1]||o[k2]||o[k3]||'';
+  });
   if(o.correct) item.correct=o.correct;
   return item;
 }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=(Math.random()*(i+1))|0, t=a[i]; a[i]=a[j]; a[j]=t; } return a; }
-function fetchCSV(sheetId, sheet){
-  const url='https://docs.google.com/spreadsheets/d/'+encodeURIComponent(sheetId)+'/gviz/tq?tqx=out:csv&sheet='+encodeURIComponent(sheet);
-  return fetch(url,{mode:'cors'}).then(r=>{ if(!r.ok) throw new Error('HTTP '+r.status); return r.text(); });
-}
-function params(){
-  const q=Object.create(null);
-  location.search.replace(/^\?/,'').split('&').forEach(p=>{ if(!p) return; const [k,v]=p.split('='); q[decodeURIComponent(k)]=decodeURIComponent(v||''); });
-  return q;
+
+/* ---------- robust CSV fetch: gid first, fallback name ---------- */
+function fetchCSV(sheetId, entry){
+  const e = entry || {};
+  let url='';
+  if(e.gid){ url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/export?format=csv&gid=${encodeURIComponent(e.gid)}`; }
+  else if(e.sheet){ url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(e.sheet)}`; }
+  else throw new Error('fetchCSV: no gid/sheet');
+  return fetch(url,{mode:'cors'}).then(r=>{ if(!r.ok) throw new Error(`CSV fetch failed (${r.status})`); return r.text(); });
 }
 
-// ---------- list (reference) view ----------
+/* ---------- list (reference) view ---------- */
 let DATA=[]; let PER=10; let page=1;
 function renderList(){
+  document.getElementById('playView').style.display='none';
   document.getElementById('listToolbar').style.display='flex';
   document.getElementById('listFoot').style.display='flex';
-  document.getElementById('playView').style.display='none';
 
   const total=DATA.length, pages=Math.max(1, Math.ceil(total/PER));
   if(page>pages) page=pages;
   const start=(page-1)*PER, end=Math.min(start+PER,total);
-  document.getElementById('rangeText').textContent = total?('Showing '+(start+1)+'–'+end+' of '+total):'Showing 0–0';
-  document.getElementById('pageCount').textContent = 'Page '+page+' / '+pages;
+  document.getElementById('rangeText').textContent = total?(`Showing ${start+1}–${end} of ${total}`):'Showing 0–0';
+  document.getElementById('pageCount').textContent = `Page ${page} / ${pages}`;
 
   const list=document.getElementById('list'); list.innerHTML='';
   DATA.slice(start,end).forEach(function(it,i){
     const no=start+i+1;
     const card=document.createElement('div'); card.className='card';
     const head=document.createElement('div'); head.className='qhead';
-    head.innerHTML='<div class="qno">'+no+'</div><div style="flex:1">'+it.q+'</div>';
+    head.innerHTML=`<div class="qno">${no}</div><div style="flex:1">${it.q}</div>`;
     const btn=document.createElement('button'); btn.className='btn ghost'; btn.textContent='Show Answer';
     const ans=document.createElement('div'); ans.className='answer'; ans.textContent=(it.a||it.correct||'').toString();
-    btn.onclick=function(){ ans.style.display=ans.style.display==='block'?'none':'block'; btn.textContent=ans.style.display==='block'?'Hide Answer':'Show Answer'; };
+    btn.onclick=()=>{ const open=ans.style.display==='block'; ans.style.display=open?'none':'block'; btn.textContent=open?'Show Answer':'Hide Answer'; };
     card.appendChild(head); card.appendChild(btn); card.appendChild(ans); list.appendChild(card);
   });
 
@@ -220,7 +219,7 @@ document.getElementById('hideAll').onclick=()=>{ document.querySelectorAll('.ans
 document.getElementById('prevBtn').onclick=()=>{ if(page>1){ page--; renderList(); } };
 document.getElementById('nextBtn').onclick=()=>{ page++; renderList(); };
 
-// ---------- play (random / ai) ----------
+/* ---------- play (random / ai) ---------- */
 let order=[], idx=0, scoreUser=0, scoreAI=0, aiMode=false, timerPerQ=0, tHandle=null;
 function setupPlay(title, needsTimer){
   aiMode = needsTimer;
@@ -276,8 +275,8 @@ function renderPlay(){
   const hasMCQ = !!(it.optA||it.optB||it.optC||it.optD);
   revealBtn.style.display = hasMCQ ? 'none' : 'inline-block';
   if(hasMCQ){
-    ['A','B','C','D'].forEach(function(k){
-      const v=it['opt'+k]; if(!v) return;
+    const options = ['A','B','C','D'].map(k=>it['opt'+k]).filter(Boolean);
+    options.forEach(function(v){
       const d=document.createElement('button'); d.className='opt'; d.textContent=v;
       d.onclick=function(){ choose(v,it); };
       opts.appendChild(d);
@@ -305,10 +304,10 @@ function choose(val,it){
   Array.from(opts.children).forEach(function(el){
     const t=el.textContent.trim();
     if(t===correctText) el.classList.add('correct');
-    else if(t===val) el.classList.add('wrong');
+    else if(val!=='__timeout__' && t===val) el.classList.add('wrong');
     el.disabled=true;
   });
-  if(val && val.trim()===correctText) scoreUser++;
+  if(val && val!== '__timeout__' && val.trim()===correctText) scoreUser++;
   if(aiMode){
     const aiChosen=opts.querySelector('[data-ai="1"]');
     if(aiChosen && aiChosen.textContent.trim()===correctText) scoreAI++;
@@ -319,40 +318,50 @@ function next(){ if(idx<order.length-1){ idx++; renderPlay(); } }
 function prev(){ if(idx>0){ idx--; renderPlay(); } }
 function reveal(){ document.getElementById('answer').style.display='block'; }
 
-// ---------- data loader ----------
+/* ---------- data loader ---------- */
 function loadData(){
-  const p=params(); const mode=p.mode||''; const cat=p.cat||''; const cfg=GS_CONFIG;
+  const p=params(); const mode=p.mode||''; const catKey=p.cat||''; const cfg=GS_CONFIG;
 
   if(mode==='random'){
     document.getElementById('pageTitle').textContent='Random Quiz';
     document.getElementById('pageSub').textContent='Choose how many • random across all categories';
     document.getElementById('listToolbar').style.display='none';
     document.getElementById('listFoot').style.display='none';
-    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t)))))
+    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c).then(t=>rowsToObjects(csvToRows(t)))))
       .then(all=>{
-        window.__play_data = all.flat().map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
+        window.__play_data = all.flat().map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA||x.optB||x.optC||x.optD));
         setupPlay('Random Quiz', false);
-      });
+      })
+      .catch(showLoadErr);
   } else if(mode==='ai'){
     document.getElementById('pageTitle').textContent='AI vs You';
     document.getElementById('pageSub').textContent='Timed MCQ across all categories';
     document.getElementById('listToolbar').style.display='none';
     document.getElementById('listFoot').style.display='none';
-    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c.sheet).then(t=>rowsToObjects(csvToRows(t)))))
+    Promise.all((cfg.categories||[]).map(c=>fetchCSV(cfg.sheetId,c).then(t=>rowsToObjects(csvToRows(t)))))
       .then(all=>{
         window.__play_data = all.flat().map(normalize).filter(x=>x.optA||x.optB||x.optC||x.optD);
         setupPlay('AI vs You', true);
-      });
-  } else if(cat){
-    const entry=(cfg.categories||[]).find(x=>x.key===cat)||(cfg.categories||[]).find(x=>x.sheet===cat);
-    document.getElementById('pageTitle').textContent = entry?entry.title:cat;
-    fetchCSV(cfg.sheetId, entry?entry.sheet:cat).then(txt=>{
-      DATA=rowsToObjects(csvToRows(txt)).map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA));
+      })
+      .catch(showLoadErr);
+  } else if(catKey){
+    const entry=(cfg.categories||[]).find(x=>x.key===catKey);
+    document.getElementById('pageTitle').textContent = entry?entry.title:catKey;
+    fetchCSV(cfg.sheetId, entry||{}).then(txt=>{
+      DATA=rowsToObjects(csvToRows(txt)).map(normalize).filter(x=>x.q&&(x.a||x.correct||x.optA||x.optB||x.optC||x.optD));
       renderList();
-    });
+    }).catch(showLoadErr);
   } else {
     DATA=[]; renderList();
   }
+}
+function showLoadErr(err){
+  document.getElementById('listToolbar').style.display='none';
+  document.getElementById('listFoot').style.display='none';
+  document.getElementById('list').innerHTML =
+    '<div class="card" style="background:#fff3f3;border-color:#fecaca;color:#7f1d1d">⚠️ Failed to load questions: '
+    + (err && err.message ? err.message : 'Unknown error')
+    + '</div>';
 }
 
 if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', loadData); else loadData();
