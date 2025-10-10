@@ -24,14 +24,14 @@ footer{max-width:1100px;margin:32px auto 0;padding:8px 16px;color:#7a8d7f;font-s
   <div class="wrap">
     <div class="logo">PSC</div>
     <div style="font-weight:800">PSC Guru <div style="color:#4d7c57;font-weight:600">Kerala PSC Exam Prep</div></div>
-    <div style="margin-left:auto"><a class="reset" href="quiz.html"><button style="padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer">Quiz</button></a></div>
+    <div style="margin-left:auto"><a class="reset" href="/quiz"><button style="padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer">Quiz</button></a></div>
   </div>
 </header>
 
 <h2 class="section">Quick Quiz</h2>
 <div class="grid">
-  <a class="reset" href="quiz.html?mode=random"><div class="tile quick"><div><div class="label">Random Quiz</div><div class="sub">Now choose how many</div></div><div class="ic">🎲</div></div></a>
-  <a class="reset" href="quiz.html?mode=ai"><div class="tile quick blue"><div><div class="label">AI vs You</div><div class="sub">Timed MCQ across all categories</div></div><div class="ic">🤖</div></div></a>
+  <a class="reset" href="/quiz?mode=random"><div class="tile quick"><div><div class="label">Random Quiz</div><div class="sub">Choose how many</div></div><div class="ic">🎲</div></div></a>
+  <a class="reset" href="/quiz?mode=ai"><div class="tile quick blue"><div><div class="label">AI vs You</div><div class="sub">Timed MCQ across all categories</div></div><div class="ic">🤖</div></div></a>
 </div>
 
 <h2 class="section">Quiz Categories</h2>
@@ -40,26 +40,28 @@ footer{max-width:1100px;margin:32px auto 0;padding:8px 16px;color:#7a8d7f;font-s
 <footer>© <span id="year"></span> PSC Guru • Tea Green UI</footer>
 
 <script>
+/* ====== CONFIG: put your sheetId + (optionally) gid for each tab ====== */
 window.GS_CONFIG = {
   sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
   categories: [
-    { key: "information_technology",           sheet: "Information Technology",           title: "Information Technology" },
-    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  title: "Civil Police/ Excise Officer" },
-    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     title: "സാമൂഹ്യക്ഷേമം" },
-    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           title: "രസതന്ത്രം – Chemistry" },
-    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
-    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    title: "GST Malayalam" },
-    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
-    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  title: "കലയും – സാഹിത്യവും" },
-    { key: "cyber_law",                        sheet: "Cyber Law",                        title: "Cyber Law" },
-    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  title: "Lakes in Kerala" },
-    { key: "indian_independence_en",           sheet: "Indian Independence",              title: "Indian Independence" }
+    { key: "information_technology",           sheet: "Information Technology",           gid: "",  title: "Information Technology" },
+    { key: "civil_police_excise_officer_mod",  sheet: "Civil Police Excise Officer Mod",  gid: "",  title: "Civil Police/ Excise Officer" },
+    { key: "samuhyakshamam",                   sheet: "സാമൂഹ്യക്ഷേമം",                     gid: "",  title: "സാമൂഹ്യക്ഷേമം" },
+    { key: "chemistry",                        sheet: "രസതന്ത്രം",                           gid: "",  title: "രസതന്ത്രം – Chemistry" },
+    { key: "physical_science",                 sheet: "ഭൗതിക ശാസ്ത്രം",                       gid: "",  title: "ഭൗതിക ശാസ്ത്രം – Physical Science" },
+    { key: "gst_malayalam",                    sheet: "GST Malayalam",                    gid: "",  title: "GST Malayalam" },
+    { key: "indian_independence_ml",           sheet: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം",             gid: "",  title: "ഇന്ത്യന്‍ സ്വാതന്ത്ര്യ സമരം" },
+    { key: "arts_lit",                         sheet: "കലയും – സാഹിത്യവും",                  gid: "",  title: "കലയും – സാഹിത്യവും" },
+    { key: "cyber_law",                        sheet: "Cyber Law",                        gid: "",  title: "Cyber Law" },
+    { key: "lakes_in_kerala",                  sheet: "Lakes in Kerala",                  gid: "",  title: "Lakes in Kerala" },
+    { key: "indian_independence_en",           sheet: "Indian Independence",              gid: "",  title: "Indian Independence" }
   ]
 };
+/* ====== build category tiles ====== */
 function buildTiles(){
   const box=document.getElementById('tiles'); box.innerHTML='';
   (GS_CONFIG.categories||[]).forEach(function(c){
-    const a=document.createElement('a'); a.className='reset'; a.href='quiz.html?cat='+encodeURIComponent(c.sheet);
+    const a=document.createElement('a'); a.className='reset'; a.href='/quiz?cat='+encodeURIComponent(c.key);
     a.innerHTML='<div class="tile"><div><div class="label">'+c.title+'</div><div class="sub">From Google Sheets</div></div><div class="ic">📘</div></div>';
     box.appendChild(a);
   });
