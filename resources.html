@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="ml">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>PSC Guru – Resources</title>
+  <style>
+    :root{ --bg:#eef7ee;--ink:#0f172a;--muted:#64748b;--card:#fff;--shadow:0 10px 30px rgba(0,0,0,.08); }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
+    header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7;z-index:30}
+    .wrap{max-width:1100px;margin:0 auto;padding:18px 16px;display:flex;gap:12px;align-items:center}
+    .logo{width:36px;height:36px;border-radius:10px;background:#2f8f50;color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
+    .btn{padding:8px 12px;border-radius:999px;border:1px solid #e5e7eb;background:#fff;cursor:pointer}
+    main{max-width:1100px;margin:0 auto;padding:16px}
+    h2{margin:8px 0}
+    .sub{color:var(--muted)}
+    .tools{display:flex;gap:10px;align-items:center;margin:8px 0 12px}
+    input[type="search"]{padding:8px 10px;border:1px solid #d1d5db;border-radius:10px;min-width:260px;background:#fff}
+    .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+    @media (max-width:760px){ .grid{grid-template-columns:1fr} }
+    .card{background:var(--card);border-radius:14px;border:1px solid #e5e7eb;box-shadow:var(--shadow);padding:14px}
+    .row{display:flex;gap:8px;align-items:center;justify-content:space-between}
+    .pill{padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:12px}
+    a.item{display:block;text-decoration:none;color:inherit}
+    .muted{color:var(--muted)}
+  </style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="logo">PSC</div>
+    <div style="font-weight:800">PSC Guru <div class="sub" style="font-weight:600">Kerala PSC Exam Prep</div></div>
+    <div style="margin-left:auto;display:flex;gap:8px">
+      <a href="index.html"><button class="btn">Home</button></a>
+      <a href="quiz.html"><button class="btn">Quiz</button></a>
+    </div>
+  </div>
+</header>
+
+<main>
+  <h2 id="title">Resources</h2>
+  <div class="sub" id="meta">Loading…</div>
+  <div class="tools">
+    <input id="q" type="search" placeholder="Search title…" />
+    <div class="pill" id="count">0</div>
+  </div>
+  <div class="grid" id="grid"></div>
+</main>
+
+<script>
+/* ---------------- CONFIG ----------------- */
+const GS_CONFIG = {
+  sheetId: "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",
+  resources: {
+    studySheet:  "Study Material",       // columns: title, url/pdf/link, desc (optional), date (optional)
+    noticeSheet: "Exam Notifications"    // columns: title, url/link, dept (optional), date (optional), desc (optional)
+  }
+};
+
+/* ------------- helpers ------------- */
+function params(){const q=Object.create(null);location.search.replace(/^\?/,'').split('&').forEach(p=>{if(!p)return;const[k,v]=p.split('=');q[decodeURIComponent(k)]=decodeURIComponent(v||'');});return q;}
+function csvToRows(csv){
+  const rows=[]; let row=[]; let s=''; let q=false;
+  for(let i=0;i<csv.length;i++){
+    const ch=csv[i], nx=csv[i+1];
+    if(q){ if(ch=='"'){ if(nx=='"'){ s+='"'; i++; } else q=false; } else s+=ch; }
+    else { if(ch=='"') q=true; else if(ch==','){ row.push(s); s=''; } else if(ch=='\n'){ row.push(s); rows.push(row); row=[]; s=''; } else if(ch!='\r'){ s+=ch; } }
+  }
+  if(s.length||row.length){ row.push(s); rows.push(row); }
+  return rows;
+}
+function rowsToObjects(rows){
+  if(!rows || !rows.length) return [];
+  const head = rows[0].map(h => (h||'').toString().trim().toLowerCase());
+  const out=[];
+  for(let r=1;r<rows.length;r++){
+    const o={}, rr=rows[r]||[];
+    for(let c=0;c<head.length;c++) o[head[c]]=(rr[c]||'').toString().trim();
+    if(Object.values(o).join('').length) out.push(o);
+  }
+  return out;
+}
+function fetchCSV(sheetId, tabName){
+  return fetch(`https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(tabName)}`)
+    .then(r=>{ if(!r.ok) throw new Error('CSV fetch failed'); return r.text(); });
+}
+function normDate(s){
+  if(!s) return null;
+  const d = new Date(s); if(!isNaN(d)) return d;
+  const m = s.match?.(/(\d{1,2})[^\d](\d{1,2})[^\d](\d{2,4})/);
+  if(m){ const [_,dd,mm,yy]=m; const y=yy.length===2?('20'+yy):yy; const dt=new Date(+y,+mm-1,+dd); if(!isNaN(dt)) return dt; }
+  return null;
+}
+
+/* ------------- render ------------- */
+let ITEMS=[], FILTERED=[];
+function render(){
+  const g=document.getElementById('grid'); const q=document.getElementById('q').value.trim().toLowerCase();
+  FILTERED = ITEMS.filter(x => x.title.toLowerCase().includes(q) || (x.desc && x.desc.toLowerCase().includes(q)));
+  g.innerHTML = FILTERED.map(x => `
+    <a class="item" href="${x.url}" target="_blank" rel="noopener">
+      <div class="card">
+        <div class="row">
+          <div style="font-weight:800">${x.title}</div>
+          <div class="pill">${x.date?x.date:'Open'}</div>
+        </div>
+        ${x.desc?`<div class="muted" style="margin-top:6px">${x.desc}</div>`:''}
+      </div>
+    </a>
+  `).join('');
+  document.getElementById('count').textContent = `${FILTERED.length}`;
+}
+
+/* ------------- boot ------------- */
+(function init(){
+  const p=params();
+  const type = (p.type||'study').toLowerCase();
+  const isStudy = (type==='study');
+
+  document.getElementById('title').textContent = isStudy ? 'Study Material' : 'Exam Notifications';
+
+  const tab = isStudy ? GS_CONFIG.resources.studySheet : GS_CONFIG.resources.noticeSheet;
+
+  fetchCSV(GS_CONFIG.sheetId, tab).then(txt=>{
+    const rows = rowsToObjects(csvToRows(txt));
+    ITEMS = rows.map(r=>{
+      const url = r.url || r.link || r.pdf || '';
+      const title = r.title || r.name || r.topic || url || 'Untitled';
+      const desc = r.desc || r.description || r.notes || '';
+      const date = r.date || r.updated || r.published || '';
+      const nd = normDate(date);
+      return { title, url, desc, date: date, nd };
+    }).filter(x=>x.url);
+
+    // sort by date desc when available
+    ITEMS.sort((a,b)=>{
+      if(a.nd && b.nd) return b.nd - a.nd;
+      if(a.nd && !b.nd) return -1;
+      if(!a.nd && b.nd) return 1;
+      return a.title.localeCompare(b.title);
+    });
+
+    document.getElementById('meta').textContent = `${ITEMS.length} item(s)`;
+    render();
+  }).catch(err=>{
+    document.getElementById('meta').textContent = 'Failed to load';
+    document.getElementById('grid').innerHTML = `<div class="card" style="background:#fff3f3;border-color:#fecaca;color:#7f1d1d">⚠️ ${err?.message||'Error'}</div>`;
+  });
+
+  document.getElementById('q').addEventListener('input', render);
+})();
+</script>
+</body>
+</html>
