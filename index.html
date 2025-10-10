@@ -1,173 +1,268 @@
 <!doctype html>
-<html lang="ml">
+<html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PSC Guru – Kerala PSC Quiz</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PSC Guru — Kerala PSC Exam Prep</title>
+  <meta name="description" content="Kerala PSC Quiz App" />
   <style>
     :root{
-      --bg:#f6fbf7; --ink:#0f172a; --muted:#64748b; --brand:#2f8f50;
-      --card:#fff; --border:#e5e7eb; --shadow:0 10px 30px rgba(0,0,0,.08);
+      --bg:#eef7ef;
+      --card:#ffffff;
+      --brand:#2a7f3f;
+      --text:#183420;
+      --muted:#6a7f71;
+      --accent:#f0fff4;
+      --shadow:0 8px 24px rgba(0,0,0,.08);
+      --radius:16px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif}
-    a{color:inherit;text-decoration:none}
-    header{position:sticky;top:0;background:linear-gradient(135deg,#dff3df,#eaf7ea);border-bottom:1px solid #e6f3e7;z-index:40}
-    .wrap{max-width:1100px;margin:0 auto;padding:16px;display:flex;gap:12px;align-items:center}
-    .logo{width:38px;height:38px;border-radius:10px;background:var(--brand);color:#fff;display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)}
-    .spacer{flex:1}
-    .btn{padding:8px 12px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer}
-    main{max-width:1100px;margin:0 auto;padding:18px 16px 40px}
-    h2{margin:18px 0 8px}
-    .sub{color:var(--muted)}
-    .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-    .cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:10px}
-    @media (max-width:760px){ .cards{grid-template-columns:1fr} }
-    .card{background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:14px;display:flex;gap:12px;align-items:flex-start}
-    .icon{width:44px;height:44px;border-radius:12px;background:#f1f5f9;display:grid;place-items:center;font-weight:800}
-    .title{font-weight:800}
-    .pill{margin-left:auto;padding:6px 10px;border-radius:999px;background:#f1f5f9;color:#0f172a;font-size:12px}
-    .bar{display:flex;gap:8px;align-items:center;margin:6px 0 2px}
-    input[type="search"]{padding:10px 12px;border-radius:12px;border:1px solid var(--border);min-width:260px;background:#fff}
-    .warn{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:12px;padding:12px}
-    .section{margin-top:12px}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font:16px/1.55 system-ui,-apple-system,Segoe UI,Roboto,Ubuntu,Cantarell,Noto Sans,sans-serif;
+    }
+    .container{max-width:1120px;margin:0 auto;padding:28px 20px}
+    header{
+      background:linear-gradient(0deg,#e6f3e7,#e2f0e4);
+      border-bottom:1px solid rgba(0,0,0,.05);
+    }
+    .nav{
+      display:flex;align-items:center;justify-content:space-between;gap:16px;
+    }
+    .brand{display:flex;align-items:center;gap:12px;font-weight:800}
+    .logo{
+      width:40px;height:40px;border-radius:12px;background:#d7f2dc;color:#185b2b;
+      display:grid;place-items:center;font-weight:900;box-shadow:var(--shadow)
+    }
+    .navlinks{display:flex;gap:10px;flex-wrap:wrap}
+    .pill{
+      appearance:none;border:none;border-radius:999px;padding:8px 14px;
+      background:#fff;box-shadow:var(--shadow);color:var(--text);text-decoration:none;font-weight:600
+    }
+    .pill:hover{filter:brightness(.98)}
+    h1{font-size:28px;margin:18px 0 8px}
+    .muted{color:var(--muted)}
+
+    /* Quick quiz */
+    .row{display:grid;grid-template-columns:1fr;gap:16px}
+    @media (min-width:820px){.row{grid-template-columns:1fr 1fr}}
+    .qq-card{
+      background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);
+      padding:18px 18px 18px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px
+    }
+    .qq-left{display:flex;align-items:center;gap:12px}
+    .qq-ico{
+      width:44px;height:44px;border-radius:12px;background:#ffe6e6;display:grid;place-items:center;font-size:22px
+    }
+    .qq-ico.bot{background:#e7ecff}
+    .qq-title{font-weight:800}
+    .qq-sub{font-size:13px;color:var(--muted)}
+    .qq-right .pill{font-weight:700}
+
+    /* Categories */
+    .section-head{display:flex;align-items:center;gap:14px}
+    .count-badge{
+      display:inline-grid;place-items:center;
+      min-width:28px;height:28px;border-radius:999px;background:#fff;box-shadow:var(--shadow);
+      font-weight:800;color:var(--brand)
+    }
+    .search{
+      margin-top:12px;margin-bottom:10px;
+      width:100%;max-width:420px;padding:10px 12px;border-radius:12px;border:1px solid #dfe7e2;background:#fff
+    }
+    .banner{margin:8px 0;padding:12px 14px;border-radius:12px;border:1px solid #e8d5b8;background:#fff6e6;color:#7a4d00}
+    .cat-grid{
+      margin-top:8px;
+      display:grid;grid-template-columns:1fr;gap:14px
+    }
+    @media (min-width:760px){.cat-grid{grid-template-columns:repeat(2,1fr)}}
+    @media (min-width:1080px){.cat-grid{grid-template-columns:repeat(3,1fr)}}
+    .cat-card{
+      display:block;background:var(--card);border-radius:14px;box-shadow:var(--shadow);
+      padding:16px 16px 14px 16px;text-decoration:none;color:inherit;transition:transform .06s ease;
+      border:1px solid #e9efe9
+    }
+    .cat-card:hover{transform:translateY(-2px)}
+    .cat-card__title{font-weight:800;margin:4px 0}
+    .cat-card__meta{font-size:12px;color:var(--muted)}
+    footer{padding:36px 0 24px;color:var(--muted);text-align:center}
   </style>
 </head>
 <body>
-<header>
-  <div class="wrap">
-    <div class="logo">PSC</div>
-    <div style="font-weight:900">PSC Guru
-      <div class="sub" style="font-weight:600">Kerala PSC Exam Prep</div>
+  <header>
+    <div class="container nav">
+      <div class="brand">
+        <div class="logo">PSC</div>
+        <div>
+          <div style="font-weight:800">PSC Guru</div>
+          <div class="muted" style="font-size:12px;margin-top:2px">Kerala PSC Exam Prep</div>
+        </div>
+      </div>
+      <nav class="navlinks">
+        <a class="pill" href="quiz.html">Quiz</a>
+        <a class="pill" href="resources.html">Study</a>
+        <a class="pill" href="notices.html">Notices</a>
+      </nav>
     </div>
-    <div class="spacer"></div>
-    <a href="quiz.html"><button class="btn">Quiz</button></a>
-    <a href="resources.html?type=study"><button class="btn">Study</button></a>
-    <a href="resources.html?type=notices"><button class="btn">Notices</button></a>
-  </div>
-</header>
+  </header>
 
-<main>
-  <!-- Quick Quiz block -->
-  <section class="section">
-    <h2>Quick Quiz</h2>
-    <div class="sub">Start instantly: random questions or play “AI vs You”.</div>
-    <div class="cards">
-      <a class="card" href="quiz.html?mode=random">
-        <div class="icon">🎲</div>
-        <div class="title">Random Quiz</div>
-        <div class="pill">Mixed</div>
-      </a>
-      <a class="card" href="quiz.html?mode=ai">
-        <div class="icon">🤖</div>
-        <div class="title">AI vs You</div>
-        <div class="pill">Timed</div>
-      </a>
+  <main class="container">
+    <h1>Quick Quiz</h1>
+    <div class="muted">Start instantly: random questions or play “AI vs You”.</div>
+
+    <div class="row" style="margin-top:12px">
+      <!-- Random -->
+      <div class="qq-card">
+        <div class="qq-left">
+          <div class="qq-ico">🎲</div>
+          <div>
+            <div class="qq-title">Random Quiz</div>
+            <div class="qq-sub">Mixed questions across all categories</div>
+          </div>
+        </div>
+        <div class="qq-right">
+          <a class="pill" href="quiz.html?mode=random">Start</a>
+        </div>
+      </div>
+      <!-- AI -->
+      <div class="qq-card">
+        <div class="qq-left">
+          <div class="qq-ico bot">🤖</div>
+          <div>
+            <div class="qq-title">AI vs You</div>
+            <div class="qq-sub">Computer guesses vs your answers (timed)</div>
+          </div>
+        </div>
+        <div class="qq-right">
+          <a class="pill" href="quiz.html?mode=ai">Play</a>
+        </div>
+      </div>
     </div>
-  </section>
 
-  <!-- Categories (auto from Google Sheet tabs) -->
-  <section class="section">
-    <h2>Quiz Categories</h2>
-    <div class="bar">
-      <input id="q" type="search" placeholder="Search category…" />
-      <div class="pill" id="count">0</div>
+    <h1 style="margin-top:28px" class="section-head">
+      Quiz Categories
+      <span class="count-badge" data-cat-count>0</span>
+    </h1>
+    <input id="search" class="search" placeholder="Search category..." />
+
+    <div id="cat-error" class="banner" hidden>
+      Unable to load category list. Please either <b>Publish the sheet to the web</b> (entire document),
+      or create a tab named <b>Categories</b> with a <code>name</code> column.
     </div>
-    <div id="warn" class="warn" style="display:none"></div>
-    <div class="cards" id="cats"></div>
-  </section>
-</main>
 
-<script>
-/* ================= CONFIG ================= */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    <div id="cat-grid" class="cat-grid"></div>
+  </main>
 
-/* ignore these tabs when listing categories */
-const EXCLUDE_TABS = new Set([
-  "Study Material","Exam Notifications","Resources","README","Config","Sample","Sheet1","Sheet2"
-]);
+  <footer>
+    © <span id="year"></span> PSC Guru • Tea Green UI
+  </footer>
 
-/* Optional: hard fallback list if auto-discovery is unavailable (keep empty if you publish the sheet) */
-const FALLBACK_TABS = []; // e.g. ["ലക്ഷദ്വീപ്", "Lakes in Kerala", "GST Malayalam"]
+  <script>
+    /* ============== CONFIG ============== */
+    // Your Google Sheet (document) ID
+    const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 
-/* ================= HELPERS ================= */
-const byId = id => document.getElementById(id);
-function slugify(s){return (s||"").toString().trim().toLowerCase()
-  .replace(/[^\p{L}\p{N}]+/gu,"-").replace(/^-+|-+$/g,"");}
+    // Tabs we ignore when falling back to the worksheet feed:
+    const EXCLUDE_TABS = new Set([
+      "Categories","Study Material","Exam Notifications","Resources",
+      "README","Config","Sample","Sheet1","Sheet2"
+    ]);
 
-/* Google “worksheets feed” (v3) – requires File → Publish to web */
-async function fetchTabsFromWorksheetsFeed(sheetId){
-  const url = `https://spreadsheets.google.com/feeds/worksheets/${encodeURIComponent(sheetId)}/public/values?alt=json`;
-  const res = await fetch(url, {mode:"cors"});
-  if(!res.ok) throw new Error("Worksheets feed not reachable. Publish the sheet to the web.");
-  const data = await res.json();
-  const entries = data?.feed?.entry || [];
-  return entries.map(e=>{
-    const name = e?.title?.$t || "";
-    // Try to pull gid from link href (?gid=###)
-    const href = (e?.link||[])[0]?.href || "";
-    const m = href.match(/[?&]gid=(\d+)/);
-    const gid = m ? m[1] : null;
-    return { name, gid };
-  }).filter(x => x.name && !EXCLUDE_TABS.has(x.name));
-}
+    /* ============ Utilities ============ */
+    const $ = (sel,root=document)=>root.querySelector(sel);
+    const $$ = (sel,root=document)=>[...root.querySelectorAll(sel)];
+    $("#year").textContent = new Date().getFullYear();
 
-/* Fallback when not published: try the “Categories” tab via gviz CSV */
-async function fetchTabsFromCategoriesSheet(sheetId){
-  // If you add a tab called "Categories" with a column "name"
-  const url = `https://docs.google.com/spreadsheets/d/${encodeURIComponent(sheetId)}/gviz/tq?tqx=out:csv&sheet=Categories`;
-  const res = await fetch(url);
-  if(!res.ok) throw new Error("No 'Categories' tab.");
-  const csv = await res.text();
-  // tiny CSV parser for first column
-  const rows = csv.trim().split(/\r?\n/).map(r=>r.split(","));
-  const head = rows.shift().map(h=>h.trim().toLowerCase());
-  const idx = head.indexOf("name");
-  if(idx < 0) throw new Error("Categories sheet missing 'name' column.");
-  const list = rows.map(r => (r[idx]||"").trim()).filter(Boolean);
-  return list.map(name => ({ name, gid: null })).filter(x=>!EXCLUDE_TABS.has(x.name));
-}
-
-/* Render cards */
-function renderCategories(items){
-  const q = byId("q").value.trim().toLowerCase();
-  const filtered = items.filter(x => x.name.toLowerCase().includes(q));
-  byId("cats").innerHTML = filtered.map(x => `
-    <a class="card" href="quiz.html?mode=category&sheet=${encodeURIComponent(x.name)}">
-      <div class="icon">📚</div>
-      <div class="title">${x.name}</div>
-      <div class="pill">${slugify(x.name)}</div>
-    </a>
-  `).join("");
-  byId("count").textContent = filtered.length.toString();
-}
-
-/* Boot */
-(async function init(){
-  let tabs = [];
-  try{
-    tabs = await fetchTabsFromWorksheetsFeed(GS_SHEET_ID);
-  }catch(e1){
-    try{
-      if(FALLBACK_TABS.length){
-        tabs = FALLBACK_TABS.map(n=>({name:n,gid:null})).filter(x=>!EXCLUDE_TABS.has(x.name));
-      }else{
-        tabs = await fetchTabsFromCategoriesSheet(GS_SHEET_ID);
-      }
-      byId("warn").style.display = "block";
-      byId("warn").innerHTML = "ℹ️ Couldn’t auto-discover tabs. " +
-        "Please <b>File → Share → Publish to web</b> for this spreadsheet to enable automatic category listing. " +
-        "Using fallback instead.";
-    }catch(e2){
-      byId("warn").style.display = "block";
-      byId("warn").innerHTML = "⚠️ Unable to load category list. " +
-        "Please either <b>Publish the sheet to the web</b> (entire document), or create a tab named <b>Categories</b> with a <code>name</code> column.";
+    // Very small CSV splitter that preserves quoted commas
+    function csvToRows(csv) {
+      const lines = csv.trim().split(/\r?\n/);
+      return lines.map(line =>
+        line.match(/("([^"]|"")*"|[^,])+/g)?.map(c => c.replace(/^"|"$/g,'').replace(/""/g,'"')) ?? []
+      );
     }
-  }
-  window.__CAT_TABS__ = tabs;
-  renderCategories(tabs);
-  byId("q").addEventListener("input", ()=>renderCategories(tabs));
-})();
-</script>
+
+    function renderCategories(names) {
+      const grid = $("#cat-grid");
+      grid.innerHTML = "";
+      names.forEach(name => {
+        const a = document.createElement("a");
+        a.className = "cat-card";
+        a.href = `quiz.html?mode=category&sheet=${encodeURIComponent(name)}`;
+        a.innerHTML = `
+          <div class="cat-card__title">${name}</div>
+          <div class="cat-card__meta">From Google Sheets</div>
+        `;
+        grid.appendChild(a);
+      });
+      // Update count + hide banner
+      const badge = document.querySelector("[data-cat-count]");
+      if (badge) badge.textContent = names.length;
+      const warn = $("#cat-error");
+      if (warn) warn.hidden = true;
+    }
+
+    async function tryCategoriesCSV() {
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=Categories`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("CSV HTTP " + res.status);
+      const csv = await res.text();
+      const rows = csvToRows(csv);
+      if (!rows.length) throw new Error("CSV empty");
+      const header = rows.shift().map(h => h.trim().toLowerCase());
+      const nameIdx = header.indexOf("name");
+      if (nameIdx === -1) throw new Error("CSV has no 'name' column");
+      const names = [...new Set(rows.map(r => (r[nameIdx] || "").trim()).filter(Boolean))];
+      if (!names.length) throw new Error("CSV has no names");
+      return names;
+    }
+
+    async function tryWorksheetFeed() {
+      const url = `https://spreadsheets.google.com/feeds/worksheets/${GS_SHEET_ID}/public/values?alt=json`;
+      const res = await fetch(url, { cache: "no-store" });
+      if (!res.ok) throw new Error("Feed HTTP " + res.status);
+      const j = await res.json();
+      const names = j.feed.entry.map(e => e.title.$t)
+        .filter(n => n && !EXCLUDE_TABS.has(n));
+      if (!names.length) throw new Error("Feed empty");
+      return names;
+    }
+
+    async function loadCategories() {
+      const warn = $("#cat-error");
+      const badge = document.querySelector("[data-cat-count]");
+      if (badge) badge.textContent = "0";
+      if (warn) warn.hidden = false;
+
+      // 1) Try Categories tab (CSV)
+      try {
+        const names = await tryCategoriesCSV();
+        renderCategories(names);
+        return;
+      } catch (e) {
+        console.warn("Categories CSV failed:", e);
+      }
+      // 2) Fallback to worksheet feed
+      try {
+        const names = await tryWorksheetFeed();
+        renderCategories(names);
+      } catch (e) {
+        console.error("Worksheet feed failed:", e);
+        // keep warning visible
+      }
+    }
+
+    // Search filter
+    $("#search").addEventListener("input", e=>{
+      const q = e.target.value.trim().toLowerCase();
+      $$(".cat-card").forEach(card=>{
+        const name = $(".cat-card__title", card).textContent.toLowerCase();
+        card.style.display = name.includes(q) ? "" : "none";
+      });
+    });
+
+    document.addEventListener("DOMContentLoaded", loadCategories);
+  </script>
 </body>
 </html>
