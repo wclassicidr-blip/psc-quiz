@@ -329,12 +329,19 @@ function renderPlay(){
   finishBtn.style.display = (idx===order.length-1) ? 'inline-block' : 'none';
 
   if(hasMCQ){
-    const options = ['A','B','C','D'].map(k=>it['opt'+k]).filter(Boolean);
-    options.forEach(function(v, i){
+    /* Build & cache a shuffled options array for this question (so order stays same if user goes back/forward) */
+    if (!it.__opts || !it.__opts.length) {
+      const optsRaw = ['A','B','C','D'].map(k => it['opt'+k]).filter(Boolean);
+      it.__opts = shuffle(optsRaw.slice());  // SHUFFLE HERE
+    }
+    const options = it.__opts.slice();
+
+    options.forEach(function(v){
       const d=document.createElement('button'); d.className='opt'; d.textContent=v;
       d.onclick=function(){ choose(v,it); };
       opts.appendChild(d);
     });
+
     if(timerPerQ>0){
       timerBox.style.display='inline-block';
       let remaining = timerPerQ; timeLeft.textContent = remaining;
@@ -342,7 +349,9 @@ function renderPlay(){
         remaining--; timeLeft.textContent = remaining;
         if(remaining<=0){ clearInterval(tHandle); tHandle=null; choose('__timeout__', it); setTimeout(()=>next(), 600); }
       }, 1000);
-    } else { timerBox.style.display='none'; }
+    } else {
+      timerBox.style.display='none';
+    }
   } else {
     const note=document.createElement('div'); note.className='muted'; note.textContent='No options available for this question.';
     opts.appendChild(note);
