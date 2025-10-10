@@ -9,24 +9,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef6ee;
-    --card:#ffffff;
-    --ink:#123319;
-    --muted:#6c7a6f;
-    --accent:#2f7d32;
-    --accent-2:#eaf6eb;
-    --danger:#b73a3a;
-    --danger-2:#fdecec;
-    --ring:rgba(18,51,25,.08);
+    --bg:#eef6ee;--card:#ffffff;--ink:#123319;--muted:#6c7a6f;
+    --accent:#2f7d32;--accent-2:#eaf6eb;--danger:#b73a3a;--danger-2:#fdecec;--ring:rgba(18,51,25,.08);
   }
   *{box-sizing:border-box}
   html,body{height:100%}
-  body{
-    margin:0;
-    font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,Apple Color Emoji,Segoe UI Emoji;
-    color:var(--ink);
-    background:linear-gradient(180deg,#f3faf3, #e9f4e9);
-  }
+  body{margin:0;font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial;
+       color:var(--ink);background:linear-gradient(180deg,#f3faf3,#e9f4e9)}
   .wrap{max-width:980px;margin:0 auto;padding:28px 20px 120px}
   header{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:10px}
   h1{font-size:28px;margin:6px 0 18px}
@@ -34,23 +23,15 @@
   .card{background:var(--card);border:1px solid #edf3ee;border-radius:16px;box-shadow:0 6px 30px var(--ring);padding:18px}
   .q{text-wrap:balance;font-weight:600;margin:0 0 12px}
   .opt{display:flex;gap:12px;flex-direction:column}
-  .btn{
-    border:1px solid #e8efe8;background:#fff;border-radius:12px;
-    padding:12px 14px;cursor:pointer;text-align:left;font:600 15px/1.3 Inter;
-    transition:.15s;box-shadow:0 1px 0 rgba(0,0,0,.02)
-  }
+  .btn{border:1px solid #e8efe8;background:#fff;border-radius:12px;padding:12px 14px;cursor:pointer;
+       text-align:left;font:600 15px/1.3 Inter;transition:.15s;box-shadow:0 1px 0 rgba(0,0,0,.02)}
   .btn:hover{background:#fafdf9;border-color:#dfeae0}
   .btn.correct{background:var(--accent-2);border-color:#cfe9d0;color:#0e4e17}
   .btn.wrong{background:var(--danger-2);border-color:#f8c9c9;color:#802d2d}
-  .meta{display:flex;gap:10px;align-items:center;color:var(--muted);font-size:13px;margin-top:6px}
-  .footer{
-    position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.86);
-    backdrop-filter:blur(8px);border-top:1px solid #edf1ee
-  }
+  .footer{position:fixed;left:0;right:0;bottom:0;background:rgba(255,255,255,.86);backdrop-filter:blur(8px);border-top:1px solid #edf1ee}
   .bar{max-width:980px;margin:0 auto;display:flex;align-items:center;gap:10px;padding:12px 18px}
   .pill{padding:8px 12px;border-radius:999px;border:1px solid #e6efe6;background:#fff;color:#1d3f25;font-weight:600;cursor:pointer}
   .pill.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .pill.secondary{background:#fff}
   .pill:disabled{opacity:.5;cursor:not-allowed}
   .sp{flex:1}
   .timer{font-weight:700;color:#0d4f1a}
@@ -65,290 +46,195 @@
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div style="display:flex;align-items:center;gap:10px">
-        <a href="index.html" class="pill secondary">Home</a>
-        <a href="quiz.html" class="pill secondary">Quiz</a>
-      </div>
-      <div class="timer" id="timer">00:00</div>
-    </header>
-
-    <h1 id="title">Quiz</h1>
-
-    <div id="alert" class="note hide"></div>
-
-    <div id="stage" class="grid"></div>
-
-    <div id="summary" class="summary card hide"></div>
-  </div>
-
-  <div class="footer">
-    <div class="bar">
-      <button id="prev" class="pill secondary">← Prev</button>
-      <button id="reveal" class="pill secondary">Show Answer</button>
-      <span class="sp"></span>
-      <div id="pager" class="pill secondary">1 / 1</div>
-      <button id="next" class="pill primary">Next →</button>
+<div class="wrap">
+  <header>
+    <div style="display:flex;align-items:center;gap:10px">
+      <a href="index.html" class="pill">Home</a>
+      <a href="quiz.html" class="pill">Quiz</a>
     </div>
+    <div class="timer" id="timer">00:00</div>
+  </header>
+
+  <h1 id="title">Quiz</h1>
+
+  <div id="alert" class="note hide"></div>
+  <div id="stage" class="grid"></div>
+  <div id="summary" class="summary card hide"></div>
+</div>
+
+<div class="footer">
+  <div class="bar">
+    <button id="prev" class="pill">← Prev</button>
+    <button id="reveal" class="pill">Show Answer</button>
+    <span class="sp"></span>
+    <div id="pager" class="pill">1 / 1</div>
+    <button id="next" class="pill primary">Next →</button>
   </div>
+</div>
 
 <script>
-/* ================= CONFIG ================= */
+/* ======== CONFIG ======== */
 const GS_SHEET_ID =
   localStorage.getItem('PSC_SHEET_ID') ||
-  "16iIOLKAKfzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // fallback
+  "16iIOLKAKfzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // your sheet ID
 
-// timer (seconds per quiz; set 0 to disable)
-const QUIZ_TIME = 0; // unlimited by default
+const QUIZ_TIME = 0; // seconds (0 = unlimited)
 
-/* =============== UTILITIES ================= */
-const qs   = (s, el=document) => el.querySelector(s);
-const qsa  = (s, el=document) => [...el.querySelectorAll(s)];
-const enc  = s => encodeURIComponent(s);
-const sleep= ms => new Promise(r=>setTimeout(r,ms));
-const shuffle = a => { for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a };
-const normKey = k => String(k||'')
-  .trim().toLowerCase()
-  .replace(/\uFEFF/g,'')           // BOM
-  .replace(/[\s\-_()/]+/g,'')      // spaces and punctuation
-; // => "opta", "answer", etc
-
-function formatTime(sec){
-  const m = Math.floor(sec/60).toString().padStart(2,'0');
-  const s = Math.floor(sec%60).toString().padStart(2,'0');
-  return `${m}:${s}`;
-}
-
-/* ============== PARAMS ==================== */
-const params = new URLSearchParams(location.search);
-const sheetNameRaw = (params.get('sheet') || '').trim();
-const mode = params.get('mode') || 'category';
-
-if(!sheetNameRaw){
-  showAlert('No category selected.');
-}
-qs('#title').textContent = sheetNameRaw ? sheetNameRaw : 'Quiz';
-
-/* ============== FETCH HELPERS ============= */
-async function fetchGVizByName(name){
-  const base = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json`;
-  // 3 strategies: as-is, trimmed, and replacing slashes.
-  const tries = [
-    `${base}&sheet=${enc(name)}`,
-    `${base}&sheet=${enc(name.trim())}`,
-    `${base}&sheet=${enc(name.replace(/\//g,' / '))}` // stubborn names
-  ];
-  let lastErr=null;
-  for (const url of tries){
-    try{
-      const r = await fetch(url, {cache:'no-store'});
-      const txt = await r.text();
-      // GViz wraps JSON in a function call
-      const m = txt.match(/google\.visualization\.Query\.setResponse\((.*)\);?$/s);
-      if(!m) throw new Error("Bad GViz response");
-      const data = JSON.parse(m[1]);
-      if(data.status !== 'ok') throw new Error(data?.errors?.[0]?.detailed_message || 'GViz error');
-      return data.table;
-    }catch(e){ lastErr=e; }
+/* ======== HELPERS ======== */
+const qs=(s,e=document)=>e.querySelector(s), qsa=(s,e=document)=>[...e.querySelectorAll(s)];
+const enc=encodeURIComponent;
+const shuffle=a=>{for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+const normKey=k=>String(k||'').trim().toLowerCase().replace(/\uFEFF/g,'').replace(/[\s\-_()/]+/g,''); // headers
+const csvToRows=txt=>txt.replace(/\r\n/g,'\n').replace(/\r/g,'\n').split('\n').filter(x=>x.trim().length);
+function parseCSV(txt){
+  // basic CSV parser (handles quotes)
+  const rows=[]; let row=[], val='', inQ=false;
+  for(let i=0;i<txt.length;i++){
+    const c=txt[i], n=txt[i+1];
+    if(inQ){
+      if(c==='"' && n==='"'){ val+='"'; i++; }
+      else if(c==='"'){ inQ=false; }
+      else val+=c;
+    }else{
+      if(c==='"'){ inQ=true; }
+      else if(c===','){ row.push(val); val=''; }
+      else if(c==='\n'){ row.push(val); rows.push(row); row=[]; val=''; }
+      else val+=c;
+    }
   }
-  throw lastErr || new Error('Failed to fetch GViz data');
+  if(val.length || row.length) { row.push(val); rows.push(row); }
+  return rows;
 }
-
-function tableToObjects(table){
-  const cols = table.cols.map(c => normKey(c.label || c.id));
-  const out = [];
-  for (const row of table.rows){
-    const obj = {};
-    cols.forEach((k,i) => obj[k] = row.c[i]?.v ?? "");
-    out.push(obj);
-  }
-  return out;
-}
-
-/* ============== QUIZ STATE ================ */
-let data = [];
-let idx = 0;
-let answers = []; // for summary
-let timerStart = Date.now();
-let timerTick = null;
-
-function showAlert(msg){
-  const el = qs('#alert');
-  el.textContent = msg;
-  el.classList.remove('hide');
-}
-
+function showAlert(m){ const el=qs('#alert'); el.textContent=m; el.classList.remove('hide'); }
 function hideAlert(){ qs('#alert').classList.add('hide'); }
+function formatTime(s){const m=Math.floor(s/60).toString().padStart(2,'0'); const ss=Math.floor(s%60).toString().padStart(2,'0'); return `${m}:${ss}`;}
 
-/* ============ RENDER QUESTION ============= */
+/* ======== PARAMS ======== */
+const p = new URLSearchParams(location.search);
+const tabName = (p.get('sheet')||'').trim();
+qs('#title').textContent = tabName || 'Quiz';
+
+/* ======== STATE ======== */
+let data=[], idx=0, answers=[], timerTick=null, t0=Date.now();
+
+/* ======== UI ======== */
 function render(){
   hideAlert();
-  const s = qs('#stage');
-  s.innerHTML = '';
+  const s=qs('#stage'); s.innerHTML='';
   if(!data.length){ showAlert('No questions in this tab.'); return; }
+  const q=data[idx];
+  const card=document.createElement('div'); card.className='card';
+  const qEl=document.createElement('div'); qEl.className='q'; qEl.textContent=`${idx+1}. ${q.question}`; card.appendChild(qEl);
+  const box=document.createElement('div'); box.className='opt';
 
-  const q = data[idx];
-  const card = document.createElement('div');
-  card.className = 'card';
+  let correct = (q.answer ?? q.correct ?? '').toString().trim();
+  let opts=[];
+  const mcq=['opta','optb','optc','optd'].map(k=>q[k]).filter(Boolean);
+  if(mcq.length){ const pool=new Set(mcq.map(String)); pool.add(correct); opts=shuffle([...pool]); }
+  else { opts=[correct]; }
 
-  const qEl = document.createElement('div');
-  qEl.className = 'q';
-  qEl.textContent = `${idx+1}. ${q.question}`;
-  card.appendChild(qEl);
+  const correctIdx = opts.findIndex(t=>t.trim()===correct);
+  answers[idx] = {question:q.question, chosen:null, correct, options:[...opts]};
 
-  const optBox = document.createElement('div');
-  optBox.className = 'opt';
-
-  // Build option set
-  let options = [];
-  let correctText = String(q.answer ?? q.correct ?? '').trim();
-
-  // MCQ if any optA..optD present
-  const mcqOpts = ['opta','optb','optc','optd'].map(k=>q[k]).filter(Boolean);
-  if (mcqOpts.length){
-    const pool = new Set(mcqOpts.map(String));
-    pool.add(correctText);
-    options = shuffle([...pool].map(String));
-  }else{
-    // Answers-only – show a single button to reveal
-    options = [correctText];
-  }
-
-  // remember which is correct
-  const correctIndex = options.findIndex(t => t.trim() === correctText.trim());
-  answers[idx] = {question:q.question, chosen:null, correct:correctText, options:[...options]};
-
-  options.forEach((txt, i) => {
-    const b = document.createElement('button');
-    b.className = 'btn';
-    b.innerHTML = txt;
-    b.onclick = () => {
-      // prevent re-answering
-      if (answers[idx].chosen!=null) return;
-      answers[idx].chosen = txt;
-
-      const isCorrect = (i === correctIndex);
-      if (isCorrect){ b.classList.add('correct'); } else { b.classList.add('wrong'); }
-      // mark correct one
-      qsa('.btn', card)[correctIndex]?.classList.add('correct');
+  opts.forEach((txt,i)=>{
+    const b=document.createElement('button'); b.className='btn'; b.textContent=txt;
+    b.onclick=()=>{
+      if(answers[idx].chosen!=null) return;
+      answers[idx].chosen=txt;
+      if(i===correctIdx) b.classList.add('correct'); else b.classList.add('wrong');
+      qsa('.btn',card)[correctIdx]?.classList.add('correct');
     };
-    optBox.appendChild(b);
+    box.appendChild(b);
   });
-
-  card.appendChild(optBox);
+  card.appendChild(box);
   s.appendChild(card);
 
-  qs('#pager').textContent = `${idx+1} / ${data.length}`;
-  qs('#prev').disabled = (idx===0);
-  qs('#next').disabled = (idx>=data.length-1);
+  qs('#pager').textContent=`${idx+1} / ${data.length}`;
+  qs('#prev').disabled=(idx===0);
+  qs('#next').disabled=(idx>=data.length-1);
 }
-
-/* ============== SUMMARY =================== */
-function showSummary(){
-  const box = qs('#summary');
-  box.classList.remove('hide');
-  const total = answers.length;
-  const got = answers.filter(a => a && a.chosen!=null && a.chosen.trim()===a.correct.trim()).length;
-  const timeSpent = (Date.now()-timerStart)/1000;
-
-  let html = `<h2>Quiz Summary</h2>
-    <p><strong>Score:</strong> ${got} / ${total} &nbsp;•&nbsp; <strong>Time:</strong> ${formatTime(timeSpent)}</p>
-    <div class="card" style="padding:0">
-    <table>
-      <thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct</th></tr></thead>
-      <tbody>`;
-
-  answers.forEach((a,i)=>{
-    if(!a) return;
-    const ok = a.chosen!=null && a.chosen.trim()===a.correct.trim();
-    html += `<tr>
-      <td>${i+1}</td>
-      <td>${a.question}</td>
-      <td class="${ok?'ok':'no'}">${a.chosen ?? '—'}</td>
-      <td>${a.correct}</td>
-    </tr>`;
+function summary(){
+  const box=qs('#summary'); box.classList.remove('hide');
+  const total=answers.length;
+  const got=answers.filter(a=>a && a.chosen!=null && a.chosen.trim()===a.correct.trim()).length;
+  const spent=(Date.now()-t0)/1000;
+  let html=`<h2>Quiz Summary</h2>
+  <p><strong>Score:</strong> ${got} / ${total} &nbsp;•&nbsp; <strong>Time:</strong> ${formatTime(spent)}</p>
+  <div class="card" style="padding:0"><table><thead><tr><th>#</th><th>Question</th><th>Your answer</th><th>Correct</th></tr></thead><tbody>`;
+  answers.forEach((a,i)=>{ if(!a) return; const ok=a.chosen!=null && a.chosen.trim()===a.correct.trim();
+    html+=`<tr><td>${i+1}</td><td>${a.question}</td><td class="${ok?'ok':'no'}">${a.chosen??'—'}</td><td>${a.correct}</td></tr>`;
   });
-
-  html += `</tbody></table></div>`;
-  box.innerHTML = html;
-  // scroll to summary
-  box.scrollIntoView({behavior:'smooth',block:'start'});
+  html+='</tbody></table></div>';
+  box.innerHTML=html; box.scrollIntoView({behavior:'smooth'});
 }
-
-/* ============== TIMER ===================== */
 function startTimer(){
-  if(!QUIZ_TIME){ // unlimited
-    timerTick = setInterval(()=>{
-      const t = (Date.now()-timerStart)/1000;
-      qs('#timer').textContent = formatTime(t);
-    },1000);
-    return;
+  if(!QUIZ_TIME){
+    timerTick=setInterval(()=>{qs('#timer').textContent=formatTime((Date.now()-t0)/1000)},1000); return;
   }
-  let remain = QUIZ_TIME;
-  qs('#timer').textContent = formatTime(remain);
-  timerTick = setInterval(()=>{
-    remain -= 1;
-    qs('#timer').textContent = formatTime(remain);
-    if(remain<=0){
-      clearInterval(timerTick);
-      showSummary();
-      showAlert('⏱️ Time up! Summary shown below.');
-    }
-  },1000);
+  let left=QUIZ_TIME; qs('#timer').textContent=formatTime(left);
+  timerTick=setInterval(()=>{ left--; qs('#timer').textContent=formatTime(left); if(left<=0){ clearInterval(timerTick); summary(); showAlert('⏱️ Time up! Summary shown below.'); } },1000);
 }
-
-/* ============== EVENTS ==================== */
-qs('#prev').onclick  = ()=>{ if(idx>0){ idx--; render(); } };
-qs('#next').onclick  = ()=>{ if(idx<data.length-1){ idx++; render(); } };
-qs('#reveal').onclick= ()=>{
-  const buttons = qsa('.btn');
-  if(!buttons.length) return;
-  // find correct from saved
-  const a = answers[idx];
-  if(!a) return;
-  const correctIndex = a.options.findIndex(t => t.trim()===a.correct.trim());
-  buttons.forEach((b,i)=>{
-    b.classList.toggle('correct', i===correctIndex);
-  });
+qs('#prev').onclick=()=>{ if(idx>0){ idx--; render(); } };
+qs('#next').onclick=()=>{ if(idx<data.length-1){ idx++; render(); } };
+qs('#reveal').onclick=()=>{
+  const a=answers[idx]; if(!a) return;
+  const i=a.options.findIndex(t=>t.trim()===a.correct.trim());
+  qsa('.btn').forEach((b,j)=>b.classList.toggle('correct',j===i));
 };
 
-/* ============== LOAD ====================== */
+/* ======== LOADING via PUBLISHED CSV ======== */
+// 1) Find gid for the tab by scraping /pubhtml (works only if “Publish to the web” is ON)
+async function getGidByName(sheetId, name){
+  const url=`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`;
+  const html=await fetch(url,{cache:'no-store'}).then(r=>r.text());
+  // parse <a href="#gid=123456789">Tab Name</a>
+  const re=/#gid=(\d+)[^>]*>([^<]+)<\/a>/g;
+  let m, best=null;
+  while((m=re.exec(html))){
+    const gid=m[1]; const label=m[2].trim();
+    if(label.toLowerCase()===name.toLowerCase()) { best=gid; break; }
+  }
+  return best; // string or null
+}
+// 2) Download CSV by gid
+async function loadCSVByGid(sheetId, gid){
+  // export works if sheet is “Anyone with link Viewer”
+  const url = `https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;
+  const txt = await fetch(url,{cache:'no-store'}).then(r=>{
+    if(!r.ok) throw new Error('CSV export blocked (check Share: Anyone with link – Viewer)');
+    return r.text();
+  });
+  const rows = parseCSV(txt);
+  if(!rows.length) return [];
+  const header = rows[0].map(h=>normKey(h));
+  const out=[];
+  for(let i=1;i<rows.length;i++){
+    const r=rows[i], o={};
+    header.forEach((k,idx)=>o[k]=r[idx]??'');
+    // aliases
+    o.question = o.question || o.q || '';
+    o.answer   = o.answer   || o.ans || o.correct || '';
+    out.push(o);
+  }
+  return out.filter(r=> (r.question && (r.answer || r.opta || r.optb || r.optc || r.optd)));
+}
+
 (async function init(){
   try{
-    if(!sheetNameRaw) return;
+    if(!tabName){ showAlert('No category selected.'); return; }
+    qs('#title').textContent = tabName;
 
-    const table = await fetchGVizByName(sheetNameRaw);
-    const rows = tableToObjects(table);
+    const gid = await getGidByName(GS_SHEET_ID, tabName);
+    if(!gid){ showAlert('Could not find a published tab with that name. Open “Publish to the web” and ensure the tab exists with exactly the same name.'); return; }
 
-    // Map headers to normalized keys and build clean objects
-    const cleaned = rows.map(r=>{
-      const obj = {};
-      for (const k in r){
-        const nk = normKey(k);
-        obj[nk] = r[k];
-      }
-      // alias support
-      obj.question = obj.question ?? obj.q ?? '';
-      obj.answer   = obj.answer   ?? obj.ans ?? obj.correct ?? '';
-      return obj;
-    }).filter(r => (r.question && (r.answer || r.opta || r.optb || r.optc || r.optd)));
+    const rows = await loadCSVByGid(GS_SHEET_ID, gid);
+    if(!rows.length){ showAlert('No rows with recognizable columns in this tab. Expected columns: question + answer OR (optA..optD + correct).'); return; }
 
-    if(!cleaned.length){
-      showAlert('No rows with recognizable columns. Expected columns: id, question, answer OR (optA..optD + correct). Headers are trimmed automatically.');
-      return;
-    }
-
-    data = cleaned;
-    idx = 0;
-    answers = Array(data.length).fill(null);
-
-    startTimer();
-    render();
-
-  }catch(err){
-    console.error(err);
-    showAlert(`Failed to load this tab. ${err.message || err}. Make sure the sheet is public and the tab name matches exactly.`);
+    data = rows; idx=0; answers = Array(data.length).fill(null);
+    startTimer(); render();
+  }catch(e){
+    console.error(e);
+    showAlert(e.message || String(e));
   }
 })();
 </script>
