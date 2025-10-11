@@ -6,7 +6,8 @@
 <title>PSC Guru • Home</title>
 <style>
   :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--accent:#0fa66d;--accent-weak:#c8efe2;--line:#e6eee9}
-  *{box-sizing:border-box} html,body{margin:0} body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
   .wrap{max-width:1100px;margin:0 auto;padding:24px}
   .row{display:flex;align-items:center;gap:10px;justify-content:space-between}
   .brand .logo{width:36px;height:36px;border-radius:10px;background:#1f7c59;color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
@@ -100,85 +101,71 @@
 <script>
 /* ====== CONFIG ====== */
 const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+const CATEGORIES_TAB = "Categories"; // <-- list comes from this tab
 
-/* Tabs to ignore while listing categories */
-const EXCLUDE_TABS = new Set([
-  "Study Material","Exam Notifications","Resources","README","Config","Sample",
-  "Sheet1","Sheet2","Instructions","Cover","Dashboard","Template"
-]);
-
-/* Helpers */
+/* ====== utils ====== */
 const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g,' ').trim();
-const normLow = s => norm(s).toLowerCase();
+const low  = s => norm(s).toLowerCase();
 async function fetchText(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(r.statusText); return r.text(); }
+function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();while(R.length&&R[R.length-1].every(c=>low(c)===''))R.pop();return R;}
+async function csvBySheet(sheet){ const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`; const t=await fetchText(u); return parseCSV(t); }
 
-/* Parse published tabs (name + gid) from pubhtml */
-async function listAllTabs(sheetId){
-  const html = await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
-  // <a ... href="...#gid=95709873">India Facts</a>
-  const re = /<a[^>]+href="[^"]*#gid=(\d+)"[^>]*>([\s\S]*?)<\/a>/gi;
-  const tabs = [];
-  let m;
-  while((m = re.exec(html))){
-    const gid = m[1];
-    const raw = m[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
-    if(!raw) continue;
-    if(EXCLUDE_TABS.has(raw)) continue;
-    tabs.push({name: raw, gid});
-  }
-  // de-dup by gid
-  const seen = new Set();
-  return tabs.filter(t => !seen.has(t.gid) && seen.add(t.gid));
-}
-
-/* Render */
-const host = document.getElementById('catHost');
-const warn = document.getElementById('warn');
-const catCount = document.getElementById('catCount');
-let TABS = [];
+/* ====== state & render ====== */
+const host  = document.getElementById('catHost');
+const warn  = document.getElementById('warn');
+const count = document.getElementById('catCount');
+let CATS = [];
 
 function render(list){
-  host.innerHTML = '';
-  list.forEach(t=>{
-    const a = document.createElement('a');
-    a.className = 'card';
-    a.href = `quiz.html?gid=${encodeURIComponent(t.gid)}&mode=mcq&timer=0`;
-    a.innerHTML = `<div class="row"><div><div class="title">${t.name}</div><div class="sub">From Google Sheets</div></div><span class="tag">Open</span></div>`;
+  host.innerHTML='';
+  list.forEach(c=>{
+    const a=document.createElement('a');
+    a.className='card';
+    a.href=`quiz.html?sheet=${encodeURIComponent(c.sheet)}&mode=mcq&timer=0`;
+    a.innerHTML=`<div class="row"><div><div class="title">${c.name}</div><div class="sub">${c.desc||'From Google Sheets'}</div></div><span class="tag">Open</span></div>`;
     host.appendChild(a);
   });
-  catCount.textContent = list.length;
+  count.textContent = list.length;
 }
 
-/* Search */
 document.getElementById('search').addEventListener('input', e=>{
-  const q = normLow(e.target.value);
-  const filtered = TABS.filter(t => normLow(t.name).includes(q));
-  render(filtered);
+  const q = low(e.target.value);
+  render(CATS.filter(c => low(c.name).includes(q)));
 });
 
-/* Random quiz launcher */
+/* Random quiz */
 let rndCount = 10;
 document.querySelectorAll('.qn').forEach(b=> b.addEventListener('click',()=> rndCount = +b.dataset.n));
 document.getElementById('startRandom').addEventListener('click', ()=>{
   const custom = parseInt(document.getElementById('customCount').value||'0',10);
   const N = custom>0 ? custom : rndCount;
-  if(!TABS.length){ alert('Categories not loaded yet.'); return; }
-  const pick = TABS[Math.floor(Math.random()*TABS.length)];
-  location.href = `quiz.html?gid=${encodeURIComponent(pick.gid)}&mode=mcq&limit=${N}&timer=0`;
+  if(!CATS.length){ alert('Categories not loaded yet.'); return; }
+  const pick = CATS[Math.floor(Math.random()*CATS.length)];
+  location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}&mode=mcq&limit=${N}&timer=0`;
 });
+document.getElementById('howAi').addEventListener('click',()=>alert('Open any category card. To add a timer, append &timer=300 (seconds) to the URL.'))
 
-document.getElementById('howAi').addEventListener('click', () =>
-  alert('Open any category card. To add a timer, append &timer=300 (seconds) to the URL.')
-);
-
-/* Init */
+/* Load categories from the "Categories" tab */
 (async ()=>{
   try{
-    TABS = await listAllTabs(GS_SHEET_ID);
-    if(!TABS.length) throw new Error('No published tabs found.');
-    render(TABS);
+    const rows = await csvBySheet(CATEGORIES_TAB);
+    if(rows.length<2) throw new Error('Empty Categories tab.');
+    const H = rows[0].map(h=>low(h));
+    const ixName  = H.indexOf('name');
+    const ixSheet = H.indexOf('sheet');
+    const ixDesc  = H.indexOf('desc');
+
+    CATS = rows.slice(1).map(r=>{
+      const name  = norm(ixName>=0 ? r[ixName] : r[0]);
+      const sheet = norm(ixSheet>=0 ? r[ixSheet] : name);
+      const desc  = norm(ixDesc>=0 ? r[ixDesc] : '');
+      return name ? {name, sheet, desc} : null;
+    }).filter(Boolean);
+
+    if(!CATS.length) throw new Error('No rows in Categories.');
+    render(CATS);
   }catch(e){
-    warn.innerHTML = `<div class="alert">Unable to load categories. Ensure the sheet is <b>Published to the web</b> (entire document). Error: ${e.message}</div>`;
+    warn.innerHTML = `<div class="alert">Unable to load categories from the <b>Categories</b> tab. Make sure your sheet is <b>Published to the web</b> and the tab exists with a "name" column. Error: ${e.message}</div>`;
   }
 })();
 </script>
