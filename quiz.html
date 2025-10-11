@@ -1,35 +1,50 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>Quiz • PSC Guru</title>
-<link rel="icon" href="data:," />
+<link rel="icon" href="data:,"/>
 <style>
   :root{
-    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b; --ring: rgba(47,143,91,.25);
+    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b;
+    --ring: rgba(47,143,91,.28); --danger:#c95757; --good:#2f8f5b;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:16px/1.4 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
-  header{display:flex;align-items:center;gap:10px;padding:10px 14px}
-  .chip{padding:6px 12px;border-radius:16px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
-  main{max-width:900px;margin:10px auto;padding:0 14px}
-  h1{font-size:22px;margin:8px 0}
-  .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px}
-  .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
+  body{margin:0;background:var(--bg);font:16px/1.45 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
+  /* Header */
+  header{background:linear-gradient(#ecf6ee,#e7f2ea);border-bottom:1px solid #dfefe6}
+  .bar{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .brand{display:flex;gap:10px;align-items:center}
+  .logo{width:36px;height:36px;border-radius:10px;background:#1f6d43;color:#fff;display:grid;place-items:center;font-weight:800}
+  .title{line-height:1}
+  .title b{display:block}
+  .title small{display:block;color:var(--muted);font-size:12px}
+  .nav{display:flex;gap:8px}
+  .chip{padding:6px 12px;border-radius:999px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
+  .timer{font-weight:700;color:#0a5}
+  /* Layout */
+  main{max-width:980px;margin:18px auto;padding:0 16px}
+  h1{font-size:22px;margin:2px 0 10px}
+  .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin-bottom:8px}
+  /* Question Card */
+  .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
   .qidx{color:var(--muted);font-weight:600;font-size:13px}
   .qtext{font-size:18px;margin:6px 0 14px}
   .opts{display:grid;gap:10px}
-  .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer}
-  .opt.correct{border-color:#2f8f5b;background:#ecf9f2}
-  .opt.wrong{border-color:#c95757;background:#ffefef}
-  .answer{display:none;margin:10px 0 4px;color:#075}
-  .stickybar{position:fixed;left:0;right:0;bottom:0;background:#f7fbf8;border-top:1px solid #dfeee6;padding:10px;display:flex;gap:10px;justify-content:center}
+  .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer;transition:.15s}
+  .opt:hover{border-color:#bfe5cc;box-shadow:0 0 0 3px var(--ring)}
+  .opt.correct{border-color:var(--good);background:#ecf9f2}
+  .opt.wrong{border-color:var(--danger);background:#ffefef}
+  .opt.lock{pointer-events:none;opacity:.95}
+  .answer{display:none;margin:12px 0 4px;color:#075}
+  .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px;margin:10px 0}
+  /* Nav under card */
+  .navrow{display:flex;gap:10px;justify-content:center;margin:10px auto 0}
   .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:8px 14px;font-weight:600;cursor:pointer}
   .btn.secondary{background:#e9f5ee;color:#155634}
   .btn:focus{outline:2px solid var(--ring)}
-  .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin:6px 0 12px}
-  .timer{font-weight:700;color:#0a5}
+  /* Summary */
   .summary{margin:14px 0}
   .summary details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
   .muted{color:var(--muted)}
@@ -37,38 +52,49 @@
 </head>
 <body>
 <header>
-  <a class="chip" href="index.html">Home</a>
-  <a class="chip" href="quiz.html">Quiz</a>
+  <div class="bar">
+    <div class="brand">
+      <div class="logo">PSC</div>
+      <div class="title"><b>PSC Guru</b><small>Kerala PSC Exam Prep</small></div>
+    </div>
+    <div class="nav">
+      <a class="chip" href="index.html">Home</a>
+      <a class="chip" href="quiz.html">Quiz</a>
+      <span id="hdrTimer" class="chip timer" style="display:none"></span>
+    </div>
+  </div>
 </header>
 
 <main>
   <h1 id="title">Quiz</h1>
   <div class="meta">
     <div id="metaCat"></div>
-    <div id="metaTimer" class="timer"></div>
   </div>
+
   <div id="alert" class="notice" style="display:none"></div>
-  <div id="qbox" class="card" style="display:none">
+
+  <div id="qwrap" class="card" style="display:none">
     <div class="qidx" id="qidx"></div>
     <div class="qtext" id="qtext"></div>
     <div id="opts" class="opts"></div>
     <div id="answer" class="answer"></div>
   </div>
 
+  <div class="navrow" id="navrow" style="display:none">
+    <button id="prevBtn" class="btn secondary">← Prev</button>
+    <button id="showBtn" class="btn secondary">Show Answer</button>
+    <button id="nextBtn" class="btn">Next →</button>
+  </div>
+
   <section id="summary" class="summary" style="display:none"></section>
 </main>
 
-<div class="stickybar">
-  <button id="prevBtn" class="btn secondary">← Prev</button>
-  <button id="showBtn" class="btn secondary">Show Answer</button>
-  <button id="nextBtn" class="btn">Next →</button>
-</div>
-
 <script>
-/* ================= CONFIG ================ */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";  // <-- your sheet id
+/* ====== CONFIG ====== */
+const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 const CATEGORIES_TAB = "Categories";
-/* ============== helpers ============== */
+
+/* ====== helpers ====== */
 const $ = sel=>document.querySelector(sel);
 function csvToRows(text){
   const rows=[], row=[], pushRow=()=>{rows.push([...row]);row.length=0};
@@ -110,16 +136,16 @@ async function fetchCSV(sheetName){
     }catch(e){ if(i===tries.length-1) throw e; }
   }
 }
-/* ============== quiz loader ============== */
+
+/* ====== parsers ====== */
 function parseMCQ(headers, rows){
-  // Accept either: answer + optA..optD + [correct]
   const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
   const optNames = ["opta","optb","optc","optd"].filter(x=>H[x]!=null);
   return rows.map(r=>{
     const q = r[H.question] || r[H.q] || r[0];
     const ans = r[H.answer] || r[H.ans] || "";
     const options = optNames.map(x=>r[H[x]]).filter(Boolean);
-    const correct = r[H.correct] || ans;
+    const correct = (r[H.correct] || ans || "").toString().trim();
     return {q, answer: ans, options: options.length?options:[ans], correct};
   }).filter(x=>x.q && x.answer);
 }
@@ -127,11 +153,10 @@ function fromQA(headers, rows){
   const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
   return rows.map(r=>{
     const q = r[H.question] || r[0];
-    const ans = r[H.answer] || r[1] || "";
+    const ans = (r[H.answer] || r[1] || "").toString().trim();
     return {q, answer: ans, options:[ans], correct: ans};
   }).filter(x=>x.q && x.answer);
 }
-
 async function loadQuestions(sheet){
   const {headers, rows} = await fetchCSV(sheet);
   const norm = headers.map(normalizeHeader);
@@ -139,7 +164,7 @@ async function loadQuestions(sheet){
   return (hasOptions ? parseMCQ(norm, rows) : fromQA(norm, rows));
 }
 
-/* ============== state ============== */
+/* ====== state ====== */
 const url = new URL(location.href);
 const sheetName = url.searchParams.get("sheet");
 const wantRandom = url.searchParams.get("random");
@@ -147,25 +172,29 @@ const wantCount = parseInt(url.searchParams.get("count")||"",10) || null;
 const timerSec = parseInt(url.searchParams.get("timer")||"",10) || null;
 
 let questions = [];
-let order = [];         // shuffled indices
+let order = [];
 let idx = 0;
-let picked = new Map(); // index -> {picked, correct}
-let startedAt = null;
-let tickHandle = null;
+// stores: {picked:"text", isCorrect:boolean}
+let picked = new Map();
+let optCache = new Map();   // index -> shuffled options (to keep stable on revisit)
+let startedAt = null, tickHandle=null;
 
+/* ====== timer ====== */
 function renderTimer(){
   if(!timerSec || !startedAt) return;
   const elapsed = Math.floor((Date.now()-startedAt)/1000);
   const left = Math.max(0, timerSec - elapsed);
   const mm = String(Math.floor(left/60)).padStart(2,'0');
   const ss = String(left%60).padStart(2,'0');
-  $("#metaTimer").textContent = `${mm}:${ss}`;
+  const t = `${mm}:${ss}`;
+  $("#hdrTimer").style.display = "";
+  $("#hdrTimer").textContent = t;
   if(left===0){ clearInterval(tickHandle); showSummary(); }
 }
 
+/* ====== init ====== */
 async function init(){
   if(wantRandom){
-    // load categories to pick any sheet randomly
     const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
     const H = Object.fromEntries(headers.map((h,i)=>[normalizeHeader(h),i]));
     const cats = rows.map(r=> r[H.sheet] || r[H.actualtabname] || r[1]).filter(Boolean);
@@ -183,67 +212,100 @@ async function init(){
 
   if(!questions.length){
     $("#alert").style.display = "";
-    $("#alert").textContent = "Failed to load this tab. Bad GViz response. Make sure the sheet is public (or Published to the web) and the tab name matches exactly.";
+    $("#alert").textContent = "Failed to load this tab. Make sure the sheet is public (or Published to the web) and the tab name matches exactly.";
     return;
   }
 
-  // limit count for random if requested
   if(wantCount) questions = shuffle([...questions]).slice(0,wantCount);
 
   order = questions.map((_,i)=>i);
   showQuestion(0);
 
   startedAt = Date.now();
-  if(timerSec){ tickHandle = setInterval(renderTimer, 250); renderTimer(); }
+  if(timerSec){ tickHandle = setInterval(renderTimer, 300); renderTimer(); }
 }
 
+/* ====== rendering ====== */
 function showQuestion(i){
   idx = Math.max(0, Math.min(order.length-1, i));
-  const q = questions[order[idx]];
-  $("#qbox").style.display = "";
+  const qIndex = order[idx];
+  const q = questions[qIndex];
+
+  $("#qwrap").style.display = "";
+  $("#navrow").style.display = "";
   $("#qidx").textContent = `Question ${idx+1} / ${order.length}`;
   $("#qtext").textContent = q.q;
 
+  // keep a stable shuffle per question (so going back preserves positions)
+  let shuffled = optCache.get(qIndex);
+  if(!shuffled){
+    const baseOpts = q.options && q.options.length>1 ? [...q.options] : [q.answer];
+    shuffled = shuffle(baseOpts.map(txt => ({
+      txt,
+      isCorrect: txt.toString().trim() === (q.correct||q.answer).toString().trim()
+    })));
+    optCache.set(qIndex, shuffled);
+  }
+
   const area = $("#opts"); area.innerHTML = "";
-  const opts = q.options && q.options.length>1 ? [...q.options] : [q.answer];
-  const shuffled = shuffle(opts.map(x=>({txt:x, isCorrect: x.toString().trim() === (q.correct||q.answer).toString().trim()})));
   shuffled.forEach(o=>{
     const div = document.createElement("div");
     div.className = "opt";
     div.textContent = o.txt;
     div.onclick = ()=>{
-      // mark
-      if(picked.has(order[idx])) return;
-      const res = {picked:o.txt, correct:(o.isCorrect)};
-      picked.set(order[idx], res);
-      if(o.isCorrect){ div.classList.add("correct"); }
-      else { div.classList.add("wrong"); }
+      if(picked.has(qIndex)) return;
+      const res = {picked:o.txt, isCorrect:o.isCorrect};
+      picked.set(qIndex, res);
+      // paint
+      const children = [...area.children];
+      children.forEach(el => el.classList.add("lock"));
+      if(res.isCorrect){
+        div.classList.add("correct");
+      }else{
+        div.classList.add("wrong");
+        const right = children.find(el => el.textContent.trim() === (q.correct||q.answer).toString().trim());
+        if(right) right.classList.add("correct");
+      }
     };
     area.appendChild(div);
   });
+
+  // if previously answered, restore colors/lock
+  const past = picked.get(qIndex);
+  if(past){
+    [...area.children].forEach(el=>{
+      el.classList.add("lock");
+      const txt = el.textContent.trim();
+      if(txt === (q.correct||q.answer).toString().trim()) el.classList.add("correct");
+      if(txt === past.picked && !past.isCorrect) el.classList.add("wrong");
+    });
+  }
 
   $("#answer").style.display = "none";
   $("#answer").textContent = "Answer: " + (q.correct || q.answer);
 }
 
-$("#showBtn").onclick = ()=>{
-  $("#answer").style.display = "";
-};
+/* ====== controls ====== */
+$("#showBtn").onclick = ()=>{ $("#answer").style.display = ""; };
 $("#prevBtn").onclick = ()=> showQuestion(idx-1);
 $("#nextBtn").onclick = ()=>{
   if(idx === order.length-1){ showSummary(); }
   else showQuestion(idx+1);
 };
 
+/* ====== summary ====== */
 function showSummary(){
   clearInterval(tickHandle);
-  $("#qbox").style.display = "none";
+  $("#qwrap").style.display = "none";
+  $("#navrow").style.display = "none";
+
   const total = order.length;
   let correct = 0;
   order.forEach(i=>{
     const res = picked.get(i);
     const q = questions[i];
-    if(res?.picked && (res.picked.toString().trim() === (q.correct||q.answer).toString().trim())) correct++;
+    if(!res) return;
+    if(res.picked.toString().trim() === (q.correct||q.answer).toString().trim()) correct++;
   });
 
   const s = $("#summary");
@@ -252,13 +314,13 @@ function showSummary(){
     <div class="card">
       <h3>Summary</h3>
       <div class="muted">Score: <strong>${correct}</strong> / ${total}</div>
-      <div class="muted">Time: ${$("#metaTimer").textContent || "—"}</div>
+      ${timerSec ? `<div class="muted">Time: ${$("#hdrTimer").textContent}</div>` : ""}
       <details open style="margin-top:10px">
         <summary>Review answers</summary>
         ${order.map((i,k)=>{
           const q = questions[i];
-          const res = picked.get(i);
-          const mine = res?.picked || "—";
+          const res = picked.get(i) || {picked:"—", isCorrect:false};
+          const mine = res.picked;
           const ok = mine.toString().trim() === (q.correct||q.answer).toString().trim();
           return `
             <details>
