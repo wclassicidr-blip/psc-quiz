@@ -1,469 +1,444 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AI vs You • PSC Guru</title>
-<link rel="icon" href="data:,"/>
-<style>
-  :root{
-    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b;
-    --ring: rgba(47,143,91,.28); --danger:#c95757; --good:#2f8f5b; --soft:#e9f5ee;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:clamp(15px,1.4vw,16px)/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
-  header{background:linear-gradient(#ecf6ee,#e7f2ea);border-bottom:1px solid #dfefe6;position:sticky;top:0;z-index:10}
-  .bar{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .brand{display:flex;gap:10px;align-items:center}
-  .logo{width:36px;height:36px;border-radius:10px;background:#1f6d43;color:#fff;display:grid;place-items:center;font-weight:800}
-  .title{line-height:1}
-  .title b{display:block;font-size:clamp(15px,2.2vw,18px)}
-  .title small{display:block;color:var(--muted);font-size:12px}
-  .nav{display:flex;gap:8px;align-items:center}
-  .chip{padding:6px 12px;border-radius:999px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
-  .timer{font-weight:700;color:#0a5}
-  main{max-width:980px;margin:18px auto;padding:0 16px}
-  h1{font-size:clamp(18px,2.6vw,22px);margin:2px 0 10px}
-  .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin-bottom:8px}
-  .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
-  .qidx{color:var(--muted);font-weight:600;font-size:13px}
-  .qtext{font-size:clamp(17px,2.6vw,18px);margin:6px 0 14px}
-  .opts{display:grid;gap:10px}
-  .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer;transition:.15s}
-  .opt:hover{border-color:#bfe5cc;box-shadow:0 0 0 3px var(--ring)}
-  .opt.correct{border-color:var(--good);background:#ecf9f2}
-  .opt.wrong{border-color:#c95757;background:#ffefef}
-  .opt.lock{pointer-events:none;opacity:.95}
+  <meta charset="utf-8" />
+  <title>AI vs You • PSC Guru</title>
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#eef7ef;
+      --card:#ffffff;
+      --text:#0d3b2e;
+      --muted:#527567;
+      --brand:#2f8f5b;
+      --brand-weak:#e7f5ee;
+      --red:#e35d6a;
+      --red-weak:#fdecef;
+      --blue:#2f6df8;
+      --blue-weak:#e9efff;
+      --ring:0 0 0 3px rgba(47,143,91,.15);
+      --shadow:0 6px 20px rgba(0,0,0,.06);
+      --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      font-family:Inter,system-ui,Segoe UI,Roboto,Arial,Helvetica,sans-serif;
+      color:var(--text);
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+    }
+    .wrap{
+      max-width:980px;
+      margin:32px auto;
+      padding:0 16px;
+    }
+    header{
+      display:flex;
+      align-items:center;
+      gap:10px;
+      margin-bottom:18px;
+    }
+    header .chip{
+      background:#fff;
+      border-radius:999px;
+      padding:8px 14px;
+      box-shadow:var(--shadow);
+      text-decoration:none;
+      color:var(--text);
+      font-weight:600;
+      font-size:13px;
+    }
+    h1{font-size:28px;margin:0 0 2px}
+    .muted{color:var(--muted);font-size:14px}
 
-  .ai-badge{display:inline-block;padding:2px 8px;border-radius:999px;font-weight:700;font-size:12px;margin-left:6px;background:#eef3f1;color:#40685a}
-  .ai-pick{margin-top:10px;padding:10px;border-radius:10px;border:1px dashed #cfe4d8;background:#f8fcfa}
-  .ai-pick.good{border-color:#86d3aa;background:#eefaf2;color:#0a6}
-  .ai-pick.bad{border-color:#f0b6b6;background:#fff3f3;color:#b33}
+    .card{
+      background:var(--card);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+      padding:18px;
+    }
 
-  .score{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0 16px}
-  .pill{border-radius:999px;padding:6px 10px;background:#fff;border:1px solid #e3efe7}
-  .pill.you{border-color:#2f8f5b;color:#145b38}
-  .pill.ai{border-color:#3b86d1;color:#1c4f87}
+    .toolbar{
+      display:flex;align-items:center;justify-content:space-between;
+      gap:10px;margin:14px 0 18px;
+    }
+    .score{
+      display:flex;gap:10px;align-items:center;font-weight:700
+    }
+    .sc-pill{padding:6px 10px;border-radius:10px;background:var(--brand-weak);color:var(--brand)}
+    .ai-pill{background:var(--blue-weak);color:var(--blue)}
+    .timer{font-weight:700;color:var(--muted)}
 
-  .navrow{position:sticky;bottom:8px;display:flex;gap:10px;justify-content:center;margin:12px auto 0;padding:8px;background:rgba(255,255,255,.75);backdrop-filter:saturate(150%) blur(8px);border-radius:999px;box-shadow:0 6px 24px #0001}
-  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:10px 16px;font-weight:700;cursor:pointer;min-width:94px}
-  .btn.secondary{background:var(--soft);color:#155634}
-  .btn.ghost{background:#fff;color:#2b6a45;border:1px solid #dbeee4}
-  .btn:focus{outline:2px solid var(--ring)}
+    .q-meta{color:var(--muted);font-weight:600;font-size:13px;margin-bottom:8px}
+    .question{font-weight:700;font-size:18px;margin-bottom:12px}
 
-  .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px;margin:10px 0}
+    .opt{
+      border:1px solid #e7ece9;
+      padding:14px 16px;
+      border-radius:12px;
+      background:#fff;
+      cursor:pointer;
+      margin-bottom:10px;
+      transition:transform .05s ease, border-color .2s ease, background .2s ease;
+    }
+    .opt:hover{transform:translateY(-1px)}
+    .opt.correct{background:var(--brand-weak);border-color:var(--brand);position:relative}
+    .opt.correct::after{
+      content:"Correct";
+      position:absolute;right:12px;top:10px;color:var(--brand);font-weight:700;font-size:12px;
+    }
+    .opt.wrong{background:var(--red-weak);border-color:var(--red);position:relative}
+    .opt.wrong::after{
+      content:"Your pick";
+      position:absolute;right:12px;top:10px;color:var(--red);font-weight:700;font-size:12px;
+    }
+    .opt.ai-guess{outline:2px dashed var(--blue);outline-offset:2px;position:relative}
+    .opt.ai-guess::before{
+      content:"AI";
+      position:absolute;left:-8px;top:-8px;background:var(--blue);color:#fff;font-size:10px;padding:2px 6px;border-radius:999px;
+    }
+    .opt.disabled{pointer-events:none;opacity:.85}
 
-  .summary{margin:14px 0}
-  .kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:12px 0}
-  .kpi{background:#fff;border:1px solid #e3efe7;border-radius:12px;padding:12px;text-align:center}
-  .kpi b{display:block;font-size:clamp(18px,3vw,22px)}
-  .kpi small{color:var(--muted)}
-  .barwrap{height:10px;background:#e9f5ee;border-radius:999px;overflow:hidden}
-  .barfill{height:100%;background:linear-gradient(90deg,#2f8f5b,#4ac48c)}
-  .review details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
-  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-left:8px}
-  .ok{background:#e9f9f1;color:#0a6}
-  .bad{background:#ffebeb;color:#b33}
-  .skp{background:#eef3f1;color:#607d73}
-  .review-opts{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
-  .review-opts li{padding:8px 10px;border-radius:10px;border:1px solid #e3efe7}
-  .review-opts li.correct{background:#ecf9f2;border-color:#2f8f5b}
-  .review-opts li.wrong{background:#ffefef;border-color:#c95757}
-  .muted{color:var(--muted)}
-  .row-actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
+    .actions{
+      display:flex;gap:8px;justify-content:flex-end;margin-top:12px;flex-wrap:wrap
+    }
+    .btn{
+      background:var(--brand);
+      color:#fff;
+      border:none;
+      padding:12px 18px;
+      border-radius:12px;
+      font-weight:700;
+      cursor:pointer;
+    }
+    .btn.secondary{background:#fff;color:var(--text);border:1px solid #e7ece9}
+    .btn:focus-visible{box-shadow:var(--ring)}
+    .btn:disabled{opacity:.6;cursor:not-allowed}
 
-  .picker{display:grid;gap:10px}
-  .picker .row{display:flex;gap:8px;flex-wrap:wrap}
-  select,input[type=number]{padding:10px;border-radius:10px;border:1px solid #dcefe5;background:#fff}
-  @media (max-width:680px){
-    .kpis{grid-template-columns:repeat(2,1fr)}
-    .btn{min-width:auto}
-    .navrow{gap:6px;padding:6px}
-  }
-</style>
+    .hint{margin-top:8px;color:var(--muted);font-size:13px}
+
+    .summary{margin-top:18px}
+    details{border:1px solid #e7ece9;border-radius:12px;margin-bottom:10px;background:#fff}
+    summary{cursor:pointer;padding:12px 14px;font-weight:600}
+    .row{padding:12px 14px;border-top:1px solid #f0f3f1}
+
+    @media (max-width:640px){
+      h1{font-size:22px}
+      .wrap{margin:18px auto}
+      .opt{font-size:15px}
+      .actions{justify-content:space-between}
+    }
+  </style>
 </head>
 <body>
-<header>
-  <div class="bar">
-    <div class="brand">
-      <div class="logo">PSC</div>
-      <div class="title"><b>PSC Guru</b><small>Kerala PSC Exam Prep</small></div>
-    </div>
-    <div class="nav">
+  <div class="wrap">
+    <header>
       <a class="chip" href="index.html">Home</a>
       <a class="chip" href="quiz.html">Quiz</a>
-      <span id="hdrTimer" class="chip timer" style="display:none"></span>
+      <span class="muted">AI vs You</span>
+    </header>
+
+    <h1 id="title">AI vs You</h1>
+    <div class="muted" id="subtitle">Computer guesses vs your answers. Select a category on the home page or pass <code>?sheet=Tab Name</code>.</div>
+
+    <div class="toolbar">
+      <div class="score">
+        <span class="sc-pill">You: <span id="scYou">0</span></span>
+        <span class="sc-pill ai-pill">AI: <span id="scAI">0</span></span>
+      </div>
+      <div class="timer" id="timer" hidden>00:00</div>
     </div>
-  </div>
-</header>
 
-<main>
-  <h1>AI vs You <span class="ai-badge">Timed</span></h1>
-  <div class="meta"><div id="metaCat"></div></div>
-
-  <div id="picker" class="card" style="display:none">
-    <h3>Start a match</h3>
-    <div class="picker">
-      <div class="row">
-        <label>
-          <div class="muted" style="margin-bottom:4px">Category</div>
-          <select id="catSelect"></select>
-        </label>
+    <div class="card" id="quizBox" hidden>
+      <div class="q-meta" id="qMeta"></div>
+      <div class="question" id="qText"></div>
+      <div id="opts"></div>
+      <div class="actions">
+        <button class="btn secondary" id="btnPrev">← Prev</button>
+        <button class="btn secondary" id="btnShow">Show Answer</button>
+        <button class="btn" id="btnNext">Next →</button>
       </div>
-      <div class="row">
-        <label>
-          <div class="muted" style="margin-bottom:4px">Questions</div>
-          <input id="countInput" type="number" min="5" max="50" step="1" value="10" style="width:110px">
-        </label>
-        <label>
-          <div class="muted" style="margin-bottom:4px">Timer (sec)</div>
-          <input id="timerInput" type="number" min="60" max="1800" step="30" value="300" style="width:130px">
-        </label>
-        <label>
-          <div class="muted" style="margin-bottom:4px">AI accuracy</div>
-          <input id="accInput" type="number" min="0" max="1" step="0.05" value="0.55" style="width:110px">
-        </label>
-      </div>
-      <div class="row">
-        <button id="startBtn" class="btn">Start</button>
-      </div>
+      <div class="hint" id="hint"></div>
     </div>
+
+    <div class="card summary" id="sumBox" hidden></div>
   </div>
-
-  <div id="alert" class="notice" style="display:none"></div>
-
-  <div class="score" id="score" style="display:none">
-    <div class="pill you">You: <b id="youScore">0</b></div>
-    <div class="pill ai">AI: <b id="aiScore">0</b></div>
-  </div>
-
-  <div id="qwrap" class="card" style="display:none">
-    <div class="qidx" id="qidx"></div>
-    <div class="qtext" id="qtext"></div>
-    <div id="opts" class="opts"></div>
-    <div id="aiPick" class="ai-pick" style="display:none"></div>
-  </div>
-
-  <div class="navrow" id="navrow" style="display:none">
-    <button id="prevBtn" class="btn secondary">← Prev</button>
-    <button id="nextBtn" class="btn">Next →</button>
-  </div>
-
-  <section id="summary" class="summary" style="display:none"></section>
-</main>
 
 <script>
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-const CATEGORIES_TAB = "Categories";
-const $ = s=>document.querySelector(s);
-function normalizeHeader(h){return (h||"").toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9_]/g,'');}
-function csvToRows(text){
-  const rows=[], row=[], pushRow=()=>{rows.push([...row]);row.length=0};
-  let s="", q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i], n=text[i+1];
-    if(q){ if(c=='"' && n=='"'){s+='"';i++;} else if(c=='"'){q=false;} else s+=c; }
-    else { if(c=='"') q=true; else if(c==','){ row.push(s.trim()); s=""; }
-      else if(c=='\n'){ row.push(s.trim()); s=""; if(row.some(x=>x!=='')) pushRow(); }
-      else s+=c; }
-  }
-  if(s.length||row.length){ row.push(s.trim()); if(row.some(x=>x!=='')) rows.push(row); }
-  return rows;
+/* ================= CONFIG ================= */
+const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // <- your sheet id
+
+/* Tabs to ignore if you later add auto-listing */
+const EXCLUDE = new Set(["Categories","Study Material","Exam Notifications","README","Config","Sample","Sheet1","Sheet2"]);
+
+/* =============== UTILITIES =============== */
+const qs = (s, el=document) => el.querySelector(s);
+const qsa = (s, el=document) => [...el.querySelectorAll(s)];
+const shuffle = arr => arr.sort(() => Math.random() - 0.5);
+const fmtTime = s => {
+  s = Math.max(0, s|0);
+  const m = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  return `${m}:${ss}`;
+};
+function getParam(name, dflt=null){
+  const url = new URL(location.href);
+  return url.searchParams.get(name) ?? dflt;
 }
+
+/* ======== Fetch CSV (published + gviz fallback) ======== */
 async function fetchCSV(sheetName){
-  const tries = [
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`
-  ];
-  for(let i=0;i<tries.length;i++){
-    try{
-      const res = await fetch(tries[i], {mode:"cors"});
-      if(!res.ok) throw new Error(res.status+" "+res.statusText);
-      const txt = await res.text();
-      if(tries[i].includes("out:json")){
-        const payload = JSON.parse(txt.replace(/^[\s\S]*?setResponse\(/,'').replace(/\);?$/,''));
-        const table = payload.table;
-        const headers = table.cols.map(c => normalizeHeader(c.label||c.id||""));
-        const rows = table.rows.map(r => headers.map((_,j)=>(r.c[j]?.v ?? "").toString().trim()));
-        return {headers, rows};
-      }else{
-        const rows = csvToRows(txt);
-        const headers = rows.shift().map(normalizeHeader);
-        return {headers, rows};
-      }
-    }catch(e){
-      if(i===tries.length-1) throw e;
+  const pub = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(sheetName)}`;
+  try{
+    const r = await fetch(pub, {cache:"no-store"});
+    if(r.ok) return await r.text();
+  }catch(e){}
+  // fallback
+  const gviz = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`;
+  const r2 = await fetch(gviz, {cache:"no-store"});
+  if(!r2.ok) throw new Error("GViz/CSV fetch failed");
+  return await r2.text();
+}
+function parseCSV(txt){
+  // very small CSV parser (assumes no newlines inside cells)
+  const rows = txt.split(/\r?\n/).filter(Boolean).map(r => {
+    const out=[]; let cur=""; let q=false;
+    for(let i=0;i<r.length;i++){
+      const c=r[i];
+      if(c==='\"'){
+        if(q && r[i+1]==='\"'){cur+='\"'; i++}
+        else q=!q;
+      }else if(c===',' && !q){out.push(cur.trim());cur=""}
+      else cur+=c;
     }
+    out.push(cur.trim());
+    return out;
+  });
+  if(!rows.length) return {head:[],data:[]};
+  const head = rows[0].map(h=>h.toLowerCase());
+  const data = rows.slice(1).map(r=>{
+    const o={};
+    head.forEach((h,i)=>o[h]=r[i] ?? "");
+    return o;
+  });
+  return {head,data};
+}
+
+/* =============== QUIZ STATE =============== */
+let QUESTIONS=[], CUR=0, YOU=0, AI=0, TIMER=null, TIMELEFT=0;
+let LAST = {user:null, ai:null, correct:null};
+
+function mapQuestion(row){
+  // Accept both MCQ and QA; prefer MCQ for AI mode
+  const q = row["question"] || row["q"] || row["prompt"] || "";
+  const a = row["answer"] || row["ans"] || "";
+  const A = row["opta"] || row["a"] || "";
+  const B = row["optb"] || row["b"] || "";
+  const C = row["optc"] || row["c"] || "";
+  const D = row["optd"] || row["d"] || "";
+
+  const opts = [A,B,C,D].filter(Boolean);
+  const hasMCQ = opts.length >= 2;
+
+  let correct = row["correct"] || row["key"] || "";
+  // Normalize 'correct' to exact option text if needed
+  if(hasMCQ){
+    const letter = String(correct).trim().toUpperCase();
+    if(["A","B","C","D"].includes(letter)){
+      const map = {A:0,B:1,C:2,D:3};
+      correct = opts[map[letter]];
+    }
+    if(!correct) correct = a; // fallback to 'answer' text
+  }else{
+    // no MCQ -> still allow (computer random pick among 2 generic options)
+    if(!correct) correct = a || "—";
+    if(opts.length<2) opts.push(correct, "—");
   }
+  // reject if no question text
+  if(!q) return null;
+
+  return { q, opts, correct };
 }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-function firstNonEmpty(obj, names){ for(const n of names){ if(obj[n]!=null && obj[n]!=="") return obj[n]; } return ""; }
-function parseMCQ(headers, rows){
-  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-  const optCols = ["opta","optb","optc","optd","opt1","opt2","opt3","opt4"].filter(x=>H[x]!=null);
-  const correctCols = ["correct","answer","ans","key","answerkey","right","correctoption","solution","correctindex","ansindex"];
-  return rows.map(r=>{
-    const get = h => r[H[h]] ?? "";
-    const q = get("question") || get("q") || r[0] || "";
-    if(!q) return null;
-    const options = optCols.map(h => (get(h)||"").toString().trim()).filter(Boolean);
-    let rawCorrect = firstNonEmpty(Object.fromEntries(correctCols.map(c=>[c, get(c)])), correctCols).toString().trim();
-    let correctIndex = -1;
-    if(/^[abcd]$/i.test(rawCorrect)) correctIndex = "abcd".indexOf(rawCorrect.toLowerCase());
-    if(/^[1-4]$/.test(rawCorrect)) correctIndex = parseInt(rawCorrect,10)-1;
-    if(correctIndex<0 && options.length){
-      const idx = options.findIndex(o=>o.trim()===rawCorrect.trim());
-      if(idx>=0) correctIndex = idx;
-    }
-    if(correctIndex<0) correctIndex = 0;
-    const correctText = options.length? options[correctIndex] : (rawCorrect||"");
-    if(options.length===0){
-      const ans = (get("answer") || rawCorrect || "").toString().trim();
-      return { q, options:[ans], correct:ans, correctIndex:0 };
-    }
-    return { q, options, correct:correctText, correctIndex };
-  }).filter(Boolean);
+
+function pickAIOption(opts){
+  // Simple guess: random (can be made smarter later)
+  const idx = Math.floor(Math.random()*opts.length);
+  return opts[idx];
 }
-function fromQA(headers, rows){
-  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-  const items = rows.map(r=>{
-    const q = r[H.question] || r[0];
-    const ans = (r[H.answer] || r[1] || "").toString().trim();
-    return {q, answer:ans};
-  }).filter(x=>x.q && x.answer);
-  const pool = items.map(x=>x.answer);
-  return items.map(it=>{
-    const wrong = shuffle(pool.filter(a=>a!==it.answer)).slice(0,3);
-    const opts = shuffle([it.answer, ...wrong]).slice(0,4);
-    const correctIndex = opts.indexOf(it.answer);
-    return { q: it.q, options: opts, correct: it.answer, correctIndex };
+
+function draw(){
+  qs("#scYou").textContent = YOU;
+  qs("#scAI").textContent = AI;
+  const total = QUESTIONS.length;
+  if(CUR>=total){ return finish(); }
+
+  const { q, opts, correct } = QUESTIONS[CUR];
+  qs("#qMeta").textContent = `Question ${CUR+1} / ${total}`;
+  qs("#qText").textContent = q;
+
+  const box = qs("#opts"); box.innerHTML="";
+  // shuffle options but keep correct mapping
+  const shuffled = shuffle(opts.slice());
+  const nodes = shuffled.map(opt=>{
+    const el = document.createElement("div");
+    el.className = "opt";
+    el.textContent = opt;
+    el.onclick = () => handlePick(opt, correct, nodes);
+    box.appendChild(el);
+    return el;
+  });
+
+  // reset last picks info
+  LAST = {user:null, ai:null, correct};
+
+  qs("#hint").textContent = "Pick one — AI will also guess. Then see who got it right.";
+  qs("#quizBox").hidden = false;
+  updateNavButtons();
+}
+
+function applyReveal(nodes){
+  const {user, ai, correct} = LAST;
+  nodes.forEach(el=>{
+    const val = el.textContent;
+    if(val === correct) el.classList.add("correct");
+    if(val === user && val !== correct) el.classList.add("wrong");
+    if(val === ai) el.classList.add("ai-guess");
+    el.classList.add("disabled");
   });
 }
-async function loadQuestions(sheet){
-  const {headers, rows} = await fetchCSV(sheet);
-  const norm = headers.map(normalizeHeader);
-  const hasOptions = norm.some(h=>/^opt[abcd1-4]$/.test(h));
-  return (hasOptions ? parseMCQ(norm, rows) : fromQA(norm, rows));
+
+function handlePick(userPick, correct, nodes){
+  if(LAST.user) return; // already answered
+
+  const aiPick = pickAIOption(nodes.map(n=>n.textContent));
+  LAST.user = userPick;
+  LAST.ai = aiPick;
+  LAST.correct = correct;
+
+  if(userPick === correct) YOU++;
+  if(aiPick === correct) AI++;
+
+  applyReveal(nodes);
+  qs("#scYou").textContent = YOU;
+  qs("#scAI").textContent = AI;
+
+  const msgParts = [];
+  msgParts.push(userPick===correct ? "✔ You are correct." : "✖ Your answer is wrong.");
+  msgParts.push(aiPick===correct ? "🤖 AI is correct." : "🤖 AI is wrong.");
+  qs("#hint").textContent = msgParts.join(" ");
+  updateNavButtons();
 }
-const url = new URL(location.href);
-let sheetName = url.searchParams.get("sheet") || "";
-const wantRandom = url.searchParams.get("random");
-let wantCount = parseInt(url.searchParams.get("count")||"",10) || 0;
-let timerSec = parseInt(url.searchParams.get("timer")||"",10) || 300;
-let aiAcc = Math.max(0, Math.min(1, parseFloat(url.searchParams.get("aiacc")||"0.55")));
-let questions = [];
-let order = [];
-let idx = 0;
-let youCorrect = 0;
-let aiCorrect = 0;
-let picks = new Map();
-let optCache = new Map();
-let startedAt = null, tickHandle=null;
-function renderTimer(){
-  if(!timerSec || !startedAt) return;
-  const elapsed = Math.floor((Date.now()-startedAt)/1000);
-  const left = Math.max(0, timerSec - elapsed);
-  const mm = String(Math.floor(left/60)).padStart(2,'0');
-  const ss = String(left%60).padStart(2,'0');
-  $("#hdrTimer").style.display = "";
-  $("#hdrTimer").textContent = `${mm}:${ss}`;
-  if(left===0){ clearInterval(tickHandle); showSummary(); }
+
+function updateNavButtons(){
+  qs("#btnPrev").disabled = CUR<=0;
+  qs("#btnShow").disabled = !!LAST.user; // after pick not needed
+  qs("#btnNext").disabled = CUR >= QUESTIONS.length-1 ? false : !LAST.user;
 }
-function aiGuess(optList, correctIndex){
-  if(Math.random() < aiAcc) return correctIndex;
-  const wrongs = optList.map((_,i)=>i).filter(i=>i!==correctIndex);
-  return wrongs[Math.floor(Math.random()*wrongs.length)];
+
+function showAnswerOnly(){
+  if(LAST.user) return;
+  // reveal without affecting scores
+  const nodes = qsa(".opt", qs("#opts"));
+  // Simulate AI guess too (but do not count)
+  LAST.ai = pickAIOption(nodes.map(n=>n.textContent));
+  applyReveal(nodes);
+  qs("#hint").textContent = "Answer revealed. No points were given.";
+  updateNavButtons();
 }
-function setScore(){
-  $("#youScore").textContent = youCorrect;
-  $("#aiScore").textContent = aiCorrect;
-}
-function showQuestion(i){
-  idx = Math.max(0, Math.min(order.length-1, i));
-  const qIndex = order[idx];
-  const q = questions[qIndex];
-  $("#score").style.display = "";
-  setScore();
-  $("#qwrap").style.display = "";
-  $("#navrow").style.display = "";
-  $("#qidx").textContent = `Question ${idx+1} / ${order.length}`;
-  $("#qtext").textContent = q.q;
-  let shuffled = optCache.get(qIndex);
-  if(!shuffled){
-    shuffled = (q.options?.length ? [...q.options] : [q.correct]).map((txt,ii)=>({
-      txt, isCorrect:(ii===q.correctIndex)
-    }));
-    shuffled = shuffle(shuffled);
-    optCache.set(qIndex, shuffled);
-  }
-  const area = $("#opts"); area.innerHTML = "";
-  $("#aiPick").style.display = "none";
-  $("#aiPick").className = "ai-pick";
-  const past = picks.get(qIndex);
-  shuffled.forEach(o=>{
-    const div = document.createElement("div");
-    div.className = "opt";
-    div.textContent = o.txt;
-    div.dataset.correct = o.isCorrect ? "1" : "0";
-    div.onclick = ()=>{
-      if(picks.get(qIndex)?.youPick != null) return;
-      const children = [...area.children];
-      children.forEach(el => el.classList.add("lock"));
-      const userCorrect = !!o.isCorrect;
-      if(userCorrect){ div.classList.add("correct"); }
-      else {
-        div.classList.add("wrong");
-        const right = area.querySelector('.opt[data-correct="1"]');
-        if(right) right.classList.add("correct");
-      }
-      const corrIndex = shuffled.findIndex(x=>x.isCorrect);
-      const aiPickIndex = aiGuess(shuffled, corrIndex);
-      const aiPickEl = area.children[aiPickIndex];
-      const aiIsCorrect = (aiPickIndex===corrIndex);
-      $("#aiPick").style.display = "";
-      $("#aiPick").classList.add(aiIsCorrect? "good":"bad");
-      $("#aiPick").innerHTML = `<b>AI picked:</b> ${shuffled[aiPickIndex].txt} ${aiIsCorrect?'✅':'❌'}`;
-      if(userCorrect) youCorrect++;
-      if(aiIsCorrect) aiCorrect++;
-      setScore();
-      picks.set(qIndex, { youPick: o.txt, youOk: userCorrect, aiPick: shuffled[aiPickIndex].txt, aiOk: aiIsCorrect });
-    };
-    area.appendChild(div);
-  });
-  if(past){
-    [...area.children].forEach((el,ii)=>{
-      el.classList.add("lock");
-      if(el.dataset.correct==="1") el.classList.add("correct");
-      if(el.textContent.trim()===past.youPick && !past.youOk) el.classList.add("wrong");
-    });
-    $("#aiPick").style.display = "";
-    $("#aiPick").classList.add(past.aiOk? "good":"bad");
-    $("#aiPick").innerHTML = `<b>AI picked:</b> ${past.aiPick} ${past.aiOk?'✅':'❌'}`;
-  }
-}
-$("#prevBtn").onclick = ()=> showQuestion(idx-1);
-$("#nextBtn").onclick = ()=>{ if(idx === order.length-1) showSummary(); else showQuestion(idx+1); };
-function showSummary(){
-  clearInterval(tickHandle);
-  $("#qwrap").style.display = "none";
-  $("#navrow").style.display = "none";
-  const total = order.length;
-  const pct = (youCorrect/total)*100;
-  const winner =
-    youCorrect>aiCorrect ? "You win 🎉" :
-    aiCorrect>youCorrect ? "AI wins 🤖" :
-    "It’s a tie 🤝";
-  const s = $("#summary");
-  s.style.display = "";
-  s.innerHTML = `
-    <div class="card">
-      <h3>${winner}</h3>
-      <div class="kpis">
-        <div class="kpi"><b>${total}</b><small>Questions</small></div>
-        <div class="kpi"><b>${youCorrect}</b><small>Your correct</small></div>
-        <div class="kpi"><b>${aiCorrect}</b><small>AI correct</small></div>
-        <div class="kpi"><b>${Math.round(pct)}%</b><small>Your accuracy</small></div>
-      </div>
-      <div class="barwrap"><div class="barfill" style="width:${pct}%;"></div></div>
-      <div class="row-actions" style="margin-top:12px">
-        <a class="btn secondary" href="${location.pathname + location.search}">↻ Rematch</a>
-        <a class="btn ghost" href="ai.html?random=1">Random Match</a>
-        <a class="btn" href="index.html">Home</a>
-      </div>
-      <div class="review" style="margin-top:16px">
-        <details open>
-          <summary>Review questions</summary>
-          ${order.map((i,k)=>{
-            const q = questions[i];
-            const r = picks.get(i) || {};
-            const status = r.youPick==null ? 'skipped' : r.youOk ? 'correct' : 'wrong';
-            const badge =
-              status==='correct' ? `<span class="badge ok">Correct</span>` :
-              status==='wrong'   ? `<span class="badge bad">Wrong</span>` :
-                                   `<span class="badge skp">Skipped</span>`;
-            const optsList = (q.options?.length>1)
-              ? `<ul class="review-opts">
-                  ${q.options.map((opt,ii)=>{
-                    const cls = (ii===q.correctIndex)?'correct': (r.youPick===opt && !r.youOk)?'wrong':'';
-                    return `<li class="${cls}">${opt}</li>`;
-                  }).join('')}
-                 </ul>`
-              : '';
-            return `
-              <details>
-                <summary><strong>${k+1}.</strong> ${q.q} ${badge}</summary>
-                <div class="muted" style="margin-top:6px">
-                  Your answer: <b>${r.youPick ?? '—'}</b> ${r.youOk===true?'✅':r.youOk===false?'❌':''}
-                  <span class="ai-badge">AI: <b>${r.aiPick ?? '—'}</b> ${r.aiOk===true?'✅':r.aiOk===false?'❌':''}</span>
-                </div>
-                <div class="muted">Correct: <b>${q.options[q.correctIndex]}</b></div>
-                ${optsList}
-              </details>
-            `;
-          }).join("")}
-        </details>
-      </div>
+
+function nextQ(){ if(CUR < QUESTIONS.length-1){ CUR++; draw(); } else finish(); }
+function prevQ(){ if(CUR > 0){ CUR--; draw(); } }
+
+function finish(){
+  clearInterval(TIMER);
+  qs("#quizBox").hidden = true;
+  const total = QUESTIONS.length;
+  const html = `
+    <h2 style="margin:0 0 4px">Summary</h2>
+    <div class="muted" style="margin-bottom:12px">
+      Final Score — <b>You:</b> ${YOU} &nbsp;|&nbsp; <b>AI:</b> ${AI} &nbsp;|&nbsp; <b>Total:</b> ${total}
+    </div>
+
+    <details open>
+      <summary>Review answers</summary>
+      ${QUESTIONS.map((qq,i)=>`
+        <div class="row"><b>${i+1}.</b> ${qq.q}</div>
+        <div class="row" style="background:var(--brand-weak);border-top:0">
+          Correct: <b>${qq.correct}</b>
+        </div>
+      `).join("")}
+    </details>
+
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <a class="btn secondary" href="index.html">← Home</a>
+      <button class="btn" onclick="location.reload()">Play Again</button>
     </div>
   `;
+  const sum = qs("#sumBox");
+  sum.innerHTML = html;
+  sum.hidden = false;
 }
-async function loadPicker(){
-  const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
-  const H = Object.fromEntries(headers.map((h,i)=>[normalizeHeader(h),i]));
-  const cats = rows.map(r=>{
-    return {
-      name: r[H.name] || r[H.display] || r[H.namedisplay] || r[0],
-      sheet: r[H.sheet] || r[H.actualtabname] || r[1] || r[0]
-    };
-  }).filter(x=>x.sheet);
-  const sel = $("#catSelect");
-  sel.innerHTML = cats.map(c=>`<option value="${c.sheet}">${c.name || c.sheet}</option>`).join("");
-  $("#picker").style.display = "";
-  $("#startBtn").onclick = async ()=>{
-    sheetName = sel.value;
-    wantCount = parseInt($("#countInput").value,10)||0;
-    timerSec = parseInt($("#timerInput").value,10)||300;
-    aiAcc = Math.max(0, Math.min(1, parseFloat($("#accInput").value)||0.55));
-    $("#picker").style.display = "none";
-    startMatch();
-  };
+
+/* =============== TIMER =============== */
+function startTimer(seconds){
+  if(!seconds) return;
+  TIMELEFT = seconds|0;
+  qs("#timer").hidden = false;
+  qs("#timer").textContent = fmtTime(TIMELEFT);
+  TIMER = setInterval(()=>{
+    TIMELEFT--;
+    qs("#timer").textContent = fmtTime(TIMELEFT);
+    if(TIMELEFT<=0){
+      clearInterval(TIMER);
+      finish();
+    }
+  },1000);
 }
-async function startMatch(){
+
+/* =============== BOOT =============== */
+async function boot(){
+  // wire buttons
+  qs("#btnPrev").onclick = prevQ;
+  qs("#btnNext").onclick = nextQ;
+  qs("#btnShow").onclick = showAnswerOnly;
+
+  const tab = getParam("sheet");
+  const n = parseInt(getParam("n") || 0, 10) || null;
+  const timerSec = parseInt(getParam("timer") || 0, 10) || null;
+
+  if(!tab){
+    qs("#title").textContent = "AI vs You";
+    qs("#subtitle").innerHTML = "Tip: open any category card on Home and append <code>&amp;timer=300</code> to set a 5-min session. Or launch like <code>ai.html?sheet=GST%20Malayalam&amp;n=10</code>.";
+    qs("#quizBox").hidden = true;
+    return;
+  }
+
+  qs("#title").textContent = tab;
+  qs("#subtitle").textContent = "Timed MCQ — computer guesses vs your answers";
+
   try{
-    $("#metaCat").textContent = sheetName ? sheetName : "Random";
-    questions = await loadQuestions(sheetName);
-  }catch(e){
-    $("#alert").style.display = "";
-    $("#alert").textContent = "Failed to load this tab. Make sure the sheet is public (or Published to the web) and the tab name matches exactly.";
-    return;
+    const csv = await fetchCSV(tab);
+    const { data } = parseCSV(csv);
+    const mapped = data.map(mapQuestion).filter(Boolean);
+    if(!mapped.length) throw new Error("No MCQ-style questions in this tab");
+
+    QUESTIONS = shuffle(mapped);
+    if(n && n>0) QUESTIONS = QUESTIONS.slice(0, n);
+
+    startTimer(timerSec);
+    draw();
+  }catch(err){
+    console.error(err);
+    qs("#subtitle").textContent = "Failed to load questions. Make sure the sheet is Published to the web and the tab name is correct.";
   }
-  if(!questions.length){
-    $("#alert").style.display = "";
-    $("#alert").textContent = "No questions found.";
-    return;
-  }
-  if(wantCount>0) questions = shuffle(questions).slice(0,wantCount);
-  order = questions.map((_,i)=>i);
-  youCorrect = 0; aiCorrect = 0; picks.clear(); optCache.clear();
-  $("#score").style.display = "";
-  setScore();
-  showQuestion(0);
-  startedAt = Date.now();
-  if(timerSec){ tickHandle = setInterval(renderTimer,300); renderTimer(); }
 }
-(async function init(){
-  if(wantRandom){
-    const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
-    const H = Object.fromEntries(headers.map((h,i)=>[normalizeHeader(h),i]));
-    const cats = rows.map(r=> r[H.sheet] || r[H.actualtabname] || r[1]).filter(Boolean);
-    sheetName = cats[Math.floor(Math.random()*cats.length)] || "";
-    startMatch();
-  }else if(sheetName){
-    startMatch();
-  }else{
-    await loadPicker();
-  }
-})();
+boot();
 </script>
 </body>
 </html>
