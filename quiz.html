@@ -1,481 +1,344 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Quiz • PSC Guru</title>
-<link rel="icon" href="data:,"/>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
   :root{
-    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b;
-    --ring: rgba(47,143,91,.28); --danger:#c95757; --good:#2f8f5b; --soft:#e9f5ee;
+    --bg: #f2f8f4;
+    --bg-2:#eaf4ef;
+    --glass:#ffffffcc;
+    --text:#0f2d1f;
+    --muted:#5f726a;
+    --ok:#16a34a;
+    --bad:#dc2626;
+    --ring: rgba(15,131,70,.18);
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:clamp(15px,1.4vw,16px)/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
-  header{background:linear-gradient(#ecf6ee,#e7f2ea);border-bottom:1px solid #dfefe6;position:sticky;top:0;z-index:10}
-  .bar{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
-  .brand{display:flex;gap:10px;align-items:center}
-  .logo{width:36px;height:36px;border-radius:10px;background:#1f6d43;color:#fff;display:grid;place-items:center;font-weight:800}
-  .title{line-height:1}
-  .title b{display:block;font-size:clamp(15px,2.2vw,18px)}
-  .title small{display:block;color:var(--muted);font-size:12px}
-  .nav{display:flex;gap:8px;align-items:center}
-  .chip{padding:6px 12px;border-radius:999px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
-  .timer{font-weight:700;color:#0a5}
-  main{max-width:980px;margin:18px auto;padding:0 16px}
-  h1{font-size:clamp(18px,2.6vw,22px);margin:2px 0 10px}
-  .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin-bottom:8px}
-  .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
-  .qidx{color:var(--muted);font-weight:600;font-size:13px}
-  .qtext{font-size:clamp(17px,2.6vw,18px);margin:6px 0 14px}
-  .opts{display:grid;gap:10px}
-  .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer;transition:.15s}
-  .opt:hover{border-color:#bfe5cc;box-shadow:0 0 0 3px var(--ring)}
-  .opt.correct{border-color:var(--good);background:#ecf9f2}
-  .opt.wrong{border-color:var(--danger);background:#ffefef}
-  .opt.lock{pointer-events:none;opacity:.95}
-  .answer{display:none;margin:12px 0 4px;color:#075}
-  .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px;margin:10px 0}
-  .navrow{position:sticky;bottom:8px;display:flex;gap:10px;justify-content:center;margin:10px auto 0;padding:8px;background:rgba(255,255,255,.7);backdrop-filter:saturate(150%) blur(8px);border-radius:999px;box-shadow:0 6px 24px #0001}
-  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:10px 16px;font-weight:700;cursor:pointer;min-width:94px}
-  .btn.secondary{background:var(--soft);color:#155634}
-  .btn.ghost{background:#fff;color:#2b6a45;border:1px solid #dbeee4}
-  .btn:focus{outline:2px solid var(--ring)}
-  .summary{margin:14px 0}
-  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0}
-  .kpi{background:#fff;border:1px solid #e3efe7;border-radius:12px;padding:12px;text-align:center}
-  .kpi b{display:block;font-size:clamp(18px,3vw,22px)}
-  .kpi small{color:var(--muted)}
-  .barwrap{height:10px;background:#e9f5ee;border-radius:999px;overflow:hidden}
-  .barfill{height:100%;background:linear-gradient(90deg,#2f8f5b,#4ac48c)}
-  .review details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
-  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-left:8px}
-  .ok{background:#e9f9f1;color:#0a6}
-  .bad{background:#ffebeb;color:#b33}
-  .skp{background:#eef3f1;color:#607d73}
-  .review-opts{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
-  .review-opts li{padding:8px 10px;border-radius:10px;border:1px solid #e3efe7}
-  .review-opts li.correct{background:#ecf9f2;border-color:#2f8f5b}
-  .review-opts li.wrong{background:#ffefef;border-color:#c95757}
-  .muted{color:var(--muted)}
-  .row-actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
-  @media (max-width:680px){
-    .kpis{grid-template-columns:repeat(2,1fr)}
-    .btn{min-width:auto}
-    .navrow{gap:6px;padding:6px}
+  body{margin:0;font:400 16px/1.55 Inter, system-ui,-apple-system, "Segoe UI", Roboto, "Helvetica Neue";
+       color:var(--text);background:linear-gradient(180deg,var(--bg),var(--bg-2))}
+  .wrap{max-width:1100px;margin:0 auto;padding:18px}
+
+  /* small top bar */
+  .top{display:flex;gap:10px;align-items:center;margin-bottom:10px}
+  .top a{margin-left:auto;text-decoration:none;color:inherit;background:#fff;border:1px solid #e6eee8;
+         border-radius:999px;padding:6px 12px;font-weight:700}
+  h1{margin:0 0 8px;font-size:22px}
+
+  .note{background:#fff7ed;border:1px solid #fed7aa;color:#9a3412;border-radius:10px;padding:10px 12px}
+
+  .card{
+    background:var(--glass);border:1px solid #e6eee8;border-radius:14px;
+    box-shadow:0 10px 30px rgba(30,70,50,.08)
   }
+
+  /* quiz box */
+  .qbox{padding:16px 16px 80px;position:relative}
+  .qhead{font-weight:800;margin:0 0 12px}
+  .opt{display:block;width:100%;text-align:left;padding:12px 14px;margin:10px 0;border-radius:12px;
+       background:#fff;border:1px solid #e6eee8;font:inherit}
+  .opt:hover{background:#f7faf8}
+  .opt.correct{background:#ecfdf5;border-color:#34d399; box-shadow:0 0 0 6px var(--ring)}
+  .opt.wrong{background:#fef2f2;border-color:#fecaca}
+
+  /* sticky bottom bar */
+  .nav{
+    position:sticky;bottom:8px;display:flex;gap:10px;justify-content:center;align-items:center;
+    margin-top:14px;padding:10px;background:rgba(255,255,255,.8);backdrop-filter:blur(8px);
+    border:1px solid #e6eee8;border-radius:12px
+  }
+  .btn{padding:10px 14px;border-radius:12px;border:1px solid #e6eee8;background:#fff;font-weight:800;cursor:pointer}
+  .btn.primary{background:#0f8346;color:#fff;border-color:#0b5f34}
+  .kpi{margin-left:auto;color:var(--muted);font-weight:800}
+
+  /* summary */
+  .sum{padding:14px}
+  .acc{margin:10px 0;border:1px solid #e6eee8;border-radius:12px}
+  .acc summary{cursor:pointer;list-style:none;padding:12px 14px;font-weight:800;border-bottom:1px solid #e6eee8}
+  .acc summary::-webkit-details-marker{display:none}
+  .acc .body{padding:12px 14px}
+  .ok{color:var(--ok);font-weight:800} .bad{color:var(--bad);font-weight:800}
 </style>
 </head>
 <body>
-<header>
-  <div class="bar">
-    <div class="brand">
-      <div class="logo">PSC</div>
-      <div class="title"><b>PSC Guru</b><small>Kerala PSC Exam Prep</small></div>
-    </div>
+<div class="wrap">
+
+  <div class="top">
+    <div style="display:flex;gap:8px;align-items:center"><strong>PSC Guru</strong><span style="color:#5f726a">Quiz</span></div>
+    <a href="index.html">Home</a>
+    <a href="quiz.html">Quiz</a>
+  </div>
+
+  <h1>Quiz</h1>
+  <div id="status" class="note" style="display:none"></div>
+
+  <div class="card qbox" id="qbox" style="display:none">
+    <div class="qmeta" id="qmeta" style="color:#5f726a;font-weight:700;margin-bottom:6px"></div>
+    <h2 class="qhead" id="qtext">Question</h2>
+    <div id="opts"></div>
+
     <div class="nav">
-      <a class="chip" href="index.html">Home</a>
-      <a class="chip" href="quiz.html">Quiz</a>
-      <span id="hdrTimer" class="chip timer" style="display:none"></span>
+      <button id="prev" class="btn">← Prev</button>
+      <button id="reveal" class="btn">Show Answer</button>
+      <button id="next" class="btn primary">Next →</button>
+      <div id="kpi" class="kpi">1 / 1</div>
     </div>
   </div>
-</header>
 
-<main>
-  <h1 id="title">Quiz</h1>
-  <div class="meta"><div id="metaCat"></div></div>
-
-  <div id="alert" class="notice" style="display:none"></div>
-
-  <div id="qwrap" class="card" style="display:none">
-    <div class="qidx" id="qidx"></div>
-    <div class="qtext" id="qtext"></div>
-    <div id="opts" class="opts"></div>
-    <div id="answer" class="answer"></div>
-  </div>
-
-  <div class="navrow" id="navrow" style="display:none">
-    <button id="prevBtn" class="btn secondary">← Prev</button>
-    <button id="showBtn" class="btn ghost">Show Answer</button>
-    <button id="nextBtn" class="btn">Next →</button>
-  </div>
-
-  <section id="summary" class="summary" style="display:none"></section>
-</main>
+  <div class="card sum" id="summary" style="display:none"></div>
+</div>
 
 <script>
-/* ====== CONFIG ====== */
+/* ================== CONFIG ================== */
 const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
 const CATEGORIES_TAB = "Categories";
 
-/* ====== helpers ====== */
-const $ = s=>document.querySelector(s);
-function csvToRows(text){
-  const rows=[], row=[], pushRow=()=>{rows.push([...row]);row.length=0};
-  let s="", q=false;
-  for(let i=0;i<text.length;i++){
-    const c=text[i], n=text[i+1];
-    if(q){ if(c=='"' && n=='"'){s+='"';i++;} else if(c=='"'){q=false;} else s+=c; }
-    else { if(c=='"') q=true; else if(c==','){ row.push(s.trim()); s=""; }
-      else if(c=='\n'){ row.push(s.trim()); s=""; if(row.some(x=>x!=='')) pushRow(); }
-      else s+=c; }
-  }
-  if(s.length||row.length){ row.push(s.trim()); if(row.some(x=>x!=='')) rows.push(row); }
-  return rows;
+/* ============== Helpers ============== */
+const qs = new URLSearchParams(location.search);
+const wantedN = (qs.get("n")||"").trim();
+const MODE = (qs.get("mode")||"").toLowerCase();
+let SHEET = (qs.get("sheet")||"").trim();
+const TIMER = parseInt(qs.get("timer")||"0",10)||0;
+
+const el = id => document.getElementById(id);
+const status = el('status');
+function showStatus(msg){ status.textContent = msg; status.style.display='block'; }
+function hideStatus(){ status.style.display='none'; }
+
+function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+async function gviz(tab){
+  const url=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+  const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
+  const raw=await res.text(); const json=stripGVizJSON(raw);
+  const cols=json.table.cols.map(c=>(c.label||"").trim());
+  const rows=json.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):""));
+  return {cols, rows};
 }
-function normalizeHeader(h){return (h||"").toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9_]/g,'');}
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
-async function fetchCSV(sheetName){
-  const tries = [
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`
-  ];
-  for(let i=0;i<tries.length;i++){
-    try{
-      const res = await fetch(tries[i], {mode:"cors"});
-      if(!res.ok) throw new Error(res.status+" "+res.statusText);
-      const txt = await res.text();
-      if(tries[i].includes("out:json")){
-        const payload = JSON.parse(txt.replace(/^[\s\S]*?setResponse\(/,'').replace(/\);?$/,''));
-        const table = payload.table;
-        const headers = table.cols.map(c => normalizeHeader(c.label||c.id||""));
-        const rows = table.rows.map(r => headers.map((_,j)=>(r.c[j]?.v ?? "").toString().trim()));
-        return {headers, rows};
-      }else{
-        const rows = csvToRows(txt);
-        const headers = rows.shift().map(normalizeHeader);
-        return {headers, rows};
-      }
-    }catch(e){ if(i===tries.length-1) throw e; }
-  }
+async function pubCsv(tab){
+  const url=`https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+  const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("CSV fetch failed");
+  return await res.text();
+}
+function parseCSV(text){
+  const lines=text.split(/\r?\n/).filter(Boolean);
+  const head=lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim());
+  const rows=lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
+  return {cols:head, rows};
+}
+function mapCategories(cols, rows){
+  const h=cols.map(x=>x.toLowerCase());
+  const idxName=h.findIndex(c=>/name/.test(c));
+  const idxTab=h.findIndex(c=>/(get|sheet|tab)/.test(c));
+  const idxDesc=h.findIndex(c=>/(desc|description)/.test(c));
+  return rows.map(r=>({
+    name:(r[idxName]||r[idxTab]||"").trim(),
+    sheet:(r[idxTab]||r[idxName]||"").trim(),
+    desc:(r[idxDesc]||"").trim()
+  })).filter(x=>x.name && x.sheet);
 }
 
-/* ====== parsers ====== */
-function firstNonEmpty(obj, names){
-  for(const n of names){ if(obj[n]!=null && obj[n]!=="") return obj[n]; }
-  return "";
-}
-function parseMCQ(headers, rows){
-  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-  const optCols = ["opta","optb","optc","optd","opt1","opt2","opt3","opt4"].filter(x=>H[x]!=null);
-  const correctCols = ["correct","answer","ans","key","answerkey","right","correctoption","solution","correctindex","ansindex"];
-
-  return rows.map(r=>{
-    const get = h => r[H[h]] ?? "";
-    const q = get("question") || get("q") || r[0] || "";
-    if(!q) return null;
-
-    const options = optCols.map(h => (get(h)||"").toString().trim()).filter(Boolean);
-    let rawCorrect = firstNonEmpty(Object.fromEntries(correctCols.map(c=>[c, get(c)])), correctCols).toString().trim();
-
-    let correctIndex = -1;
-    let correctText = "";
-
-    const letter = rawCorrect.match(/^[abcd]$/i);
-    if(letter){ correctIndex = "abcd".indexOf(letter[0].toLowerCase()); }
-
-    const num = rawCorrect.match(/^[1-4]$/);
-    if(num){ correctIndex = parseInt(num[0],10)-1; }
-
-    if(correctIndex<0 && options.length){
-      const idx = options.findIndex(o => o.trim() === rawCorrect.trim());
-      if(idx>=0) correctIndex = idx;
+/* ============== Load category for random mode ============== */
+async function pickRandomCategory(){
+  // Try CSV first
+  try{
+    const txt=await pubCsv(CATEGORIES_TAB);
+    const {cols,rows}=parseCSV(txt);
+    const items=mapCategories(cols,rows);
+    if(items.length){
+      const rnd=items[Math.floor(Math.random()*items.length)];
+      return rnd;
     }
+  }catch(e){ /* ignore, will fallback */ }
 
-    if(correctIndex<0 && options.length){
-      const ansText = (get("answer") || "").toString().trim();
-      const idx = options.findIndex(o => o.trim() === ansText);
-      if(idx>=0){ correctIndex = idx; rawCorrect = ansText; }
-    }
-
-    if(correctIndex<0) correctIndex = 0;
-
-    correctText = options.length ? options[correctIndex] : (rawCorrect || "");
-
-    if(options.length===0){
-      const ans = (get("answer") || rawCorrect || "").toString().trim();
-      return { q, options:[ans], correct:ans, correctIndex:0 };
-    }
-
-    return { q, options, correct: correctText, correctIndex };
-  }).filter(Boolean);
-}
-function fromQA(headers, rows){
-  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-  return rows.map(r=>{
-    const q = r[H.question] || r[0];
-    const ans = (r[H.answer] || r[1] || "").toString().trim();
-    return {q, options:[ans], correct: ans, correctIndex:0};
-  }).filter(x=>x.q && x.correct);
-}
-async function loadQuestions(sheet){
-  const {headers, rows} = await fetchCSV(sheet);
-  const norm = headers.map(normalizeHeader);
-  const hasOptions = norm.some(h=>/^opt[abcd1-4]$/.test(h));
-  return (hasOptions ? parseMCQ(norm, rows) : fromQA(norm, rows));
+  // Fallback GViz
+  const {cols,rows}=await gviz(CATEGORIES_TAB);
+  const items=mapCategories(cols,rows);
+  const rnd=items[Math.floor(Math.random()*items.length)];
+  return rnd;
 }
 
-/* ====== state ====== */
-const url = new URL(location.href);
-const sheetName = url.searchParams.get("sheet");
-const wantRandom = url.searchParams.get("random");
-const wantCount = parseInt(url.searchParams.get("count")||"",10) || null;
-const timerSec = parseInt(url.searchParams.get("timer")||"",10) || null;
+/* ============== Map any sheet rows to {q, options[], answer} ============== */
+function rowsToQA(cols, rows){
+  const H = cols.map(c=>c.toLowerCase());
+  const iq = H.findIndex(c=>/question|ques/i.test(c));
+  const ia = H.findIndex(c=>/answer|ans/i.test(c));
 
-let questions = [];
-let order = [];
-let idx = 0;
-let picked = new Map();     // qIndex -> { picked, isCorrect }
-let optCache = new Map();   // qIndex -> shuffled [{txt,isCorrect}]
-let qTimes = {};            // qIndex -> ms
-let lastShown = null;       // track time between questions
-let startedAt = null, tickHandle=null;
+  // treat other columns as options if they look like options
+  const optIdx = H.map((c,i)=>({c,i})).filter(x=> x.i!==iq && x.i!==ia && /(opt|option|a\b|b\b|c\b|d\b)/i.test(x.c)).map(x=>x.i);
+  // if no explicit option cols, treat all non-empty columns except q/a as candidate options
+  const fallbackIdx = H.map((c,i)=>i).filter(i=>i!==iq && i!==ia);
 
-/* ====== timer ====== */
-function renderTimer(){
-  if(!timerSec || !startedAt) return;
-  const elapsed = Math.floor((Date.now()-startedAt)/1000);
-  const left = Math.max(0, timerSec - elapsed);
-  const mm = String(Math.floor(left/60)).padStart(2,'0');
-  const ss = String(left%60).padStart(2,'0');
-  const t = `${mm}:${ss}`;
-  $("#hdrTimer").style.display = "";
-  $("#hdrTimer").textContent = t;
-  if(left===0){ clearInterval(tickHandle); showSummary(); }
-}
+  const data=[];
+  rows.forEach(r=>{
+    const q=(r[iq]||"").trim();
+    const ans=(r[ia]||"").trim();
+    if(!q || !ans) return;
 
-/* ====== init ====== */
-async function init(){
-  if(wantRandom){
-    const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
-    const H = Object.fromEntries(headers.map((h,i)=>[normalizeHeader(h),i]));
-    const cats = rows.map(r=> r[H.sheet] || r[H.actualtabname] || r[1]).filter(Boolean);
-    const chosen = cats[Math.floor(Math.random()*cats.length)];
-    $("#metaCat").textContent = "Random • " + (chosen || "Unknown");
-    questions = await loadQuestions(chosen);
-  }else if(sheetName){
-    $("#metaCat").textContent = sheetName;
-    questions = await loadQuestions(sheetName);
-  }else{
-    $("#alert").style.display = "";
-    $("#alert").textContent = "No category selected.";
-    return;
-  }
-
-  if(!questions.length){
-    $("#alert").style.display = "";
-    $("#alert").textContent = "Failed to load this tab. Make sure the sheet is public (or Published to the web) and the tab name matches exactly.";
-    return;
-  }
-
-  if(wantCount) questions = shuffle([...questions]).slice(0,wantCount);
-
-  order = questions.map((_,i)=>i);
-  showQuestion(0);
-
-  startedAt = Date.now();
-  lastShown = { idx: order[0], t: startedAt };
-  if(timerSec){ tickHandle = setInterval(renderTimer, 300); renderTimer(); }
-}
-
-/* ====== rendering ====== */
-function stopTiming(){
-  if(!lastShown) return;
-  const now = Date.now();
-  const qIndex = lastShown.idx;
-  qTimes[qIndex] = (qTimes[qIndex]||0) + (now - lastShown.t);
-  lastShown = null;
-}
-function startTiming(newQIndex){
-  lastShown = { idx:newQIndex, t: Date.now() };
-}
-
-function showQuestion(i){
-  // close timing for previous question
-  stopTiming();
-
-  idx = Math.max(0, Math.min(order.length-1, i));
-  const qIndex = order[idx];
-  const q = questions[qIndex];
-
-  $("#qwrap").style.display = "";
-  $("#navrow").style.display = "";
-  $("#qidx").textContent = `Question ${idx+1} / ${order.length}`;
-  $("#qtext").textContent = q.q;
-
-  let shuffled = optCache.get(qIndex);
-  if(!shuffled){
-    shuffled = (q.options && q.options.length ? [...q.options] : [q.correct]).map((txt,ii)=>({
-      txt,
-      isCorrect: (typeof q.correctIndex === "number")
-        ? (ii === q.correctIndex)
-        : (txt.toString().trim() === (q.correct||"").toString().trim())
-    }));
-    shuffled = shuffle(shuffled);
-    optCache.set(qIndex, shuffled);
-  }
-
-  const area = $("#opts"); area.innerHTML = "";
-  shuffled.forEach(o=>{
-    const div = document.createElement("div");
-    div.className = "opt";
-    div.textContent = o.txt;
-    div.dataset.correct = o.isCorrect ? "1" : "0";
-    div.onclick = ()=>{
-      if(picked.has(qIndex)) return;
-      const res = {picked:o.txt, isCorrect:o.isCorrect};
-      picked.set(qIndex, res);
-      const children = [...area.children];
-      children.forEach(el => el.classList.add("lock"));
-      if(res.isCorrect){
-        div.classList.add("correct");
-      }else{
-        div.classList.add("wrong");
-        const right = area.querySelector('.opt[data-correct="1"]');
-        if(right) right.classList.add("correct");
-      }
-    };
-    area.appendChild(div);
-  });
-
-  // restore answered state
-  const past = picked.get(qIndex);
-  if(past){
-    [...area.children].forEach(el=>{
-      el.classList.add("lock");
-      if(el.dataset.correct === "1") el.classList.add("correct");
-      if(el.textContent.trim() === past.picked && past.isCorrect === false) el.classList.add("wrong");
+    const pool=[];
+    (optIdx.length?optIdx:fallbackIdx).forEach(i=>{
+      const v=(r[i]||"").trim();
+      if(v) pool.push(v);
     });
-  }
+    // ensure correct answer is present
+    if(!pool.includes(ans)) pool.unshift(ans);
 
-  $("#answer").style.display = "none";
-  $("#answer").textContent = "Answer: " + (q.correct || "");
+    // de-dup & at least 2
+    const options=[...new Set(pool)].filter(Boolean);
+    if(options.length<2) return;
 
-  // start timing this question
-  startTiming(qIndex);
-}
-
-/* ====== controls ====== */
-$("#showBtn").onclick = ()=>{
-  $("#answer").style.display = "";
-  const area = $("#opts");
-  const right = area.querySelector('.opt[data-correct="1"]');
-  if(right){
-    right.classList.add("correct");
-    [...area.children].forEach(el => el.classList.add("lock"));
-  }
-};
-$("#prevBtn").onclick = ()=> showQuestion(idx-1);
-$("#nextBtn").onclick = ()=>{
-  if(idx === order.length-1){ showSummary(); }
-  else showQuestion(idx+1);
-};
-
-/* ====== summary ====== */
-function fmtMs(ms){
-  const s = Math.max(0, Math.round(ms/1000));
-  const mm = String(Math.floor(s/60)).padStart(2,'0');
-  const ss = String(s%60).padStart(2,'0');
-  return `${mm}:${ss}`;
-}
-
-function showSummary(){
-  clearInterval(tickHandle);
-  // record time for the last shown question
-  stopTiming();
-
-  $("#qwrap").style.display = "none";
-  $("#navrow").style.display = "none";
-
-  const total = order.length;
-  let correct = 0, wrong = 0, skipped = 0;
-  order.forEach(i=>{
-    const res = picked.get(i);
-    if(!res){ skipped++; return; }
-    if(res.isCorrect) correct++; else wrong++;
+    data.push({q, a:ans, options});
   });
+  return data;
+}
 
-  const accuracy = Math.round((correct/total)*100);
-  const spentMs = Object.values(qTimes).reduce((a,b)=>a+b,0);
-  const timerUsed = timerSec ? fmtMs((Date.now()-startedAt)) : fmtMs(spentMs);
+/* ============== Quiz state ============== */
+let allQ=[];        // all loaded
+let playQ=[];       // selected n
+let i=0;            // index
+let score=0;
+let chosen=[];      // {pick, correct, a, q}
+let timerLeft=TIMER, tick=null;
 
-  // progress
-  const pct = (correct/total)*100;
+function shuffle(a){for(let j=a.length-1;j>0;j--){const k=Math.floor(Math.random()*(j+1));[a[j],a[k]]=[a[k],a[j]]}return a}
+function sample(arr, n){arr=arr.slice();shuffle(arr);return arr.slice(0,n)}
 
-  const s = $("#summary");
-  s.style.display = "";
+/* ============== Render & interactions ============== */
+function setKPI(){ el('kpi').textContent = `${i+1} / ${playQ.length}`; }
+
+function paint(){
+  const q=playQ[i];
+  el('qtext').textContent=q.q;
+  el('qmeta').textContent = SHEET ? SHEET : '';
+  const opts=el('opts'); opts.innerHTML='';
+  const options=shuffle([...q.options]); // shuffle per render
+  options.forEach(opt=>{
+    const b=document.createElement('button');
+    b.className='opt'; b.textContent=opt;
+    b.onclick=()=> choose(opt);
+    opts.appendChild(b);
+  });
+  setKPI();
+}
+
+function choose(opt){
+  const q=playQ[i];
+  const buttons=[...document.querySelectorAll('.opt')];
+  let correct=false;
+  buttons.forEach(b=>{
+    const v=b.textContent.trim();
+    if(v===q.a){ b.classList.add('correct'); }
+    if(v===opt && v!==q.a){ b.classList.add('wrong'); }
+    b.disabled=true;
+  });
+  if(opt===q.a){ score++; correct=true; }
+  chosen[i]={q:q.q, a:q.a, pick:opt, correct};
+}
+
+el('reveal').onclick=()=>{
+  const q=playQ[i];
+  [...document.querySelectorAll('.opt')].forEach(b=>{
+    if(b.textContent.trim()===q.a) b.classList.add('correct');
+    b.disabled=true;
+  });
+  if(!chosen[i]) chosen[i]={q:q.q, a:q.a, pick:'(revealed)', correct:false};
+};
+el('prev').onclick=()=>{ if(i>0){ i--; paint(); } };
+el('next').onclick=()=>{
+  if(i<playQ.length-1){ i++; paint(); }
+  else { endQuiz(); }
+};
+
+/* ============== Summary ============== */
+function endQuiz(){
+  clearInterval(tick);
+  el('qbox').style.display='none';
+  const s=el('summary'); s.style.display='block';
+  let ok = chosen.filter(x=>x && x.correct).length;
+  let bad = playQ.length - ok;
   s.innerHTML = `
-    <div class="card">
-      <h3>Summary</h3>
-
-      <div class="kpis">
-        <div class="kpi"><b>${total}</b><small>Total</small></div>
-        <div class="kpi"><b>${correct}</b><small>Correct</small></div>
-        <div class="kpi"><b>${wrong}</b><small>Wrong</small></div>
-        <div class="kpi"><b>${skipped}</b><small>Skipped</small></div>
-        <div class="kpi"><b>${accuracy}%</b><small>Accuracy</small></div>
+    <h2 style="margin:0 0 8px">Summary</h2>
+    <div style="color:#5f726a;font-weight:800;margin-bottom:8px">Score: ${ok} / ${playQ.length}</div>
+    <details class="acc" open>
+      <summary>Review answers</summary>
+      <div class="body">
+        ${playQ.map((q,idx)=>{
+          const r = chosen[idx] || {pick:'',correct:false};
+          const tag = r.correct ? '<span class="ok">✔ Correct</span>' : '<span class="bad">✖ Wrong</span>';
+          return `
+            <details class="acc" style="margin:8px 0">
+              <summary>${idx+1}. ${q.q}</summary>
+              <div class="body">
+                ${tag}<br>
+                <strong>Answer:</strong> ${q.a}<br>
+                <strong>Your pick:</strong> ${r.pick || '(none)'}
+              </div>
+            </details>
+          `;
+        }).join('')}
       </div>
-
-      <div class="barwrap" title="Correct answers">
-        <div class="barfill" style="width:${pct}%;"></div>
-      </div>
-
-      <div class="muted" style="margin-top:8px">
-        Time: <b>${timerUsed}</b>
-        ${timerSec ? `<span class="muted"> (Timer mode)</span>` : ``}
-      </div>
-
-      <div class="row-actions">
-        <a class="btn secondary" href="${location.pathname + location.search}">↻ Retake</a>
-        <a class="btn ghost" href="quiz.html?random=1">Random Quiz</a>
-        <a class="btn" href="index.html">Home</a>
-      </div>
-
-      <div class="review" style="margin-top:16px">
-        <details open>
-          <summary>Review answers</summary>
-          ${order.map((i,k)=>{
-            const q = questions[i];
-            const res = picked.get(i);
-            const status = !res ? 'skipped' : res.isCorrect ? 'correct' : 'wrong';
-            const badge =
-              status==='correct' ? `<span class="badge ok">Correct</span>` :
-              status==='wrong'   ? `<span class="badge bad">Wrong</span>` :
-                                   `<span class="badge skp">Skipped</span>`;
-            const chosen = res?.picked ?? '—';
-            const timeTxt = qTimes[i] ? ` • <span class="muted">Time: ${fmtMs(qTimes[i])}</span>` : '';
-
-            const optsList = (q.options?.length>1)
-              ? `<ul class="review-opts">
-                  ${q.options.map((opt,ii)=>{
-                    const isRight = (typeof q.correctIndex==="number") ? (ii===q.correctIndex) : (opt===q.correct);
-                    const isChosenWrong = (!res?.isCorrect && res?.picked===opt);
-                    const cls = isRight ? 'correct' : isChosenWrong ? 'wrong' : '';
-                    return `<li class="${cls}">${opt}</li>`;
-                  }).join('')}
-                 </ul>`
-              : '';
-
-            return `
-              <details>
-                <summary><strong>${k+1}.</strong> ${q.q} ${badge}</summary>
-                <div class="muted" style="margin-top:6px">
-                  Your answer: <span style="color:${status==='wrong'?'#b33':status==='correct'?'#0a5':'#607d73'}">${chosen}</span>${timeTxt}
-                </div>
-                <div class="muted">Correct: <b>${typeof q.correctIndex==='number'? q.options[q.correctIndex] : (q.correct||'')}</b></div>
-                ${optsList}
-              </details>
-            `;
-          }).join("")}
-        </details>
-      </div>
+    </details>
+    <div style="margin-top:12px;display:flex;gap:10px">
+      <a class="btn" href="index.html">Home</a>
+      <button class="btn primary" onclick="location.reload()">Play Again</button>
     </div>
   `;
 }
 
-/* boot */
-init();
+/* ============== Timer (optional) ============== */
+function startTimer(){
+  if(!TIMER) return;
+  tick = setInterval(()=>{
+    timerLeft--;
+    el('kpi').textContent = `${i+1} / ${playQ.length} • ${formatTime(timerLeft)}`;
+    if(timerLeft<=0){ clearInterval(tick); endQuiz(); }
+  },1000);
+}
+function formatTime(s){const m=Math.floor(s/60);const r=s%60;return `${String(m).padStart(2,'0')}:${String(r).padStart(2,'0')}`}
+
+/* ============== Boot ============== */
+(async function init(){
+  try{
+    if(!SHEET && MODE==='random'){
+      showStatus('Picking a random category…');
+      const rnd = await pickRandomCategory();
+      SHEET = rnd.sheet;
+      hideStatus();
+      showStatus(`Random category: ${rnd.name}`);
+    }
+
+    if(!SHEET){
+      showStatus('No category selected.');
+      return;
+    }
+
+    // Load selected sheet questions
+    showStatus(`Loading questions from "${SHEET}"…`);
+    const {cols,rows} = await gviz(SHEET);
+    allQ = rowsToQA(cols, rows);
+    if(!allQ.length){ showStatus('No questions found in this sheet.'); return; }
+
+    // pick N
+    let n = allQ.length;
+    if(wantedN && wantedN.toUpperCase()!=='N'){
+      const k = parseInt(wantedN,10)||0;
+      if(k>0 && k<n) n=k;
+    }
+    playQ = sample(allQ, n);
+
+    hideStatus();
+    el('qbox').style.display='block';
+    paint();
+    startTimer();
+  }catch(err){
+    console.error(err);
+    showStatus('Failed to load quiz. Please check your sheet name and sharing settings.');
+  }
+})();
 </script>
 </body>
 </html>
