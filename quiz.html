@@ -1,62 +1,307 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Quiz • PSC Guru</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="header.css">
-  <script defer src="site-header.js"></script>
-  <style>
-    :root{--bg:#eef6f2;--text:#0f2d1f;--muted:#5f726a;--brand:#0f8346;--brand-600:#0b5f34;--ring:rgba(15,131,70,.22);--card:#fff;--border:#e2eee6;--wrong:#f43f5e;--wrong-bg:#fee2e2;--right:#16a34a;--right-bg:#dcfce7}
-    *{box-sizing:border-box}body{margin:0;font:400 16px/1.55 Inter, system-ui;color:var(--text);background:var(--bg)}
-    .wrap{max-width:980px;margin:0 auto;padding:18px}
-    h1{font:800 24px/1.2 Inter;margin:6px 0 16px}
-    .paper{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 16px 10px;box-shadow:0 18px 40px rgba(15,45,31,.06)}
-    .qhead{color:var(--muted);font-weight:700;margin:4px 0 10px}.qtext{font:700 18px/1.35 Inter;margin:0 0 12px}
-    .opts{display:grid;gap:10px}.opt{border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s ease;background:#fff}
-    .opt:hover{transform:translateY(-1px)}.opt.correct{background:var(--right-bg);border-color:var(--right);box-shadow:0 0 0 6px rgba(22,163,74,.12)}
-    .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);box-shadow:0 0 0 6px rgba(244,63,94,.12)}.opt.disabled{opacity:.7;pointer-events:none}
-    .deckbar{position:sticky;bottom:0;margin-top:12px;display:flex;gap:10px;justify-content:center;padding:10px;background:linear-gradient(0deg, rgba(238,246,242,1), rgba(238,246,242,.65));border-top:1px solid var(--border)}
-    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
-    .btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#fff;border-color:transparent}.btn:disabled{opacity:.5;cursor:not-allowed}
-    .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:700;margin:8px 0 10px}.pill{padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:#fff}
-    .summary{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:10px}
-    details{border:1px solid var(--border);border-radius:10px;background:#fff;margin:8px 0}summary{cursor:pointer;padding:10px 12px;font-weight:800}.ans{padding:10px 12px;color:var(--muted)}
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>PSC Guru — Quiz</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg: #f2f8f4; --bg-2: #eaf4ef;
+    --glass: rgba(255,255,255,.85);
+    --card:#ffffff;
+    --text:#0f2d1f; --muted:#5f726a;
+    --brand:#0f8346; --brand-600:#0b5f34;
+    --ring: rgba(15,131,70,.22);
+    --good:#14a44d; --bad:#e53935;
+    --r: 18px;
+    --shadow: 0 20px 40px rgba(30,70,50,.12);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font:400 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
+       color:var(--text);background:linear-gradient(180deg,var(--bg),var(--bg-2));}
+  .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
+
+  /* ===== Top Bar (same as home) ===== */
+  .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
+  .brand{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
+         background:var(--glass);box-shadow:var(--shadow)}
+  .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
+        font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
+  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+  .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+  .links{margin-left:auto;display:flex;gap:10px}
+  .pill{padding:8px 14px;border-radius:999px;background:#fff;font-weight:700;
+        border:1px solid #e9eee9;box-shadow:var(--shadow);text-decoration:none;color:var(--text)}
+  .pill.active{background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;border:none}
+
+  /* ===== Quiz ===== */
+  h2.title{font-size:26px;margin:6px 0 14px;font-weight:800}
+  .card{background:#fff;border:1px solid #e9eee9;border-radius:18px;box-shadow:var(--shadow);
+        padding:18px 18px;margin-bottom:14px}
+  .qhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
+  .qnum{font-weight:800;color:var(--muted)}
+  .timer{font-weight:800;color:var(--brand-600)}
+  .qtxt{font-size:18px;font-weight:700;margin:8px 0 14px}
+
+  .opt{border:1px solid #e9eee9;border-radius:12px;padding:12px 14px;margin:10px 0;cursor:pointer;
+       transition:.15s ease;background:#fff}
+  .opt:hover{transform:translateY(-1px)}
+  .opt.correct{background:#e8f7ee;border-color:#9fe3c2;box-shadow:0 0 0 4px rgba(20,164,77,.12) inset}
+  .opt.wrong{background:#fde8e7;border-color:#f5a3a0;box-shadow:0 0 0 4px rgba(229,57,53,.10) inset}
+  .opt.disabled{pointer-events:none;opacity:.85}
+
+  /* bottom controls near card (sticky) */
+  .controls{display:flex;gap:10px;align-items:center;justify-content:center;position:sticky;bottom:10px;margin-top:10px}
+  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:900;padding:10px 16px;border-radius:12px;
+       border:none;background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;
+       cursor:pointer;box-shadow:0 10px 25px var(--ring)}
+  .btn:hover{filter:brightness(1.05)}
+  .btn-ghost{background:#fff;border:1px solid #e9eee9;color:var(--text)}
+  .btn-icon{border-radius:999px;padding:10px 14px}
+  .muted{color:var(--muted);font-weight:700}
+  .alert{background:#fff5e9;border:1px solid #ffdcb5;border-radius:12px;padding:12px 14px;color:#6e4500}
+  .hidden{display:none}
+</style>
+
+<!-- ========== RANDOM MODE RESOLVER (fix for ?mode=random) ========== -->
+<script>
+const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+const CATEGORIES_TAB = "Categories";
+
+function _stripGVizJSON(txt){ const s = txt.indexOf('{'); const e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+function _csvSplit(line){ return line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")); }
+
+async function _catsFromCSV(){
+  if(!GS_PUB_EKEY) return [];
+  try{
+    const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(CATEGORIES_TAB)}`;
+    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw 0;
+    const text = await res.text();
+    const lines = text.trim().split(/\r?\n/);
+    const head  = _csvSplit(lines.shift()).map(h=>h.toLowerCase());
+    const iName = head.findIndex(h=>/name/.test(h));
+    const iTab  = head.findIndex(h=>/(get|sheet|tab)/.test(h));
+    return lines.map(l=>{
+      const r = _csvSplit(l);
+      return {name:(r[iName]||r[iTab]||"").trim(), sheet:(r[iTab]||r[iName]||"").trim()};
+    }).filter(x=>x.sheet);
+  }catch{return []}
+}
+async function _catsFromGViz(){
+  try{
+    const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(CATEGORIES_TAB)}&tq=${encodeURIComponent("select *")}`;
+    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw 0;
+    const json = _stripGVizJSON(await res.text());
+    const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
+    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+    const iName = cols.findIndex(h=>/name/.test(h));
+    const iTab  = cols.findIndex(h=>/(get|sheet|tab)/.test(h));
+    return rows.map(r=>({name:(r[iName]||r[iTab]||"").trim(), sheet:(r[iTab]||r[iName]||"").trim()}))
+               .filter(x=>x.sheet);
+  }catch{return []}
+}
+
+(async function resolveRandom(){
+  const qs = new URLSearchParams(location.search);
+  const mode = (qs.get("mode")||"").toLowerCase();
+  if(mode!=="random" || qs.get("sheet")) return;
+
+  let cats = await _catsFromCSV();
+  if(!cats.length) cats = await _catsFromGViz();
+  if(!cats.length) return; // page will show "No category selected"
+
+  const pick = cats[Math.floor(Math.random()*cats.length)].sheet;
+  qs.set("sheet", pick);
+  location.replace(`${location.pathname}?${qs.toString()}`);
+})();
+</script>
 </head>
 <body>
   <div class="wrap">
-    <h1 id="title">Quiz</h1>
-    <div class="paper" id="card" hidden>
-      <div class="qhead"><span id="pos">Question 1</span> • <span class="pill" id="sheetName"></span></div>
-      <p class="qtext" id="qtext"></p>
-      <div class="opts" id="opts"></div>
+
+    <!-- Top Bar (same across pages) -->
+    <div class="bar">
+      <div class="brand">
+        <div class="logo">PSC</div>
+        <div>
+          <h1>PSC Guru</h1>
+          <small>Kerala PSC Exam Prep</small>
+        </div>
+      </div>
+      <nav class="links">
+        <a class="pill" href="index.html">Home</a>
+        <a class="pill active" href="quiz.html">Quiz</a>
+        <a class="pill" href="resources.html">Study</a>
+        <a class="pill" href="notices.html">Notices</a>
+      </nav>
     </div>
-    <div class="deckbar">
-      <button class="btn" id="prev">← Prev</button><button class="btn" id="show">Show Answer</button><button class="btn primary" id="next">Next →</button>
+
+    <h2 class="title">Quiz</h2>
+
+    <div id="quizBox" class="card">
+      <div id="alert" class="alert hidden"></div>
+      <div class="qhead">
+        <div class="qnum" id="qnum">Question —</div>
+        <div class="timer" id="timer"></div>
+      </div>
+      <div class="qtxt" id="qtxt">Loading…</div>
+      <div id="opts"></div>
     </div>
-    <section id="summary" hidden class="summary"></section>
+
+    <div class="controls">
+      <button id="prevBtn" class="btn btn-ghost btn-icon">← Prev</button>
+      <button id="revealBtn" class="btn btn-ghost">Show Answer</button>
+      <button id="nextBtn" class="btn btn-icon">Next →</button>
+    </div>
+
   </div>
-  <script>
-    const GS_SHEET_ID="16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",GS_PUB_EKEY="2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A",CATEGORIES_TAB="Categories";
-    const qs=k=>new URLSearchParams(location.search).get(k);
-    function stripGVizJSON(t){const s=t.indexOf('{'),e=t.lastIndexOf('}');return JSON.parse(t.slice(s,e+1))}
-    async function gviz(tab){const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`,r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("GViz failed");const w=await r.text(),j=stripGVizJSON(w);return{cols:j.table.cols.map(c=>(c.label||"").trim()),rows:j.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):""))}}
-    function pick(a){return a[Math.floor(Math.random()*a.length)]}function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-    async function pickRandomSheet(){try{const {cols,rows}=await gviz(CATEGORIES_TAB);const h=cols.map(c=>c.toLowerCase());const iName=h.findIndex(t=>/name/.test(t));const iTab=h.findIndex(t=>/(get|sheet|tab)/.test(t));return rows.map(r=>(r[iTab]||r[iName]||"").trim()).filter(Boolean).sort(()=>Math.random()-0.5)[0]||null}catch(e){return null}}
-    let QA=[],idx=0,score=0,sheet=qs('sheet');const mode=(qs('mode')||'').toLowerCase(),limitN=qs('n');
-    async function load(){if(mode==='random'&&!sheet){sheet=await pickRandomSheet()}if(!sheet){const s=document.querySelector('#summary');s.hidden=false;s.innerHTML=`<div class="ans">No category selected.</div>`;return}
-      const {cols,rows}=await gviz(sheet);const h=cols.map(c=>c.toLowerCase());const iq=h.findIndex(x=>/question/.test(x));const ia=h.findIndex(x=>/(answer|ans)/.test(x));const io=[h.findIndex(x=>/opta/.test(x)),h.findIndex(x=>/optb/.test(x)),h.findIndex(x=>/optc/.test(x)),h.findIndex(x=>/optd/.test(x))].filter(x=>x>=0);
-      let data=rows.map(r=>{const correct=(r[ia]||"").trim();const opts=io.map(i=>(r[i]||"").trim()).filter(Boolean);if(correct&&!opts.includes(correct))opts.push(correct);return{q:(r[iq]||"").trim(),correct,opts:shuffle([...new Set(opts)])}}).filter(x=>x.q&&x.correct&&x.opts.length);
-      if(limitN&&limitN!=='N'){const n=Math.min(parseInt(limitN,10)||data.length,data.length);data=shuffle(data).slice(0,n)}
-      QA=data;idx=0;score=0;document.getElementById('title').textContent=sheet.replace(/_/g,' ');document.getElementById('sheetName').textContent=sheet;render();document.getElementById('card').hidden=false}
-    function render(){const q=QA[idx];document.getElementById('pos').textContent=`Question ${idx+1} / ${QA.length}`;document.getElementById('qtext').textContent=q.q;const box=document.getElementById('opts');box.innerHTML='';q.opts.forEach(opt=>{const d=document.createElement('div');d.className='opt';d.textContent=opt;d.addEventListener('click',()=>{[...box.children].forEach(x=>x.classList.add('disabled'));if(opt===q.correct){d.classList.add('correct');score++}else{d.classList.add('wrong');const hit=[...box.children].find(x=>x.textContent.trim()===q.correct);if(hit)hit.classList.add('correct')}},{once:true});box.appendChild(d)});document.getElementById('prev').disabled=(idx===0);document.getElementById('next').textContent=(idx===QA.length-1)?'Finish →':'Next →'}
-    document.getElementById('prev').addEventListener('click',()=>{if(idx>0){idx--;render()}});document.getElementById('next').addEventListener('click',()=>{if(idx<QA.length-1){idx++;render()}else{finish()}});document.getElementById('show').addEventListener('click',()=>{const q=QA[idx];const hit=[...document.querySelectorAll('.opt')].find(x=>x.textContent.trim()===q.correct);if(hit)hit.classList.add('correct');[...document.querySelectorAll('.opt')].forEach(x=>x.classList.add('disabled'))});
-    function finish(){document.getElementById('card').hidden=true;const sum=document.getElementById('summary');sum.hidden=false;const right=score,total=QA.length;const items=QA.map((x,i)=>`<details><summary>${i+1}. ${x.q}</summary><div class="ans"><b>Answer:</b> ${x.correct}</div></details>`).join('');sum.innerHTML=`<h2 style="margin:4px 0 6px">Summary</h2><div class="meta"><span class="pill">Score: ${right} / ${total}</span><span class="pill">${Math.round(100*right/total)}%</span></div>${items}<div style="margin-top:10px;display:flex;gap:8px"><a class="btn" href="index.html">← Back to Home</a><button class="btn primary" onclick="location.reload()">Restart</button></div>`}
-    load();
-  </script>
+
+<script>
+/* ================== CONFIG ================== */
+const SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+
+/* ================== Utilities ================== */
+const $ = sel => document.querySelector(sel);
+function stripGVizJSON(txt){ const s = txt.indexOf('{'); const e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
+function sample(arr, n){ if(!n || isNaN(n)) return arr.slice(); return shuffle(arr.slice()).slice(0,Math.max(1,Math.min(+n,arr.length))); }
+
+/* ================== State ================== */
+const qs = new URLSearchParams(location.search);
+const mode = (qs.get("mode")||"").toLowerCase();
+const sheet = qs.get("sheet");          // resolved by the resolver for random
+const N     = qs.get("n");              // how many
+let idx = 0, data = [], revealed = false;
+
+/* ================== Load Questions ================== */
+async function fetchSheetTab(tab){
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+  const res = await fetch(url,{cache:"no-store"});
+  if(!res.ok) throw new Error("Failed to load sheet");
+  const json = stripGVizJSON(await res.text());
+  const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
+  const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+
+  const iQ = cols.findIndex(x=>/question/.test(x));
+  const iAns = cols.findIndex(x=>/answer/.test(x));
+  const iCorrect = cols.findIndex(x=>/^correct$/.test(x));
+  const oi = {
+    A: cols.findIndex(x=>/^opta$/i.test(x)),
+    B: cols.findIndex(x=>/^optb$/i.test(x)),
+    C: cols.findIndex(x=>/^optc$/i.test(x)),
+    D: cols.findIndex(x=>/^optd$/i.test(x))
+  };
+  if(iQ<0) throw new Error("No question column");
+
+  const out = rows.map(r=>{
+    const q = (r[iQ]||"").trim();
+    const answerText = (iAns>=0 ? r[iAns] : "").trim();
+    const correctLetter = (iCorrect>=0 ? (r[iCorrect]||"").trim().toUpperCase() : "");
+    const opts = [];
+    ["A","B","C","D"].forEach(L => { const ii = oi[L]; if(ii>=0 && r[ii]) opts.push({key:L, txt:r[ii]}); });
+    let correctTxt = answerText;
+    if(correctLetter && oi[correctLetter]>=0){ correctTxt = r[oi[correctLetter]]; }
+    return { q, opts, answer: (correctTxt||"").trim() };
+  }).filter(x=>x.q && (x.opts.length || x.answer));
+
+  return out;
+}
+
+function render(){
+  const q = data[idx];
+  $("#qnum").textContent = `Question ${idx+1} / ${data.length}`;
+  $("#qtxt").textContent = q.q;
+
+  const optsBox = $("#opts");
+  optsBox.innerHTML = "";
+  const choices = q.opts.length ? q.opts.map(o=>o.txt) : [q.answer]; // fall back if only answer exists
+  const shuffled = shuffle(choices.slice());
+
+  shuffled.forEach(txt=>{
+    const div = document.createElement("div");
+    div.className = "opt";
+    div.textContent = txt;
+    div.addEventListener("click", ()=>check(div, q.answer));
+    optsBox.appendChild(div);
+  });
+
+  revealed = false;
+  $("#revealBtn").textContent = "Show Answer";
+}
+
+function check(el, answer){
+  if(revealed) return;
+  const chosen = el.textContent.trim();
+  const isCorrect = chosen === answer;
+  el.classList.add(isCorrect ? "correct" : "wrong");
+  // also show the correct answer
+  [...document.querySelectorAll(".opt")].forEach(opt=>{
+    if(opt.textContent.trim() === answer){
+      opt.classList.add("correct");
+    }
+    opt.classList.add("disabled");
+  });
+  revealed = true;
+}
+
+$("#revealBtn").addEventListener("click", ()=>{
+  if(revealed) return;
+  const ans = data[idx].answer;
+  [...document.querySelectorAll(".opt")].forEach(opt=>{
+    if(opt.textContent.trim() === ans) opt.classList.add("correct");
+    opt.classList.add("disabled");
+  });
+  revealed = true;
+  $("#revealBtn").textContent = "Answer Shown";
+});
+$("#prevBtn").addEventListener("click", ()=>{
+  if(idx>0){ idx--; render(); }
+});
+$("#nextBtn").addEventListener("click", ()=>{
+  if(idx < data.length-1){ idx++; render(); }
+});
+
+/* ================== Timer (optional) ================== */
+(function setupTimer(){
+  const secs = parseInt(qs.get("timer")||"",10);
+  if(!secs || secs<=0){ $("#timer").textContent=""; return; }
+  let t = secs;
+  const fmt = s => {
+    const m = Math.floor(s/60), r = s%60;
+    return `${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;
+  };
+  $("#timer").textContent = fmt(t);
+  setInterval(()=>{
+    if(t>0){ t--; $("#timer").textContent = fmt(t); }
+  }, 1000);
+})();
+
+/* ================== Boot ================== */
+(async function main(){
+  if(!sheet){
+    $("#alert").classList.remove("hidden");
+    $("#alert").textContent = "No category selected.";
+    $("#qtxt").textContent = "";
+    $("#opts").innerHTML = "";
+    return;
+  }
+  try{
+    let items = await fetchSheetTab(sheet);
+    if(!items.length) throw 0;
+    if(mode === "random") items = sample(items, parseInt(N||"",10));
+    data = items;
+    render();
+  }catch(e){
+    $("#alert").classList.remove("hidden");
+    $("#alert").textContent = "Failed to load this tab. Make sure the sheet is public and the tab name matches exactly.";
+    $("#qtxt").textContent = "";
+    $("#opts").innerHTML = "";
+  }
+})();
+</script>
 </body>
 </html>
