@@ -1,165 +1,280 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PSC Guru • Quiz</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Quiz • PSC Guru</title>
+<link rel="icon" href="data:," />
 <style>
-  :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--accent:#0fa66d;--line:#e6eee9}
-  *{box-sizing:border-box} html,body{margin:0}
-  body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  .wrap{max-width:1100px;margin:0 auto;padding:24px}
-  .row{display:flex;gap:10px;align-items:center}
-  .right{margin-left:auto}
-  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-decoration:none;color:var(--ink)}
-  h1{margin:10px 0 16px}
-  .alert{background:#fff9e8;border:1px solid #f6e2b0;color:#5f4a00;padding:10px 12px;border-radius:10px}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
-  .btn{background:#fff;border:1px solid var(--line);border-radius:10px;height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-  .btn-primary{background:#0fa66d;border-color:#0fa66d;color:#fff}
-  .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  .opt{border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
-  .opt.correct{border-color:#1f7c59;background:#eaf8f2}
-  .opt.wrong{border-color:#c73b3b;background:#fdeeee}
-  .stickybar{position:sticky;bottom:0;background:rgba(242,248,244,.92);backdrop-filter:saturate(160%) blur(3px);border-top:1px solid var(--line);padding:10px 0}
+  :root{
+    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b; --ring: rgba(47,143,91,.25);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);font:16px/1.4 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
+  header{display:flex;align-items:center;gap:10px;padding:10px 14px}
+  .chip{padding:6px 12px;border-radius:16px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
+  main{max-width:900px;margin:10px auto;padding:0 14px}
+  h1{font-size:22px;margin:8px 0}
+  .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px}
+  .card{background:#fff;border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
+  .qidx{color:var(--muted);font-weight:600;font-size:13px}
+  .qtext{font-size:18px;margin:6px 0 14px}
+  .opts{display:grid;gap:10px}
+  .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer}
+  .opt.correct{border-color:#2f8f5b;background:#ecf9f2}
+  .opt.wrong{border-color:#c95757;background:#ffefef}
+  .answer{display:none;margin:10px 0 4px;color:#075}
+  .stickybar{position:fixed;left:0;right:0;bottom:0;background:#f7fbf8;border-top:1px solid #dfeee6;padding:10px;display:flex;gap:10px;justify-content:center}
+  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:8px 14px;font-weight:600;cursor:pointer}
+  .btn.secondary{background:#e9f5ee;color:#155634}
+  .btn:focus{outline:2px solid var(--ring)}
+  .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin:6px 0 12px}
+  .timer{font-weight:700;color:#0a5}
+  .summary{margin:14px 0}
+  .summary details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
+  .muted{color:var(--muted)}
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="row">
-    <a class="pill" href="index.html">Home</a>
-    <a class="pill" href="quiz.html">Quiz</a>
-    <div class="right pill" id="timerBox">00:00</div>
-  </div>
+<header>
+  <a class="chip" href="index.html">Home</a>
+  <a class="chip" href="quiz.html">Quiz</a>
+</header>
 
+<main>
   <h1 id="title">Quiz</h1>
-  <div id="warn"></div>
-  <div id="qwrap" class="card" style="display:none">
-    <div id="qtext" style="font-weight:700"></div>
-    <div style="height:8px"></div>
-    <div id="opts" class="grid"></div>
-    <div style="height:8px"></div>
-    <button id="showAnswer" class="btn">Show Answer</button>
+  <div class="meta">
+    <div id="metaCat"></div>
+    <div id="metaTimer" class="timer"></div>
+  </div>
+  <div id="alert" class="notice" style="display:none"></div>
+  <div id="qbox" class="card" style="display:none">
+    <div class="qidx" id="qidx"></div>
+    <div class="qtext" id="qtext"></div>
+    <div id="opts" class="opts"></div>
+    <div id="answer" class="answer"></div>
   </div>
 
-  <div class="stickybar">
-    <div class="row" style="justify-content:space-between">
-      <button id="prev" class="btn">← Prev</button>
-      <span id="page" class="pill">1 / 1</span>
-      <button id="next" class="btn btn-primary">Next →</button>
-    </div>
-  </div>
+  <section id="summary" class="summary" style="display:none"></section>
+</main>
+
+<div class="stickybar">
+  <button id="prevBtn" class="btn secondary">← Prev</button>
+  <button id="showBtn" class="btn secondary">Show Answer</button>
+  <button id="nextBtn" class="btn">Next →</button>
 </div>
 
 <script>
-/* ===== CONFIG ===== */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-
-/* ===== utils ===== */
-const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g,' ').trim();
-const low  = s => norm(s).toLowerCase();
-async function fetchText(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(r.statusText); return r.text();}
-function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();while(R.length&&R[R.length-1].every(c=>low(c)===''))R.pop();return R;}
-async function csvBySheet(sheet){ const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`; const t=await fetchText(u); return parseCSV(t); }
-
-/* ===== map rows to Qs ===== */
-function rowsToQuestions(rows){
-  if(!rows || rows.length<2) return [];
-  const H = rows[0].map(h=>low(h));
-  const ixQ   = H.findIndex(h=>['question','q','prompt'].some(k=>h.includes(k)));
-  const ixAns = H.findIndex(h=>['answer','ans','correct'].some(k=>h.includes(k)));
-  const ixA   = H.findIndex(h=>['opta','a','opt a'].includes(h));
-  const ixB   = H.findIndex(h=>['optb','b','opt b'].includes(h));
-  const ixC   = H.findIndex(h=>['optc','c','opt c'].includes(h));
-  const ixD   = H.findIndex(h=>['optd','d','opt d'].includes(h));
-  const out=[];
-  for(let i=1;i<rows.length;i++){
-    const r = rows[i].map(v=>v??'');
-    const q = ixQ>=0 ? r[ixQ] : r[0];
-    const ans = ixAns>=0 ? r[ixAns] : '';
-    const opts = [ixA,ixB,ixC,ixD].filter(x=>x>=0).map(x=>r[x]).filter(Boolean);
-    out.push({q,ans,opts});
+/* ================= CONFIG ================ */
+const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";  // <-- your sheet id
+const CATEGORIES_TAB = "Categories";
+/* ============== helpers ============== */
+const $ = sel=>document.querySelector(sel);
+function csvToRows(text){
+  const rows=[], row=[], pushRow=()=>{rows.push([...row]);row.length=0};
+  let s="", q=false;
+  for(let i=0;i<text.length;i++){
+    const c=text[i], n=text[i+1];
+    if(q){ if(c=='"' && n=='"'){s+='"';i++;} else if(c=='"'){q=false;} else s+=c; }
+    else { if(c=='"') q=true; else if(c==','){ row.push(s.trim()); s=""; }
+      else if(c=='\n'){ row.push(s.trim()); s=""; if(row.some(x=>x!=='')) pushRow(); }
+      else s+=c; }
   }
-  return out.filter(x=>low(x.q)!=='');
+  if(s.length||row.length){ row.push(s.trim()); if(row.some(x=>x!=='')) rows.push(row); }
+  return rows;
+}
+function normalizeHeader(h){return (h||"").toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9_]/g,'');}
+function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+async function fetchCSV(sheetName){
+  const tries = [
+    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(sheetName)}`,
+    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`,
+    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`
+  ];
+  for(let i=0;i<tries.length;i++){
+    try{
+      const res = await fetch(tries[i], {mode:"cors"});
+      if(!res.ok) throw new Error(res.status+" "+res.statusText);
+      const txt = await res.text();
+      if(tries[i].includes("out:json")){
+        const payload = JSON.parse(txt.replace(/^[\s\S]*?setResponse\(/,'').replace(/\);?$/,''));
+        const table = payload.table;
+        const headers = table.cols.map(c => normalizeHeader(c.label||c.id||""));
+        const rows = table.rows.map(r => headers.map((_,j)=>(r.c[j]?.v ?? "").toString().trim()));
+        return {headers, rows};
+      }else{
+        const rows = csvToRows(txt);
+        const headers = rows.shift().map(normalizeHeader);
+        return {headers, rows};
+      }
+    }catch(e){ if(i===tries.length-1) throw e; }
+  }
+}
+/* ============== quiz loader ============== */
+function parseMCQ(headers, rows){
+  // Accept either: answer + optA..optD + [correct]
+  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
+  const optNames = ["opta","optb","optc","optd"].filter(x=>H[x]!=null);
+  return rows.map(r=>{
+    const q = r[H.question] || r[H.q] || r[0];
+    const ans = r[H.answer] || r[H.ans] || "";
+    const options = optNames.map(x=>r[H[x]]).filter(Boolean);
+    const correct = r[H.correct] || ans;
+    return {q, answer: ans, options: options.length?options:[ans], correct};
+  }).filter(x=>x.q && x.answer);
+}
+function fromQA(headers, rows){
+  const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
+  return rows.map(r=>{
+    const q = r[H.question] || r[0];
+    const ans = r[H.answer] || r[1] || "";
+    return {q, answer: ans, options:[ans], correct: ans};
+  }).filter(x=>x.q && x.answer);
 }
 
-/* ===== state ===== */
-const qs = new URLSearchParams(location.search);
-const SHEET  = qs.get('sheet');           // we use sheet name
-const LIMIT  = parseInt(qs.get('limit')||'0',10);
-const TIMER  = parseInt(qs.get('timer')||'0',10);
-
-const titleEl = document.getElementById('title');
-const warnEl  = document.getElementById('warn');
-const qwrap   = document.getElementById('qwrap');
-const qtext   = document.getElementById('qtext');
-const optsEl  = document.getElementById('opts');
-const pageEl  = document.getElementById('page');
-const timerEl = document.getElementById('timerBox');
-const showBtn = document.getElementById('showAnswer');
-
-let Q=[], idx=0;
-
-/* ===== timer ===== */
-if(TIMER>0){
-  let left=TIMER;
-  (function tick(){
-    const m=String(Math.floor(left/60)).padStart(2,'0');
-    const s=String(left%60).padStart(2,'0');
-    timerEl.textContent=`${m}:${s}`;
-    left--; if(left>=0) setTimeout(tick,1000);
-  })();
+async function loadQuestions(sheet){
+  const {headers, rows} = await fetchCSV(sheet);
+  const norm = headers.map(normalizeHeader);
+  const hasOptions = norm.some(h=>/^opt[abcd]$/.test(h));
+  return (hasOptions ? parseMCQ(norm, rows) : fromQA(norm, rows));
 }
 
-/* shuffle helper */
-function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
+/* ============== state ============== */
+const url = new URL(location.href);
+const sheetName = url.searchParams.get("sheet");
+const wantRandom = url.searchParams.get("random");
+const wantCount = parseInt(url.searchParams.get("count")||"",10) || null;
+const timerSec = parseInt(url.searchParams.get("timer")||"",10) || null;
 
-/* render */
-function render(){
-  if(!Q.length){ qwrap.style.display='none'; return }
-  const item = Q[idx];
-  titleEl.textContent = SHEET || 'Quiz';
-  qwrap.style.display='block';
-  qtext.textContent = `${idx+1}. ${item.q}`;
-  pageEl.textContent = `${idx+1} / ${Q.length}`;
+let questions = [];
+let order = [];         // shuffled indices
+let idx = 0;
+let picked = new Map(); // index -> {picked, correct}
+let startedAt = null;
+let tickHandle = null;
 
-  const withAns = [...item.opts];
-  if(item.ans && !withAns.some(o=>low(o)===low(item.ans))) withAns.push(item.ans);
-  const shuffled = shuffle(withAns.slice());
-  const correctIndex = shuffled.findIndex(x => low(x)===low(item.ans));
+function renderTimer(){
+  if(!timerSec || !startedAt) return;
+  const elapsed = Math.floor((Date.now()-startedAt)/1000);
+  const left = Math.max(0, timerSec - elapsed);
+  const mm = String(Math.floor(left/60)).padStart(2,'0');
+  const ss = String(left%60).padStart(2,'0');
+  $("#metaTimer").textContent = `${mm}:${ss}`;
+  if(left===0){ clearInterval(tickHandle); showSummary(); }
+}
 
-  optsEl.innerHTML='';
-  shuffled.forEach((opt,i)=>{
-    const d=document.createElement('div');
-    d.className='opt';
-    d.textContent=opt||'(blank)';
-    d.onclick=()=>{
-      [...optsEl.children].forEach(c=>c.classList.remove('correct','wrong'));
-      d.classList.add(i===correctIndex ? 'correct' : 'wrong');
+async function init(){
+  if(wantRandom){
+    // load categories to pick any sheet randomly
+    const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
+    const H = Object.fromEntries(headers.map((h,i)=>[normalizeHeader(h),i]));
+    const cats = rows.map(r=> r[H.sheet] || r[H.actualtabname] || r[1]).filter(Boolean);
+    const chosen = cats[Math.floor(Math.random()*cats.length)];
+    $("#metaCat").textContent = "Random • " + (chosen || "Unknown");
+    questions = await loadQuestions(chosen);
+  }else if(sheetName){
+    $("#metaCat").textContent = sheetName;
+    questions = await loadQuestions(sheetName);
+  }else{
+    $("#alert").style.display = "";
+    $("#alert").textContent = "No category selected.";
+    return;
+  }
+
+  if(!questions.length){
+    $("#alert").style.display = "";
+    $("#alert").textContent = "Failed to load this tab. Bad GViz response. Make sure the sheet is public (or Published to the web) and the tab name matches exactly.";
+    return;
+  }
+
+  // limit count for random if requested
+  if(wantCount) questions = shuffle([...questions]).slice(0,wantCount);
+
+  order = questions.map((_,i)=>i);
+  showQuestion(0);
+
+  startedAt = Date.now();
+  if(timerSec){ tickHandle = setInterval(renderTimer, 250); renderTimer(); }
+}
+
+function showQuestion(i){
+  idx = Math.max(0, Math.min(order.length-1, i));
+  const q = questions[order[idx]];
+  $("#qbox").style.display = "";
+  $("#qidx").textContent = `Question ${idx+1} / ${order.length}`;
+  $("#qtext").textContent = q.q;
+
+  const area = $("#opts"); area.innerHTML = "";
+  const opts = q.options && q.options.length>1 ? [...q.options] : [q.answer];
+  const shuffled = shuffle(opts.map(x=>({txt:x, isCorrect: x.toString().trim() === (q.correct||q.answer).toString().trim()})));
+  shuffled.forEach(o=>{
+    const div = document.createElement("div");
+    div.className = "opt";
+    div.textContent = o.txt;
+    div.onclick = ()=>{
+      // mark
+      if(picked.has(order[idx])) return;
+      const res = {picked:o.txt, correct:(o.isCorrect)};
+      picked.set(order[idx], res);
+      if(o.isCorrect){ div.classList.add("correct"); }
+      else { div.classList.add("wrong"); }
     };
-    optsEl.appendChild(d);
+    area.appendChild(div);
   });
 
-  showBtn.onclick=()=>[...optsEl.children].forEach((div,i)=>div.classList.toggle('correct',i===correctIndex));
+  $("#answer").style.display = "none";
+  $("#answer").textContent = "Answer: " + (q.correct || q.answer);
 }
 
-/* navigation */
-document.getElementById('prev').onclick = ()=>{ if(idx>0){idx--; render()} };
-document.getElementById('next').onclick = ()=>{ if(idx<Q.length-1){idx++; render()} };
+$("#showBtn").onclick = ()=>{
+  $("#answer").style.display = "";
+};
+$("#prevBtn").onclick = ()=> showQuestion(idx-1);
+$("#nextBtn").onclick = ()=>{
+  if(idx === order.length-1){ showSummary(); }
+  else showQuestion(idx+1);
+};
 
-/* load */
-(async ()=>{
-  try{
-    if(!SHEET) throw new Error('No ?sheet= specified in URL.');
-    const rows = await csvBySheet(SHEET);
-    const all  = rowsToQuestions(rows);
-    Q = LIMIT>0 ? all.sort(()=>Math.random()-0.5).slice(0,LIMIT) : all;
-    if(!Q.length) throw new Error('No questions found in this tab.');
-    render();
-  }catch(e){
-    warnEl.innerHTML = `<div class="alert">Failed to load this tab. Make sure the sheet is public and the tab exists. Error: ${e.message}</div>`;
-  }
-})();
+function showSummary(){
+  clearInterval(tickHandle);
+  $("#qbox").style.display = "none";
+  const total = order.length;
+  let correct = 0;
+  order.forEach(i=>{
+    const res = picked.get(i);
+    const q = questions[i];
+    if(res?.picked && (res.picked.toString().trim() === (q.correct||q.answer).toString().trim())) correct++;
+  });
+
+  const s = $("#summary");
+  s.style.display = "";
+  s.innerHTML = `
+    <div class="card">
+      <h3>Summary</h3>
+      <div class="muted">Score: <strong>${correct}</strong> / ${total}</div>
+      <div class="muted">Time: ${$("#metaTimer").textContent || "—"}</div>
+      <details open style="margin-top:10px">
+        <summary>Review answers</summary>
+        ${order.map((i,k)=>{
+          const q = questions[i];
+          const res = picked.get(i);
+          const mine = res?.picked || "—";
+          const ok = mine.toString().trim() === (q.correct||q.answer).toString().trim();
+          return `
+            <details>
+              <summary><strong>${k+1}.</strong> ${q.q}</summary>
+              <div class="muted">Your answer: <span style="color:${ok?'#0a5':'#b33'}">${mine}</span></div>
+              <div class="muted">Correct: ${q.correct||q.answer}</div>
+            </details>
+          `;
+        }).join("")}
+      </details>
+    </div>
+  `;
+}
+
+/* boot */
+init();
 </script>
 </body>
 </html>
