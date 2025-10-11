@@ -1,248 +1,349 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PSC Guru • Kerala PSC Exam Prep</title>
-<link rel="icon" href="data:," />
-<style>
-  :root{
-    --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b;
-    --ring: rgba(47,143,91,.25);
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:16px/1.4 system-ui,Segoe UI,Roboto,Inter,Arial}
-  header{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:linear-gradient(#ecf6ee,#e7f2ea)}
-  .brand{display:flex;gap:10px;align-items:center;color:var(--ink);font-weight:700}
-  .logo{width:34px;height:34px;border-radius:9px;background:#1f6d43;color:#fff;display:grid;place-items:center;font-weight:800}
-  .nav{display:flex;gap:10px}
-  .chip{padding:6px 12px;border-radius:16px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);cursor:pointer}
-  main{max-width:1100px;margin:24px auto;padding:0 16px}
-  h2{margin:16px 0 8px;color:var(--ink)}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-  @media (max-width:760px){.row{grid-template-columns:1fr}}
-  .card{background:var(--card);border-radius:14px;padding:16px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008}
-  .sub{color:var(--muted);font-size:13px}
-  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:8px 14px;font-weight:600;cursor:pointer}
-  .btn:focus{outline:2px solid var(--ring)}
-  .count-select{display:flex;gap:8px}
-  .pill{padding:5px 10px;border-radius:999px;background:#ecf6ef;color:#1c5e3c;cursor:pointer}
-  .pill.active{background:var(--accent);color:#fff}
-  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-  @media (max-width:900px){.grid{grid-template-columns:repeat(2,1fr)}}
-  @media (max-width:560px){.grid{grid-template-columns:1fr}}
-  .cat{padding:16px;border-radius:12px;background:#fff;box-shadow:0 6px 18px #0000000a}
-  .cat h4{margin:0 0 6px}
-  .search{width:100%;padding:10px 12px;border-radius:12px;border:1px solid #e1efe6;background:#f7fbf8}
-  .muted{color:var(--muted)}
-  details.debug{margin-top:18px}
-  details.debug summary{cursor:pointer;color:#0a5}
-  code.url{display:block;overflow:auto;white-space:nowrap;background:#f5faf7;border-radius:8px;padding:6px 8px;margin:6px 0;border:1px dashed #bfe5cc}
-</style>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>PSC Guru • Kerala PSC Exam Prep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <style>
+    :root{
+      --bg:#f3faf4;
+      --card:#ffffff;
+      --ink:#102a19;
+      --muted:#5c7a68;
+      --accent:#1b8f4c;
+      --accent-ink:#fff;
+      --border:#e7ece9;
+      --chip:#ecf7f0;
+      --shadow:0 20px 40px rgba(16,42,25,.06);
+      --radius:16px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:inherit;text-decoration:none}
+    header{
+      position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#edf8f0,rgba(237,248,240,.85));
+      backdrop-filter:saturate(120%) blur(8px); border-bottom:1px solid var(--border)
+    }
+    .wrap{max-width:1120px;margin:0 auto;padding:18px 16px}
+    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+    .badge{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:#dff3e7;color:#1b7a46}
+    .nav{display:flex;gap:10px;margin-left:auto}
+    .nav a{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:#fff}
+    main .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
+    .card-title{font-weight:700;margin-bottom:8px}
+    .muted{color:var(--muted);font-size:.92rem}
+    .row-actions{display:flex;gap:10px;align-items:center;margin-top:10px}
+    .btn{background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:700}
+    .btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--border)}
+    .chips{display:flex;gap:10px;margin-top:10px}
+    .chip{min-width:38px;height:36px;border-radius:999px;border:1px solid var(--border);background:var(--chip);display:grid;place-items:center;font-weight:700;color:#1e5d3b}
+    .chip[data-active="1"]{background:var(--accent);color:#fff;border-color:transparent}
+    h2{margin:26px 0 10px}
+    .search{width:100%;height:44px;border-radius:12px;border:1px solid var(--border);padding:0 12px;background:#fff}
+    .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
+    .cat{border:1px solid var(--border);background:#fff;border-radius:14px;padding:14px}
+    .cat h3{font-size:16px;margin:0 0 6px}
+    .cat p{margin:0;color:var(--muted);font-size:.9rem}
+    .cat a.stretched{position:relative;display:block}
+    .cat a.stretched::after{content:"";position:absolute;inset:0}
+    @media (max-width:960px){
+      main .grid{grid-template-columns:1fr}
+      .cats{grid-template-columns:1fr}
+    }
+
+    /* <dialog> minimal styles (works in modern browsers) */
+    dialog{border:none;border-radius:16px;max-width:420px;width:92%;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.18)}
+    dialog::backdrop{background:rgba(0,0,0,.25)}
+    label{display:block;font-weight:700;margin:8px 0 6px}
+    select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
+    .row{display:flex;gap:10px}
+    .row>div{flex:1}
+  </style>
 </head>
 <body>
-<header>
-  <div class="brand">
-    <div class="logo">PSC</div>
-    <div>
-      <div>PSC Guru</div>
-      <div class="sub">Kerala PSC Exam Prep</div>
-    </div>
-  </div>
-  <nav class="nav">
-    <a class="chip" href="quiz.html">Quiz</a>
-  </nav>
-</header>
-
-<main>
-  <section class="row">
-    <div class="card">
-      <h3 style="margin:4px 0 8px">Random Quiz</h3>
-      <div class="sub">Start instantly with mixed questions (random category).</div>
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-top:12px;gap:10px">
-        <div class="count-select" id="countSelect">
-          <button class="pill active" data-n="5">5</button>
-          <button class="pill" data-n="10">10</button>
-          <button class="pill" data-n="20">20</button>
-          <button class="pill" data-n="30">30</button>
-          <button class="pill" data-n="">N</button>
+  <header>
+    <div class="wrap" style="display:flex;align-items:center;gap:12px">
+      <div class="brand">
+        <div class="badge">PSC</div>
+        <div>
+          <div>PSC Guru</div>
+          <div class="muted" style="font-weight:600">Kerala PSC Exam Prep</div>
         </div>
-        <button id="startRandom" class="btn">Start</button>
+      </div>
+      <div class="nav">
+        <a href="quiz.html">Quiz</a>
+        <a href="resources.html">Study</a>
+        <a href="notices.html">Notices</a>
       </div>
     </div>
+  </header>
 
-    <div class="card">
-      <h3 style="margin:4px 0 8px">AI vs You</h3>
-      <div class="sub">Timed MCQ — computer guesses vs your answers. Open any category below.</div>
-      <div class="sub" style="margin-top:8px">Tip: set a timer via URL, e.g. <code>?timer=300</code> for 5 min.</div>
-      <div style="display:flex;justify-content:flex-end;margin-top:8px"><a class="chip" href="#ai-info">Info</a></div>
-    </div>
-  </section>
+  <main class="wrap">
+    <h1 style="margin:10px 0 14px">Quick Quiz</h1>
 
-  <section class="row" style="margin-top:14px">
-    <div class="card">
-      <h3 style="margin:4px 0 8px">Study Material</h3>
-      <div class="sub">Downloadable PDFs & docs from Google Sheets</div>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px"><a class="btn" id="openStudy">Open</a></div>
-    </div>
-    <div class="card">
-      <h3 style="margin:4px 0 8px">Exam Notifications</h3>
-      <div class="sub">Latest notifications curated in Google Sheets</div>
-      <div style="display:flex;justify-content:flex-end;margin-top:10px"><a class="btn" id="openNotices">Open</a></div>
-    </div>
-  </section>
+    <section class="grid">
+      <!-- Random Quiz -->
+      <div class="card">
+        <div class="card-title">Random Quiz</div>
+        <p class="muted">Start instantly with mixed questions (random category).</p>
 
-  <section style="margin-top:18px">
-    <h2>Quiz Categories <span class="muted" id="catCount"></span></h2>
-    <input id="search" class="search" placeholder="Search category…" />
-    <div id="catGrid" class="grid" style="margin-top:14px"></div>
+        <div class="chips" id="randN">
+          <button class="chip" data-n="5">5</button>
+          <button class="chip" data-n="10" data-active="1">10</button>
+          <button class="chip" data-n="20">20</button>
+          <button class="chip" data-n="30">30</button>
+          <button class="chip" data-n="">N</button>
+        </div>
 
-    <details class="debug" id="diagBox">
-      <summary>Diagnostics (click to expand)</summary>
-      <div id="diag"></div>
-    </details>
-  </section>
-</main>
+        <div class="row-actions">
+          <button id="btnRandom" class="btn">Start</button>
+        </div>
+      </div>
 
-<script>
-/* ================= CONFIG ================ */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // <-- YOUR sheet id
-const CATEGORIES_TAB = "Categories";
-const EXCLUDE_TABS = new Set([
-  "Categories","Study Material","Exam Notifications","Resources","README","Config","Sample","Sheet1","Sheet2"
-]);
-/* ============== helpers ============== */
-const $ = sel => document.querySelector(sel);
-const $$ = sel => Array.from(document.querySelectorAll(sel));
+      <!-- AI vs You -->
+      <div class="card">
+        <div class="card-title">AI vs You</div>
+        <p class="muted">
+          Timed MCQ — computer guesses vs your answers. Open any category below.
+        </p>
+        <div class="row-actions">
+          <a class="btn secondary" href="ai.html">Info</a>
+          <button id="aiPlayBtn" class="btn">Play</button>
+        </div>
+      </div>
 
-function csvToRows(text){
-  // very tolerant CSV parser for small sheets
-  const rows = [];
-  let row = [], col = "", q=false;
-  for(let i=0;i<text.length;i++){
-    const c = text[i], n = text[i+1];
-    if(q){
-      if(c === '"' && n === '"'){ col += '"'; i++; }
-      else if(c === '"'){ q=false; }
-      else col += c;
-    }else{
-      if(c === '"') q=true;
-      else if(c === ','){ row.push(col.trim()); col=""; }
-      else if(c === '\n'){ row.push(col.trim()); rows.push(row); row=[]; col=""; }
-      else col += c;
+      <!-- Study Material -->
+      <div class="card">
+        <div class="card-title">Study Material</div>
+        <p class="muted">Downloadable PDFs &amp; docs from Google Sheets</p>
+        <div class="row-actions">
+          <a class="btn" href="resources.html">Open</a>
+        </div>
+      </div>
+
+      <!-- Exam Notifications -->
+      <div class="card">
+        <div class="card-title">Exam Notifications</div>
+        <p class="muted">Latest notifications curated in Google Sheets</p>
+        <div class="row-actions">
+          <a class="btn" href="notices.html">Open</a>
+        </div>
+      </div>
+    </section>
+
+    <h2>Quiz Categories <span id="catCount" class="muted">(0)</span></h2>
+    <input id="q" class="search" placeholder="Search category…" />
+    <div id="cats" class="cats"></div>
+  </main>
+
+  <!-- AI vs You: picker dialog -->
+  <dialog id="aiPicker">
+    <form method="dialog" id="aiForm">
+      <h3 style="margin:0 0 8px">Play “AI vs You”</h3>
+
+      <label>Category</label>
+      <select id="aiSheet" required></select>
+
+      <div class="row" style="margin-top:10px">
+        <div>
+          <label>Questions</label>
+          <select id="aiN">
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+            <option value="">All</option>
+          </select>
+        </div>
+        <div>
+          <label>Timer (min)</label>
+          <select id="aiTimer">
+            <option value="">Off</option>
+            <option value="3">3</option>
+            <option value="5" selected>5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="row-actions" style="justify-content:flex-end;margin-top:14px">
+        <button type="button" id="aiCancel" class="btn secondary">Cancel</button>
+        <button type="submit" class="btn">Start</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script>
+    /* ================= CONFIG ================= */
+    const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+
+    /* ================ helpers ================= */
+    const $ = s => document.querySelector(s);
+    const $$ = s => [...document.querySelectorAll(s)];
+
+    function stripGVizJSON(text){
+      // gviz response begins with "/*O_o*/\ngoogle.visualization.Query.setResponse(...);"
+      const start = text.indexOf("{");
+      const end = text.lastIndexOf("}");
+      return JSON.parse(text.slice(start, end+1));
     }
-  }
-  if(col.length || row.length) { row.push(col.trim()); rows.push(row); }
-  return rows.filter(r=>r.length && r.join("").length);
-}
-function normalizeHeader(h){ return h.toLowerCase().replace(/\s+/g,'').replace(/[^a-z0-9_]/g,''); }
 
-async function fetchCSV(sheetName, diagId){
-  const tries = [
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheetName)}`,
-    `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`
-  ];
-  const diag = document.getElementById(diagId||"diag");
-  for(let i=0;i<tries.length;i++){
-    const url = tries[i];
-    diag.insertAdjacentHTML("beforeend", `<code class="url">GET ${url}</code>`);
-    try{
-      const res = await fetch(url, {mode:'cors'});
-      if(!res.ok) throw new Error(res.status+" "+res.statusText);
-      const txt = await res.text();
-      if(url.includes("out:json")){
-        // unwrap Google gviz JSON
-        const payload = JSON.parse(txt.replace(/^[\s\S]*?setResponse\(/,'').replace(/\);?$/,''));
-        const table = payload.table;
-        const headers = table.cols.map(c => normalizeHeader(c.label||c.id||''));
-        const rows = table.rows.map(r => headers.map((_,j)=> (r.c[j]?.v ?? "").toString().trim()));
-        return {headers, rows};
-      }else{
-        const rows = csvToRows(txt);
-        const headers = rows.shift().map(normalizeHeader);
-        return {headers, rows};
-      }
-    }catch(e){
-      diag.insertAdjacentHTML("beforeend", `<div style="color:#b00">Fail: ${e.message}</div>`);
-      if(i===tries.length-1) throw e;
+    async function gviz(sheetName){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+      const res = await fetch(url, {cache:"no-store"});
+      if(!res.ok) throw new Error("Failed to fetch gviz");
+      const json = stripGVizJSON(await res.text());
+      const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => c ? c.v : ""));
+      return {cols, rows};
     }
-  }
-}
 
-function renderCats(items){
-  const grid = $("#catGrid");
-  grid.innerHTML = "";
-  for(const it of items){
-    const el = document.createElement("div");
-    el.className = "cat";
-    el.innerHTML = `
-      <h4>${it.name}</h4>
-      <div class="muted">${it.desc || "From Google Sheets"}</div>
-    `;
-    el.addEventListener("click", ()=>{
-      const url = new URL("quiz.html", location.href);
-      url.searchParams.set("sheet", it.sheet);
-      location.href = url.toString();
-    });
-    grid.appendChild(el);
-  }
-  $("#catCount").textContent = items.length ? `(${items.length})` : "(0)";
-}
-
-/* ============== load categories ============== */
-async function loadCategories(){
-  try{
-    const {headers, rows} = await fetchCSV(CATEGORIES_TAB);
-    const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-    // expected headers: name, sheet, desc (any order)
-    const items = rows.map(r=>({
-      name: r[H.name] || r[H.namedisplay] || r[0] || "",
-      sheet: r[H.sheet] || r[H.actualtabname] || r[1] || "",
-      desc: r[H.desc] || r[H.description] || r[2] || ""
-    })).filter(x=>x.name && x.sheet && !EXCLUDE_TABS.has(x.sheet));
-    renderCats(items);
-
-    // filter by search
-    $("#search").addEventListener("input", (e)=>{
-      const q = e.target.value.toLowerCase();
-      [...$("#catGrid").children].forEach(card=>{
-        const hit = card.querySelector("h4").textContent.toLowerCase().includes(q);
-        card.style.display = hit ? "" : "none";
+    /* ====== Random Quiz ====== */
+    (function initRandom(){
+      const chips = $$("#randN .chip");
+      let current = chips.find(c => c.dataset.active === "1")?.dataset.n || "10";
+      chips.forEach(ch => {
+        ch.addEventListener("click", () => {
+          chips.forEach(x => x.removeAttribute("data-active"));
+          ch.setAttribute("data-active","1");
+          current = ch.dataset.n ?? "";
+        });
       });
-    });
-  }catch(e){
-    // helpful message
-    const diag = $("#diag");
-    diag.insertAdjacentHTML("beforeend",
-      `<p style="color:#b00;margin-top:8px">
-         Unable to load categories. Please ensure the sheet is
-         <strong>Published to the web (Entire document)</strong> and the tab is named <code>Categories</code>.
-       </p>`);
-  }
-}
+      $("#btnRandom").addEventListener("click", () => {
+        const u = new URL("quiz.html", location.href);
+        u.searchParams.set("random","1");
+        if(current !== "") u.searchParams.set("n", current);
+        location.href = u.toString();
+      });
+    })();
 
-/* ============== random quiz ============== */
-let randomN = "5";
-$("#countSelect").addEventListener("click", e=>{
-  const b = e.target.closest(".pill"); if(!b) return;
-  $$("#countSelect .pill").forEach(p=>p.classList.remove("active"));
-  b.classList.add("active");
-  randomN = b.dataset.n;
-});
-$("#startRandom").addEventListener("click", ()=>{
-  const url = new URL("quiz.html", location.href);
-  url.searchParams.set("random","1");
-  if(randomN) url.searchParams.set("count", randomN);
-  location.href = url.toString();
-});
+    /* ====== Categories grid ====== */
+    async function loadCategories(){
+      try{
+        const {cols, rows} = await gviz("Categories");
+        // expected headers (case-insensitive):
+        //  name (display),  get (actual tab name),  desc (optional)
+        const idxDisplay = cols.findIndex(c => c.includes("name"));
+        const idxGet     = cols.findIndex(c => c.includes("get") || c.includes("tab"));
+        const idxDesc    = cols.findIndex(c => c.includes("desc"));
 
-/* study/notices open */
-$("#openStudy").onclick = ()=> location.href = "resources.html";
-$("#openNotices").onclick = ()=> location.href = "notices.html";
+        const all = rows
+          .map(r => ({
+            name: (r[idxDisplay] || r[idxGet] || "").toString().trim(),
+            sheet:(r[idxGet] || r[idxDisplay] || "").toString().trim(),
+            desc: (r[idxDesc] || "").toString().trim()
+          }))
+          .filter(x => x.sheet && x.name);
 
-/* boot */
-loadCategories();
-</script>
+        const cont = $("#cats");
+        cont.innerHTML = all.map(x => `
+          <article class="cat">
+            <a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a>
+            <h3>${x.name}</h3>
+            <p>${x.desc ? x.desc : "From Google Sheets"}</p>
+          </article>
+        `).join("");
+
+        $("#catCount").textContent = `(${all.length})`;
+
+        // quick search
+        const input = $("#q");
+        input.addEventListener("input", ()=>{
+          const q = input.value.toLowerCase();
+          $$("article.cat").forEach(card=>{
+            const text = card.querySelector("h3").textContent.toLowerCase();
+            card.style.display = text.includes(q) ? "" : "none";
+          });
+        });
+
+        return all;
+      }catch(e){
+        console.warn(e);
+        $("#cats").innerHTML =
+          `<div class="muted">Unable to load categories. Ensure the sheet is <b>Published to the web</b> and a tab named <b>Categories</b> exists with a <i>name</i> column.</div>`;
+        return [];
+      }
+    }
+
+    /* ====== AI vs You launcher ====== */
+    (function initAI(){
+      const playBtn = $("#aiPlayBtn");
+      const dlg = $("#aiPicker");
+      const sel = $("#aiSheet");
+      const selN = $("#aiN");
+      const selTimer = $("#aiTimer");
+      const cancelBtn = $("#aiCancel");
+      const form = $("#aiForm");
+
+      function getSheetNamesFromCards(){
+        return $$('a[href*="quiz.html?sheet="]')
+          .map(a => {
+            try{
+              const u = new URL(a.href, location.href);
+              return u.searchParams.get("sheet");
+            }catch(e){ return null }
+          })
+          .filter(Boolean);
+      }
+
+      playBtn.addEventListener("click", async () => {
+        // use already-rendered cards
+        let names = getSheetNamesFromCards();
+
+        // fallback: fetch from sheet if grid not ready
+        if(names.length === 0){
+          const {cols, rows} = await gviz("Categories");
+          const idxDisplay = cols.findIndex(c => c.includes("name"));
+          const idxGet     = cols.findIndex(c => c.includes("get") || c.includes("tab"));
+          names = rows.map(r => (r[idxGet] || r[idxDisplay] || "").toString().trim()).filter(Boolean);
+        }
+
+        if(names.length === 0){
+          // last fallback: open info
+          location.href = "ai.html";
+          return;
+        }
+
+        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join("");
+        if(typeof dlg.showModal === "function"){ dlg.showModal(); }
+        else {
+          const picked = prompt("Type a category name:", names[0]);
+          if(picked){
+            const url = new URL("ai.html", location.href);
+            url.searchParams.set("sheet", picked);
+            url.searchParams.set("n", selN.value || "10");
+            const t = selTimer.value ? (parseInt(selTimer.value,10)*60) : "";
+            if(t) url.searchParams.set("timer", t);
+            location.href = url.toString();
+          }
+        }
+      });
+
+      cancelBtn.addEventListener("click", ()=> dlg.close());
+
+      form.addEventListener("submit", (e)=>{
+        e.preventDefault();
+        const sheet = sel.value;
+        const n = selN.value || "";
+        const tMin = selTimer.value || "";
+        const url = new URL("ai.html", location.href);
+        url.searchParams.set("sheet", sheet);
+        if(n) url.searchParams.set("n", n);
+        if(tMin){
+          const sec = parseInt(tMin,10) * 60;
+          if(sec) url.searchParams.set("timer", sec);
+        }
+        location.href = url.toString();
+      });
+    })();
+
+    // boot
+    loadCategories();
+  </script>
 </body>
 </html>
