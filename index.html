@@ -7,89 +7,405 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="header.css">
-  <script defer src="site-header.js"></script>
+
   <style>
-    :root{--bg:#0b1b13;--bg-2:#0f231a;--grad-a:#1d4933;--grad-b:#0a5b38;--glass:rgba(255,255,255,.06);--glass-2:rgba(255,255,255,.1);--text:#ecfdf5;--muted:#b8d8cc;--brand:#34d399;--brand-600:#059669;--ring:rgba(52,211,153,.35);--shadow:0 30px 60px rgba(0,0,0,.35);--r:18px}
-    @media (prefers-color-scheme: light){:root{--bg:#f2f8f4;--bg-2:#eaf4ef;--grad-a:#eaf8f1;--grad-b:#dff6ef;--glass:rgba(255,255,255,.6);--glass-2:rgba(255,255,255,.85);--text:#0f2d1f;--muted:#5f726a;--brand:#0f8346;--brand-600:#0b5f34;--ring:rgba(15,131,70,.22);--shadow:0 20px 40px rgba(30,70,50,.15)}}
-    *{box-sizing:border-box}html,body{height:100%}
-    body{margin:0;font:400 16px/1.55 Inter,system-ui;color:var(--text);background:radial-gradient(1200px 700px at 20% -10%,var(--grad-a),transparent),radial-gradient(1200px 700px at 80% -10%,var(--grad-b),transparent),linear-gradient(180deg,var(--bg),var(--bg-2));overflow-x:hidden}
+    :root{
+      --bg: #f2f8f4; --bg-2: #eaf4ef;
+      --grad-a:#eaf8f1; --grad-b:#dff6ef;
+      --glass: rgba(255,255,255,.6); --glass-2: rgba(255,255,255,.85);
+      --card:#ffffffcc; --text:#0f2d1f; --muted:#5f726a;
+      --brand:#0f8346; --brand-600:#0b5f34;
+      --ring: rgba(15,131,70,.22); --shadow: 0 20px 40px rgba(30,70,50,.15);
+      --r: 18px;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:400 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 20% -10%, var(--grad-a), transparent),
+                  radial-gradient(1200px 700px at 80% -10%, var(--grad-b), transparent),
+                  linear-gradient(180deg, var(--bg), var(--bg-2));
+      overflow-x:hidden;
+    }
     .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
-    .hero{position:relative;overflow:hidden;border-radius:22px;padding:28px 22px;background:linear-gradient(140deg,var(--glass-2),transparent 35%),var(--glass);border:1px solid rgba(255,255,255,.15);box-shadow:var(--shadow);margin-top:10px}
-    .hero h2{font-size:28px;margin:0 0 6px;font-weight:800}
+
+    /* ====== Top Bar ====== */
+    .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
+    .brand{
+      display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
+      background:var(--glass-2); backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    }
+    .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
+      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
+    .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+
+    .links{margin-left:auto;display:flex;gap:10px}
+    .pill{padding:8px 14px;border-radius:999px;background:var(--glass-2);backdrop-filter:blur(8px);
+      font-weight:700;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.15);text-decoration:none;color:var(--text)}
+    .pill:hover{transform:translateY(-1px); transition: .2s ease; }
+
+    /* ====== Hero ====== */
+    .hero{
+      position:relative;overflow:hidden;border-radius:22px;
+      padding:28px 22px;background:linear-gradient(140deg, var(--glass-2), transparent 35%), var(--glass);
+      border:1px solid rgba(255,255,255,.15);
+      box-shadow:var(--shadow);
+    }
+    .hero h2{font-size:28px;margin:0 0 6px;font-weight:800;letter-spacing:.2px}
     .hero p{margin:0;color:var(--muted)}
-    .blob{position:absolute;inset:-20% -20% auto auto;opacity:.35;filter:blur(80px);background:conic-gradient(from 120deg at 50% 50%,#34d399,#60a5fa,#a78bfa,#34d399);width:360px;height:360px;border-radius:50%;mix-blend:overlay;animation:spin 18s linear infinite}
+    .blob{
+      position:absolute;inset: -20% -20% auto auto;pointer-events:none;opacity:.35;filter: blur(80px);
+      background: conic-gradient(from 120deg at 50% 50%, #34d399, #60a5fa, #a78bfa, #34d399);
+      width:360px;height:360px;border-radius:50%;mix-blend:overlay;
+      animation: spin 18s linear infinite;
+    }
     @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-    .cards{display:grid;grid-template-columns:1fr;gap:16px;margin-top:16px}
+
+    /* ====== Cards ====== */
+    .cards{display:grid;grid-template-columns:1fr; gap:16px; margin-top:16px}
     @media(min-width:860px){.cards{grid-template-columns:1fr 1fr}}
-    .card{background:var(--glass-2);backdrop-filter:blur(10px);border:1px solid rgba(255,255,255,.15);border-radius:var(--r);padding:18px 16px;box-shadow:var(--shadow);transition:transform .2s ease}
-    .card:hover{transform:translateY(-2px)}.card h3{margin:0 0 8px;font-size:18px;font-weight:800}.card p{margin:0;color:var(--muted)}
+    .card{
+      background:var(--glass-2);backdrop-filter: blur(10px);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius: var(--r); padding:18px 16px; box-shadow: var(--shadow);
+      transition: transform .2s ease;
+    }
+    .card:hover{transform: translateY(-2px)}
+    .card h3{margin:0 0 8px;font-size:18px;font-weight:800}
+    .card p{margin:0;color:var(--muted)}
+
     .chipbar{display:flex;gap:10px;margin:12px 0 14px;flex-wrap:wrap}
-    .chip{border:1px solid rgba(255,255,255,.16);background:transparent;color:var(--text);border-radius:999px;padding:9px 12px;font-weight:800;cursor:pointer}
+    .chip{
+      border:1px solid rgba(255,255,255,.16);background:transparent;color:var(--text);
+      border-radius:999px;padding:9px 12px;font-weight:800;cursor:pointer;letter-spacing:.3px
+    }
     .chip.active{background:var(--brand);border-color:transparent;color:#032015;box-shadow:0 0 0 8px var(--ring)}
+
     .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:12px}
-    .btn{display:inline-flex;align-items:center;gap:8px;font-weight:900;padding:10px 16px;border-radius:12px;border:none;background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;cursor:pointer;box-shadow:0 10px 25px var(--ring)}
-    .btn--ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text)}.btn-sm{padding:8px 12px;border-radius:999px}
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;font-weight:900;padding:10px 16px;border-radius:12px;border:none;
+      background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;cursor:pointer;box-shadow:0 10px 25px var(--ring)
+    }
+    .btn:hover{filter:brightness(1.05)}
+    .btn--ghost{background:transparent;border:1px solid rgba(255,255,255,.18);color:var(--text)}
+    .btn-sm{padding:8px 12px;border-radius:999px}
+
+    /* ====== Toolbar ====== */
     .toolbar{display:flex;gap:14px;align-items:center;margin-top:24px;margin-bottom:10px;position:sticky;top:6px;z-index:3}
-    .toolbar .title{font-size:22px;margin:0;font-weight:800}.toolbar .count{color:var(--muted);font-weight:800}
-    .search{margin-left:auto;display:flex;align-items:center;gap:10px;background:var(--glass-2);border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:10px 14px;backdrop-filter:blur(8px);box-shadow:var(--shadow);max-width:560px;width:100%}
+    .toolbar .title{font-size:22px;margin:0;font-weight:800}
+    .toolbar .count{color:var(--muted);font-weight:800}
+    .search{
+      margin-left:auto;display:flex;align-items:center;gap:10px;background:var(--glass-2);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:999px;padding:10px 14px;backdrop-filter: blur(8px);box-shadow:var(--shadow);max-width:560px;width:100%
+    }
     .search input{border:none;outline:none;background:transparent;color:var(--text);font:inherit;width:100%}
+    .search svg{opacity:.7}
+
+    /* ====== Categories ====== */
     .grid-cats{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
-    @media(min-width:640px){.grid-cats{grid-template-columns:repeat(2,1fr)}}@media(min-width:980px){.grid-cats{grid-template-columns:repeat(3,1fr)}}
-    .cat{position:relative;border-radius:16px;border:1px solid rgba(255,255,255,.16);background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));padding:14px 14px 16px;box-shadow:var(--shadow);min-height:110px;overflow:hidden}
-    .cat::after{content:"";position:absolute;right:-30px;bottom:-30px;width:140px;height:140px;border-radius:50%;background:radial-gradient(closest-side,rgba(52,211,153,.55),transparent);filter:blur(8px);opacity:.7;pointer-events:none}
-    .cat h3{margin:0 0 6px;font-weight:800}.cat p{margin:0;color:var(--muted);font-size:14px}.stretched{position:absolute;inset:0}
-    .skeleton{animation:shimmer 1.2s linear infinite;background:linear-gradient(90deg,rgba(255,255,255,.08),rgba(255,255,255,.18),rgba(255,255,255,.08));background-size:200% 100%;border-radius:14px;height:110px;border:1px solid rgba(255,255,255,.1)}
+    @media(min-width:640px){.grid-cats{grid-template-columns:repeat(2,1fr)}}
+    @media(min-width:980px){.grid-cats{grid-template-columns:repeat(3,1fr)}}
+
+    .cat{
+      position:relative;border-radius:16px;border:1px solid rgba(255,255,255,.16);
+      background:linear-gradient(180deg,rgba(255,255,255,.08),rgba(255,255,255,.05));
+      padding:14px 14px 16px;box-shadow:var(--shadow);min-height:110px;overflow:hidden
+    }
+    .cat::after{
+      content:"";position:absolute;right:-30px;bottom:-30px;width:140px;height:140px;border-radius:50%;
+      background: radial-gradient(closest-side, rgba(52,211,153,.55), transparent);
+      filter: blur(8px);opacity:.7;pointer-events:none
+    }
+    .cat h3{margin:0 0 6px;font-weight:800}
+    .cat p{margin:0;color:var(--muted);font-size:14px}
+    .stretched{position:absolute;inset:0}
+
+    /* ====== Skeleton ====== */
+    .skeleton{animation:shimmer 1.2s linear infinite;background:
+      linear-gradient(90deg, rgba(255,255,255,.08), rgba(255,255,255,.18), rgba(255,255,255,.08));
+      background-size: 200% 100%; border-radius:14px;height:110px;border:1px solid rgba(255,255,255,.1)
+    }
     @keyframes shimmer{0%{background-position:-120% 0}100%{background-position:120% 0}}
+
     footer{margin-top:32px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* ====== Splash Screen ====== */
+    #splash{
+      position:fixed; inset:0; z-index:9999;
+      display:flex; align-items:center; justify-content:center; flex-direction:column;
+      background:
+        radial-gradient(1200px 700px at 20% -10%, var(--grad-a), transparent),
+        radial-gradient(1200px 700px at 80% -10%, var(--grad-b), transparent),
+        linear-gradient(180deg, var(--bg), var(--bg-2));
+      transition: opacity .35s ease; opacity:1;
+    }
+    #splash.hide{opacity:0; pointer-events:none}
+    .splash-card{
+      display:flex;flex-direction:column;align-items:center;gap:14px;
+      padding:22px 20px;border-radius:16px;background:var(--glass-2);box-shadow:var(--shadow);
+      border:1px solid rgba(0,0,0,.05); min-width:240px;
+    }
+    .splash-logo{height:44px;width:44px;border-radius:14px;display:grid;place-items:center;
+      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
+    .splash-title{margin:0;font-weight:900}
+    .splash-msg{margin:0;color:var(--muted);font-weight:700}
+    .spinner{
+      width:30px;height:30px;border-radius:50%;
+      border:3px solid rgba(15,131,70,.18); border-top-color: var(--brand);
+      animation:spin 1s linear infinite;
+    }
   </style>
 </head>
 <body>
+  <!-- Splash overlay -->
+  <div id="splash" aria-live="polite" aria-busy="true">
+    <div class="splash-card">
+      <div class="splash-logo">PSC</div>
+      <h3 class="splash-title">PSC Guru</h3>
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="splashMsg" class="splash-msg">Loading categories…</p>
+    </div>
+  </div>
+
   <div class="wrap">
+
+    <!-- Top Bar -->
+    <div class="bar">
+      <div class="brand">
+        <div class="logo">PSC</div>
+        <div>
+          <h1>PSC Guru</h1>
+          <small>Kerala PSC Exam Prep</small>
+        </div>
+      </div>
+      <nav class="links">
+        <a class="pill" href="quiz.html">Quiz</a>
+        <a class="pill" href="resources.html">Study</a>
+        <a class="pill" href="notices.html">Notices</a>
+      </nav>
+    </div>
+
+    <!-- Hero -->
     <section class="hero">
       <div class="blob" aria-hidden="true"></div>
       <h2>Quick Quiz</h2>
       <p>Start fast: Random Quiz or face the bot in “AI vs You”.</p>
+
       <div class="cards">
+        <!-- Random Quiz -->
         <article class="card">
           <h3>🎲 Random Quiz</h3>
           <p>Start instantly with mixed questions (random category).</p>
           <div class="chipbar" id="chips">
-            <button class="chip active" data-n="5">5</button><button class="chip" data-n="10">10</button>
-            <button class="chip" data-n="20">20</button><button class="chip" data-n="30">30</button><button class="chip" data-n="N">N</button>
+            <button class="chip active" data-n="5">5</button>
+            <button class="chip" data-n="10">10</button>
+            <button class="chip" data-n="20">20</button>
+            <button class="chip" data-n="30">30</button>
+            <button class="chip" data-n="N">N</button>
           </div>
-          <div class="row"><span style="color:var(--muted);font-weight:700">How many questions?</span>
-            <button class="btn btn-sm" id="startRandom"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 5l7 7-7 7" stroke="#032015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>Start</button>
+          <div class="row">
+            <span style="color:var(--muted);font-weight:700">How many questions?</span>
+            <button class="btn btn-sm" id="startRandom">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M5 12h14M13 5l7 7-7 7" stroke="#032015" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Start
+            </button>
           </div>
         </article>
+
+        <!-- AI vs You -->
         <article class="card" id="aiCard">
-          <h3>🤖 AI vs You</h3><p>Timed MCQ — the computer guesses vs your answers.</p>
-          <div class="row"><button class="btn btn-sm btn--ghost" id="aiInfo">Info</button><a class="btn btn-sm" href="#gridTop" id="aiPlay"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" stroke="#032015" stroke-width="2" stroke-linejoin="round"/></svg>Play</a></div>
+          <h3>🤖 AI vs You</h3>
+          <p>Timed MCQ — the computer guesses vs your answers.</p>
+          <div class="row">
+            <button class="btn btn-sm btn--ghost" id="aiInfo">Info</button>
+            <button class="btn btn-sm" id="aiPlay">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M8 5v14l11-7L8 5Z" stroke="#032015" stroke-width="2" stroke-linejoin="round"/></svg>
+              Play
+            </button>
+          </div>
         </article>
-        <article class="card"><h3>📚 Study Material</h3><p>Downloadable PDFs & docs curated in Google Sheets.</p><div class="row"><span></span><a class="btn btn-sm btn--ghost" href="resources.html">Open</a></div></article>
-        <article class="card"><h3>🔔 Exam Notifications</h3><p>Latest notifications for Kerala PSC exams.</p><div class="row"><span></span><a class="btn btn-sm btn--ghost" href="notices.html">Open</a></div></article>
+
+        <!-- Study -->
+        <article class="card">
+          <h3>📚 Study Material</h3>
+          <p>Downloadable PDFs & docs curated in Google Sheets.</p>
+          <div class="row"><span></span><a class="btn btn-sm btn--ghost" href="resources.html">Open</a></div>
+        </article>
+
+        <!-- Notices -->
+        <article class="card">
+          <h3>🔔 Exam Notifications</h3>
+          <p>Latest notifications for Kerala PSC exams.</p>
+          <div class="row"><span></span><a class="btn btn-sm btn--ghost" href="notices.html">Open</a></div>
+        </article>
       </div>
     </section>
+
+    <!-- Categories Toolbar -->
     <div class="toolbar" id="gridTop">
       <h3 class="title">Quiz Categories <span class="count" id="catCount">(0)</span></h3>
-      <label class="search" title="Search category"><svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-3.5-3.5M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><input id="q" type="search" placeholder="Search category…"/></label>
+      <label class="search" title="Search category">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-3.5-3.5M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search category…" />
+      </label>
     </div>
+
+    <!-- Categories Grid -->
     <section class="grid-cats" id="cats" aria-live="polite" aria-busy="true">
-      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      <!-- Skeletons while loading -->
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
+      <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
     </section>
+
     <footer>© 2025 PSC Guru • Tea Green UI</footer>
   </div>
+
   <script>
-    const GS_SHEET_ID="16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",GS_PUB_EKEY="2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A",CATEGORIES_TAB="Categories";
-    let selectedN=5;document.querySelectorAll('#chips .chip').forEach(ch=>{ch.addEventListener('click',()=>{document.querySelectorAll('#chips .chip').forEach(c=>c.classList.remove('active'));ch.classList.add('active');selectedN=ch.dataset.n;});});
-    document.getElementById('startRandom').addEventListener('click',()=>{location.href=`quiz.html?mode=random&n=${encodeURIComponent(selectedN)}`;});
-    document.getElementById('aiInfo')?.addEventListener('click',()=>{alert("AI vs You: open any category card below, or add ?timer=300 to quiz URL for a 5-minute timer.");});
-    function stripGVizJSON(t){const s=t.indexOf('{'),e=t.lastIndexOf('}');return JSON.parse(t.slice(s,e+1))}
-    async function gviz(tab){const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`,r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("GViz fetch failed");const w=await r.text(),j=stripGVizJSON(w);return{cols:j.table.cols.map(c=>(c.label||"").trim()),rows:j.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):""))}}
-    async function pubCsv(tab){const u=`https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`,r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("CSV fetch failed");return await r.text()}
-    function mapRowsToItems(hd,rows){const h=hd.map(x=>(x||"").toLowerCase()),ni=h.findIndex(t=>/name/.test(t)),ti=h.findIndex(t=>/(get|sheet|tab)/.test(t)),di=h.findIndex(t=>/(desc|description)/.test(t));return rows.map(r=>({name:(r[ni]||r[ti]||"").trim(),sheet:(r[ti]||r[ni]||"").trim(),desc:(r[di]||"").trim()})).filter(x=>x.sheet&&x.name)}
-    function parseCSV(t){const lines=t.split(/\r?\n/).filter(Boolean),head=lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim()),rows=lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));return mapRowsToItems(head,rows)}
-    async function loadCategories(){const cont=document.getElementById('cats'),count=document.getElementById('catCount');let items=[];try{if(GS_PUB_EKEY){const txt=await pubCsv(CATEGORIES_TAB);items=parseCSV(txt)}}catch(e){console.warn("E-key CSV failed:",e.message)}if(!items.length){try{const {cols,rows}=await gviz(CATEGORIES_TAB);items=mapRowsToItems(cols,rows)}catch(e){console.warn("GViz failed:",e.message)}}if(!items.length){cont.setAttribute('aria-busy','false');count.textContent="(0)";cont.innerHTML=`<article class="cat" role="alert"><h3>Couldn’t load categories</h3><p>Make sure the sheet is <b>Published to the web</b> (entire document) and the tab is named <b>${CATEGORIES_TAB}</b>. Also verify sharing is “Anyone with link: Viewer”.</p></article>`;return}cont.setAttribute('aria-busy','false');cont.innerHTML=items.map(x=>`<article class="cat"><a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a><h3>${x.name}</h3><p>${x.desc||"From Google Sheets"}</p></article>`).join("");count.textContent=`(${items.length})`;document.getElementById('q').addEventListener('input',e=>{const q=e.target.value.toLowerCase();[...document.querySelectorAll('.cat')].forEach(card=>{const t=card.querySelector('h3').textContent.toLowerCase();card.style.display=t.includes(q)?"":"none"})})}
+    /* ================== CONFIG ================== */
+    const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+    const CATEGORIES_TAB = "Categories";
+
+    /* ================== Splash helpers ================== */
+    const splash = document.getElementById('splash');
+    const splashMsg = document.getElementById('splashMsg');
+    let splashSlowTimer;
+
+    function showSplash(msg="Loading categories…") {
+      splashMsg.textContent = msg;
+      splash.classList.remove('hide');
+      // hint if slow network
+      clearTimeout(splashSlowTimer);
+      splashSlowTimer = setTimeout(()=>{
+        if(!splash.classList.contains('hide')){
+          splashMsg.textContent = "Still loading… this may take a few seconds on a slow connection.";
+        }
+      }, 5500);
+    }
+    function hideSplash() {
+      clearTimeout(splashSlowTimer);
+      splash.classList.add('hide');
+    }
+
+    /* ============== UI interactions ============== */
+    let selectedN = 5;
+    document.querySelectorAll('#chips .chip').forEach(ch=>{
+      ch.addEventListener('click', ()=>{
+        document.querySelectorAll('#chips .chip').forEach(c=>c.classList.remove('active'));
+        ch.classList.add('active'); selectedN = ch.dataset.n;
+      });
+    });
+
+    document.getElementById('startRandom').addEventListener('click', ()=>{
+      location.href = `quiz.html?mode=random&n=${encodeURIComponent(selectedN)}`;
+    });
+
+    document.getElementById('aiInfo').addEventListener('click', ()=>{
+      alert("AI vs You: open any category below and add ?timer=300 to the URL for a 5-minute timer.");
+    });
+
+    document.getElementById('aiPlay').addEventListener('click', ()=>{
+      document.getElementById('gridTop').scrollIntoView({behavior:"smooth", block:"start"});
+      document.getElementById('aiCard').animate(
+        [{transform:"scale(1)"},{transform:"scale(1.02)"},{transform:"scale(1)"}],
+        {duration:500}
+      );
+    });
+
+    /* ============== Sheets loaders ============== */
+    function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+
+    async function gviz(tab){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
+      const raw = await res.text(); const json = stripGVizJSON(raw);
+      const cols = json.table.cols.map(c => (c.label||"").trim());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+      return {cols, rows};
+    }
+    async function pubCsv(tab){
+      if(!GS_PUB_EKEY) throw new Error("No E-key set");
+      const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+      const res = await fetch(url, {cache:"no-store"}); if(!res.ok) throw new Error("CSV fetch failed");
+      return await res.text();
+    }
+    function mapRowsToItems(headers, rows){
+      const h = headers.map(x => (x||"").toLowerCase());
+      const idxName = h.findIndex(t => /name/.test(t));
+      const idxTab  = h.findIndex(t => /(get|sheet|tab)/.test(t));
+      const idxDesc = h.findIndex(t => /(desc|description)/.test(t));
+      return rows.map(r => ({
+        name:  (r[idxName] || r[idxTab] || "").trim(),
+        sheet: (r[idxTab]  || r[idxName] || "").trim(),
+        desc:  (r[idxDesc] || "").trim()
+      })).filter(x => x.sheet && x.name);
+    }
+    function parseCSV(text){
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const head  = lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim());
+      const rows  = lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
+      return mapRowsToItems(head, rows);
+    }
+
+    async function loadCategories(){
+      showSplash("Loading categories…");
+
+      const cont  = document.getElementById('cats');
+      const count = document.getElementById('catCount');
+
+      let items = [];
+      try{
+        if(GS_PUB_EKEY){
+          const txt = await pubCsv(CATEGORIES_TAB);
+          items = parseCSV(txt);
+        }
+      }catch(e){ console.warn("E-key CSV failed:", e.message); }
+
+      if(!items.length){
+        try{
+          const {cols, rows} = await gviz(CATEGORIES_TAB);
+          items = mapRowsToItems(cols, rows);
+        }catch(e){ console.warn("GViz failed:", e.message); }
+      }
+
+      if(!items.length){
+        cont.setAttribute('aria-busy','false');
+        count.textContent = "(0)";
+        cont.innerHTML = `
+          <article class="cat" role="alert">
+            <h3>Couldn’t load categories</h3>
+            <p>Make sure the sheet is <b>Published to the web</b> (entire document) and the tab is named <b>${CATEGORIES_TAB}</b>.
+            Also verify sharing is “Anyone with link: Viewer”.</p>
+          </article>`;
+        hideSplash();   // hide even if failed
+        return;
+      }
+
+      cont.setAttribute('aria-busy','false');
+      cont.innerHTML = items.map(x => `
+        <article class="cat">
+          <a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a>
+          <h3>${x.name}</h3>
+          <p>${x.desc || "From Google Sheets"}</p>
+        </article>
+      `).join("");
+      count.textContent = `(${items.length})`;
+
+      // Search/filter
+      document.getElementById('q').addEventListener('input', (e)=>{
+        const q = e.target.value.toLowerCase();
+        [...document.querySelectorAll('.cat')].forEach(card=>{
+          const t = card.querySelector('h3').textContent.toLowerCase();
+          card.style.display = t.includes(q) ? "" : "none";
+        });
+      });
+
+      hideSplash();
+    }
+
     loadCategories();
   </script>
 </body>
