@@ -3,161 +3,59 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Resources • PSC Guru</title>
+<title>PSC Guru • Resources</title>
 <style>
-  :root{
-    --bg:#f3f9f2; --card:#ffffff; --ink:#0e3b2e; --muted:#53706a;
-    --accent:#0fa66d; --accent-weak:#c8efe2; --line:#e6eee9;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%}
-  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--ink)}
-  a{color:var(--ink);text-decoration:none}
+  :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--line:#e6eee9}
+  *{box-sizing:border-box} html,body{margin:0}
+  body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
   .wrap{max-width:1100px;margin:0 auto;padding:24px}
-  .row{display:flex;align-items:center;gap:10px}
-  .pill{background:#fff;border:1px solid var(--line);border-radius:100px;padding:6px 12px;font-size:14px}
-  h2{margin:18px 0 10px;font-size:28px}
-  .tabs{display:flex;gap:8px;margin:10px 0 14px}
-  .tab{padding:8px 12px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
-  .tab.active{background:var(--accent);border-color:var(--accent);color:#fff}
-  .search{width:100%;height:36px;border:1px solid var(--line);background:#fff;border-radius:10px;padding:0 12px}
-  .grid{display:grid;grid-template-columns:1fr;gap:12px}
-  @media(min-width:760px){ .grid{grid-template-columns:1fr 1fr} }
-  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
-  .title{font-weight:700}
-  .muted{color:var(--muted)}
-  .tag{background:var(--accent-weak);border-radius:999px;padding:3px 8px;font-size:12px}
-  .btn{background:#fff;border:1px solid var(--line);border-radius:10px;height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  .alert{background:#fff9e8;border:1px solid #f6e2b0;color:#5f4a00;padding:10px 12px;border-radius:10px}
+  .pill{background:#fff;border:1px solid var(--line);border-radius:999px;padding:6px 12px;text-decoration:none;color:var(--ink)}
+  h1{margin:10px 0 16px}
+  .cards{display:grid;grid-template-columns:1fr;gap:12px}
+  @media(min-width:780px){.cards{grid-template-columns:1fr 1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px;text-decoration:none;color:var(--ink)}
+  .muted{color:#58736c;font-size:12px}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="row" style="justify-content:space-between">
-      <div class="row" style="gap:10px">
-        <a class="pill" href="index.html">Home</a>
-        <a class="pill" href="quiz.html">Quiz</a>
-      </div>
-      <span class="pill" id="countTag">0</span>
-    </div>
-
-    <h2 id="pageTitle">Resources</h2>
-
-    <div class="tabs">
-      <a id="tabStudy"   class="tab" href="?tab=study">Study Material</a>
-      <a id="tabNotices" class="tab" href="?tab=notices">Exam Notifications</a>
-    </div>
-
-    <input id="search" class="search" placeholder="Search..."/>
-    <div style="height:12px"></div>
-
-    <div id="list" class="grid"></div>
-    <div id="warn" style="margin-top:12px"></div>
+<div class="wrap">
+  <div style="display:flex;gap:10px">
+    <a class="pill" href="index.html">Home</a>
+    <a class="pill" href="quiz.html">Quiz</a>
   </div>
+  <h1 id="title">Resources</h1>
+  <div id="warn"></div>
+  <div id="host" class="cards"></div>
+</div>
 
 <script>
-/* ===== CONFIG ===== */
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // your sheet
-const TAB_STUDY   = "Study Material";
-const TAB_NOTICES = "Exam Notifications";
+const SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+const TAB = new URLSearchParams(location.search).get('tab') === 'notices' ? 'Exam Notifications' : 'Study Material';
 
-/* ===== helpers & loader ===== */
-const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g,' ').trim().toLowerCase();
-const slug = s => norm(s).replace(/[^\p{L}\p{N}]+/gu,'');
-async function fetchText(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(r.statusText); return r.text();}
-function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();while(R.length&&R[R.length-1].every(c=>norm(c)===''))R.pop();return R;}
-async function discoverPublishedEid(sheetId){const h=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);const m=h.match(/https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/pubhtml/);return m?m[1]:null;}
-async function fetchCSVByGidRobust(sheetId,gid){
-  try{const u=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}catch{}
-  try{const eid=await discoverPublishedEid(sheetId);if(eid){const u=`https://docs.google.com/spreadsheets/d/e/${eid}/pub?gid=${gid}&single=true&output=csv`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}}catch{}
-  const u=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;const t=await fetchText(u);return parseCSV(t);
-}
-async function getGidByName(sheetId,name){
-  if(!name) return null;
-  const want=slug(name);
-  const html=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
-  const re=/#gid=(\d+)">([\s\S]*?)<\/a>/gi; let m;
-  while((m=re.exec(html))){
-    const gid=m[1]; const label=m[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
-    if(slug(label)===want) return gid;
-  }
-  return null;
-}
+async function fetchText(u){const r=await fetch(u,{cache:'no-store'});if(!r.ok) throw new Error(r.statusText);return r.text();}
+function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();return R;}
+async function csvBySheet(sheet){const u=`https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`;return parseCSV(await fetchText(u));}
 
-/* ===== items mapping ===== */
-function rowsToResources(rows){
-  if(!rows || rows.length<2) return [];
-  const H = rows[0].map(h=>norm(h));
-  const ixTitle = H.findIndex(h => ['title','name','document','material','heading'].some(k=>h.includes(k)));
-  const ixLink  = H.findIndex(h => ['link','url','href','file'].some(k=>h.includes(k)));
-  const ixDesc  = H.findIndex(h => ['desc','description','about','note'].some(k=>h.includes(k)));
-  const ixDate  = H.findIndex(h => ['date','updated','published','time'].some(k=>h.includes(k)));
-  const out=[];
-  for(let r=1;r<rows.length;r++){
-    const row = rows[r].map(v=>v??'');
-    const title = ixTitle>=0 ? row[ixTitle] : row[0];
-    const link  = ixLink>=0  ? row[ixLink]  : '';
-    const desc  = ixDesc>=0  ? row[ixDesc]  : '';
-    const date  = ixDate>=0  ? row[ixDate]  : '';
-    if(norm(title)!==''){
-      out.push({title, link, desc, date});
-    }
-  }
-  return out;
-}
+const host=document.getElementById('host'), warn=document.getElementById('warn');
+document.getElementById('title').textContent = TAB;
 
-/* ===== UI ===== */
-const list = document.getElementById('list');
-const warn = document.getElementById('warn');
-const countTag = document.getElementById('countTag');
-const pageTitle = document.getElementById('pageTitle');
-const tabStudy = document.getElementById('tabStudy');
-const tabNotices = document.getElementById('tabNotices');
-const q = new URL(location.href).searchParams.get('tab') || 'study';
-if(q==='notices'){ tabNotices.classList.add('active'); pageTitle.textContent='Exam Notifications'; }
-else { tabStudy.classList.add('active'); pageTitle.textContent='Study Material'; }
-
-async function load(){
-  warn.innerHTML='';
-  list.innerHTML='';
+(async()=>{
   try{
-    const tabName = q==='notices' ? TAB_NOTICES : TAB_STUDY;
-    const gid = await getGidByName(GS_SHEET_ID, tabName);
-    if(!gid) throw new Error('Tab not published / not found: '+tabName);
-    const rows = await fetchCSVByGidRobust(GS_SHEET_ID, gid);
-    const items = rowsToResources(rows);
-    render(items);
+    const rows = await csvBySheet(TAB);
+    const H = rows[0].map(h=>h.toLowerCase());
+    const ixT = H.indexOf('title'), ixU = H.indexOf('url'), ixN = H.indexOf('notes');
+    rows.slice(1).forEach(r=>{
+      const t=r[ixT]||r[0], u=r[ixU], n=r[ixN]||'';
+      if(!t || !u) return;
+      const a=document.createElement('a');
+      a.className='card'; a.href=u; a.target='_blank' rel='noopener';
+      a.innerHTML=`<div style="font-weight:700">${t}</div><div class="muted">${n}</div>`;
+      host.appendChild(a);
+    });
   }catch(e){
-    warn.innerHTML = `<div class="alert">Failed to load. Ensure the sheet is Published and a tab named <b>${q==='notices'?TAB_NOTICES:TAB_STUDY}</b> exists with columns like <b>Title</b> and <b>Link</b>.</div>`;
+    warn.textContent = 'Failed to load resources: '+e.message;
   }
-}
-
-function render(items){
-  countTag.textContent = items.length;
-  list.innerHTML = items.map(it=>`
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <div>
-          <div class="title">${it.title || '(Untitled)'}</div>
-          ${it.date ? `<div class="muted" style="font-size:12px">${it.date}</div>`:''}
-        </div>
-        ${it.link ? `<a class="btn btn-primary" href="${it.link}" target="_blank" rel="noopener">Open</a>` : `<span class="tag">No link</span>`}
-      </div>
-      ${it.desc ? `<div style="height:8px"></div><div class="muted">${it.desc}</div>`:''}
-    </div>
-  `).join('');
-}
-
-document.getElementById('search').addEventListener('input', e=>{
-  const needle = (e.target.value||'').toLowerCase();
-  document.querySelectorAll('#list .card').forEach(card=>{
-    const txt = card.textContent.toLowerCase();
-    card.style.display = txt.includes(needle) ? '' : 'none';
-  });
-});
-
-load();
+})();
 </script>
 </body>
 </html>
