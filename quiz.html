@@ -8,26 +8,26 @@
 <style>
   :root{
     --bg:#eef7ef; --card:#ffffff; --ink:#113018; --muted:#5f7d67; --accent:#2f8f5b;
-    --ring: rgba(47,143,91,.28); --danger:#c95757; --good:#2f8f5b;
+    --ring: rgba(47,143,91,.28); --danger:#c95757; --good:#2f8f5b; --soft:#e9f5ee;
   }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);font:16px/1.45 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
-  header{background:linear-gradient(#ecf6ee,#e7f2ea);border-bottom:1px solid #dfefe6}
+  body{margin:0;background:var(--bg);font:clamp(15px,1.4vw,16px)/1.5 system-ui,Segoe UI,Roboto,Inter,Arial;color:var(--ink)}
+  header{background:linear-gradient(#ecf6ee,#e7f2ea);border-bottom:1px solid #dfefe6;position:sticky;top:0;z-index:10}
   .bar{max-width:980px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:12px}
   .brand{display:flex;gap:10px;align-items:center}
   .logo{width:36px;height:36px;border-radius:10px;background:#1f6d43;color:#fff;display:grid;place-items:center;font-weight:800}
   .title{line-height:1}
-  .title b{display:block}
+  .title b{display:block;font-size:clamp(15px,2.2vw,18px)}
   .title small{display:block;color:var(--muted);font-size:12px}
-  .nav{display:flex;gap:8px}
+  .nav{display:flex;gap:8px;align-items:center}
   .chip{padding:6px 12px;border-radius:999px;background:#fff;box-shadow:0 1px 0 #0001;color:var(--ink);text-decoration:none}
   .timer{font-weight:700;color:#0a5}
   main{max-width:980px;margin:18px auto;padding:0 16px}
-  h1{font-size:22px;margin:2px 0 10px}
+  h1{font-size:clamp(18px,2.6vw,22px);margin:2px 0 10px}
   .meta{display:flex;align-items:center;gap:16px;color:var(--muted);font-size:13px;margin-bottom:8px}
   .card{background:var(--card);border-radius:14px;box-shadow:0 8px 24px #00000008,0 1px 0 #00000008;padding:16px}
   .qidx{color:var(--muted);font-weight:600;font-size:13px}
-  .qtext{font-size:18px;margin:6px 0 14px}
+  .qtext{font-size:clamp(17px,2.6vw,18px);margin:6px 0 14px}
   .opts{display:grid;gap:10px}
   .opt{padding:12px;border:1px solid #e3efe7;border-radius:12px;background:#fbfdfc;cursor:pointer;transition:.15s}
   .opt:hover{border-color:#bfe5cc;box-shadow:0 0 0 3px var(--ring)}
@@ -36,13 +36,34 @@
   .opt.lock{pointer-events:none;opacity:.95}
   .answer{display:none;margin:12px 0 4px;color:#075}
   .notice{background:#fff5e8;color:#7b4b00;border:1px solid #ffd9a6;padding:10px;border-radius:10px;margin:10px 0}
-  .navrow{display:flex;gap:10px;justify-content:center;margin:10px auto 0}
-  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:8px 14px;font-weight:600;cursor:pointer}
-  .btn.secondary{background:#e9f5ee;color:#155634}
+  .navrow{position:sticky;bottom:8px;display:flex;gap:10px;justify-content:center;margin:10px auto 0;padding:8px;background:rgba(255,255,255,.7);backdrop-filter:saturate(150%) blur(8px);border-radius:999px;box-shadow:0 6px 24px #0001}
+  .btn{border:0;border-radius:999px;background:var(--accent);color:#fff;padding:10px 16px;font-weight:700;cursor:pointer;min-width:94px}
+  .btn.secondary{background:var(--soft);color:#155634}
+  .btn.ghost{background:#fff;color:#2b6a45;border:1px solid #dbeee4}
   .btn:focus{outline:2px solid var(--ring)}
   .summary{margin:14px 0}
-  .summary details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
+  .kpis{display:grid;grid-template-columns:repeat(5,1fr);gap:10px;margin:12px 0}
+  .kpi{background:#fff;border:1px solid #e3efe7;border-radius:12px;padding:12px;text-align:center}
+  .kpi b{display:block;font-size:clamp(18px,3vw,22px)}
+  .kpi small{color:var(--muted)}
+  .barwrap{height:10px;background:#e9f5ee;border-radius:999px;overflow:hidden}
+  .barfill{height:100%;background:linear-gradient(90deg,#2f8f5b,#4ac48c)}
+  .review details{border:1px solid #e3efe7;background:#fff;border-radius:12px;padding:10px;margin-top:8px}
+  .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;font-weight:700;margin-left:8px}
+  .ok{background:#e9f9f1;color:#0a6}
+  .bad{background:#ffebeb;color:#b33}
+  .skp{background:#eef3f1;color:#607d73}
+  .review-opts{list-style:none;padding:0;margin:8px 0 0;display:grid;gap:6px}
+  .review-opts li{padding:8px 10px;border-radius:10px;border:1px solid #e3efe7}
+  .review-opts li.correct{background:#ecf9f2;border-color:#2f8f5b}
+  .review-opts li.wrong{background:#ffefef;border-color:#c95757}
   .muted{color:var(--muted)}
+  .row-actions{display:flex;gap:8px;justify-content:center;margin-top:12px}
+  @media (max-width:680px){
+    .kpis{grid-template-columns:repeat(2,1fr)}
+    .btn{min-width:auto}
+    .navrow{gap:6px;padding:6px}
+  }
 </style>
 </head>
 <body>
@@ -75,7 +96,7 @@
 
   <div class="navrow" id="navrow" style="display:none">
     <button id="prevBtn" class="btn secondary">← Prev</button>
-    <button id="showBtn" class="btn secondary">Show Answer</button>
+    <button id="showBtn" class="btn ghost">Show Answer</button>
     <button id="nextBtn" class="btn">Next →</button>
   </div>
 
@@ -145,46 +166,36 @@ function parseMCQ(headers, rows){
     const q = get("question") || get("q") || r[0] || "";
     if(!q) return null;
 
-    // collect options (A,B,C,D order as found)
     const options = optCols.map(h => (get(h)||"").toString().trim()).filter(Boolean);
-
-    // read "correct" raw
     let rawCorrect = firstNonEmpty(Object.fromEntries(correctCols.map(c=>[c, get(c)])), correctCols).toString().trim();
 
-    // find correct index or text robustly
     let correctIndex = -1;
     let correctText = "";
 
-    // If raw is a letter A-D
     const letter = rawCorrect.match(/^[abcd]$/i);
     if(letter){ correctIndex = "abcd".indexOf(letter[0].toLowerCase()); }
 
-    // Or if raw is 1-4
     const num = rawCorrect.match(/^[1-4]$/);
     if(num){ correctIndex = parseInt(num[0],10)-1; }
 
-    // If still not found, try exact text match
     if(correctIndex<0 && options.length){
       const idx = options.findIndex(o => o.trim() === rawCorrect.trim());
       if(idx>=0) correctIndex = idx;
     }
 
-    // Fallback: if an "answer" cell contains the full text and matches options
     if(correctIndex<0 && options.length){
       const ansText = (get("answer") || "").toString().trim();
       const idx = options.findIndex(o => o.trim() === ansText);
       if(idx>=0){ correctIndex = idx; rawCorrect = ansText; }
     }
 
-    // Last fallback: if nothing matched, assume first option is correct (prevents null)
     if(correctIndex<0) correctIndex = 0;
 
     correctText = options.length ? options[correctIndex] : (rawCorrect || "");
 
-    // If no explicit options, fall back to pure Q/A style
     if(options.length===0){
       const ans = (get("answer") || rawCorrect || "").toString().trim();
-      return { q, options:[ans], correct:ans };
+      return { q, options:[ans], correct:ans, correctIndex:0 };
     }
 
     return { q, options, correct: correctText, correctIndex };
@@ -215,8 +226,10 @@ const timerSec = parseInt(url.searchParams.get("timer")||"",10) || null;
 let questions = [];
 let order = [];
 let idx = 0;
-let picked = new Map();
-let optCache = new Map();
+let picked = new Map();     // qIndex -> { picked, isCorrect }
+let optCache = new Map();   // qIndex -> shuffled [{txt,isCorrect}]
+let qTimes = {};            // qIndex -> ms
+let lastShown = null;       // track time between questions
 let startedAt = null, tickHandle=null;
 
 /* ====== timer ====== */
@@ -262,11 +275,26 @@ async function init(){
   showQuestion(0);
 
   startedAt = Date.now();
+  lastShown = { idx: order[0], t: startedAt };
   if(timerSec){ tickHandle = setInterval(renderTimer, 300); renderTimer(); }
 }
 
 /* ====== rendering ====== */
+function stopTiming(){
+  if(!lastShown) return;
+  const now = Date.now();
+  const qIndex = lastShown.idx;
+  qTimes[qIndex] = (qTimes[qIndex]||0) + (now - lastShown.t);
+  lastShown = null;
+}
+function startTiming(newQIndex){
+  lastShown = { idx:newQIndex, t: Date.now() };
+}
+
 function showQuestion(i){
+  // close timing for previous question
+  stopTiming();
+
   idx = Math.max(0, Math.min(order.length-1, i));
   const qIndex = order[idx];
   const q = questions[qIndex];
@@ -278,7 +306,6 @@ function showQuestion(i){
 
   let shuffled = optCache.get(qIndex);
   if(!shuffled){
-    // Tag options with correctness using index if present
     shuffled = (q.options && q.options.length ? [...q.options] : [q.correct]).map((txt,ii)=>({
       txt,
       isCorrect: (typeof q.correctIndex === "number")
@@ -294,7 +321,7 @@ function showQuestion(i){
     const div = document.createElement("div");
     div.className = "opt";
     div.textContent = o.txt;
-    div.dataset.correct = o.isCorrect ? "1" : "0";   // <-- reliable tag
+    div.dataset.correct = o.isCorrect ? "1" : "0";
     div.onclick = ()=>{
       if(picked.has(qIndex)) return;
       const res = {picked:o.txt, isCorrect:o.isCorrect};
@@ -312,7 +339,7 @@ function showQuestion(i){
     area.appendChild(div);
   });
 
-  // restore if already answered
+  // restore answered state
   const past = picked.get(qIndex);
   if(past){
     [...area.children].forEach(el=>{
@@ -324,6 +351,9 @@ function showQuestion(i){
 
   $("#answer").style.display = "none";
   $("#answer").textContent = "Answer: " + (q.correct || "");
+
+  // start timing this question
+  startTiming(qIndex);
 }
 
 /* ====== controls ====== */
@@ -343,47 +373,103 @@ $("#nextBtn").onclick = ()=>{
 };
 
 /* ====== summary ====== */
+function fmtMs(ms){
+  const s = Math.max(0, Math.round(ms/1000));
+  const mm = String(Math.floor(s/60)).padStart(2,'0');
+  const ss = String(s%60).padStart(2,'0');
+  return `${mm}:${ss}`;
+}
+
 function showSummary(){
   clearInterval(tickHandle);
+  // record time for the last shown question
+  stopTiming();
+
   $("#qwrap").style.display = "none";
   $("#navrow").style.display = "none";
 
   const total = order.length;
-  let correct = 0;
+  let correct = 0, wrong = 0, skipped = 0;
   order.forEach(i=>{
     const res = picked.get(i);
-    const q = questions[i];
-    if(!res) return;
-    const isOk = (typeof q.correctIndex==="number")
-      ? (q.options.findIndex(t => t===res.picked) === q.correctIndex)
-      : (res.picked.toString().trim() === (q.correct||"").toString().trim());
-    if(isOk) correct++;
+    if(!res){ skipped++; return; }
+    if(res.isCorrect) correct++; else wrong++;
   });
+
+  const accuracy = Math.round((correct/total)*100);
+  const spentMs = Object.values(qTimes).reduce((a,b)=>a+b,0);
+  const timerUsed = timerSec ? fmtMs((Date.now()-startedAt)) : fmtMs(spentMs);
+
+  // progress
+  const pct = (correct/total)*100;
 
   const s = $("#summary");
   s.style.display = "";
   s.innerHTML = `
     <div class="card">
       <h3>Summary</h3>
-      <div class="muted">Score: <strong>${correct}</strong> / ${total}</div>
-      ${timerSec ? `<div class="muted">Time: ${$("#hdrTimer").textContent}</div>` : ""}
-      <details open style="margin-top:10px">
-        <summary>Review answers</summary>
-        ${order.map((i,k)=>{
-          const q = questions[i];
-          const res = picked.get(i) || {picked:"—", isCorrect:false};
-          const ok = (typeof q.correctIndex==="number")
-            ? (q.options.findIndex(t => t===res.picked) === q.correctIndex)
-            : (res.picked.toString().trim() === (q.correct||"").toString().trim());
-          return `
-            <details>
-              <summary><strong>${k+1}.</strong> ${q.q}</summary>
-              <div class="muted">Your answer: <span style="color:${ok?'#0a5':'#b33'}">${res.picked}</span></div>
-              <div class="muted">Correct: ${typeof q.correctIndex==="number" ? q.options[q.correctIndex] : (q.correct||"")}</div>
-            </details>
-          `;
-        }).join("")}
-      </details>
+
+      <div class="kpis">
+        <div class="kpi"><b>${total}</b><small>Total</small></div>
+        <div class="kpi"><b>${correct}</b><small>Correct</small></div>
+        <div class="kpi"><b>${wrong}</b><small>Wrong</small></div>
+        <div class="kpi"><b>${skipped}</b><small>Skipped</small></div>
+        <div class="kpi"><b>${accuracy}%</b><small>Accuracy</small></div>
+      </div>
+
+      <div class="barwrap" title="Correct answers">
+        <div class="barfill" style="width:${pct}%;"></div>
+      </div>
+
+      <div class="muted" style="margin-top:8px">
+        Time: <b>${timerUsed}</b>
+        ${timerSec ? `<span class="muted"> (Timer mode)</span>` : ``}
+      </div>
+
+      <div class="row-actions">
+        <a class="btn secondary" href="${location.pathname + location.search}">↻ Retake</a>
+        <a class="btn ghost" href="quiz.html?random=1">Random Quiz</a>
+        <a class="btn" href="index.html">Home</a>
+      </div>
+
+      <div class="review" style="margin-top:16px">
+        <details open>
+          <summary>Review answers</summary>
+          ${order.map((i,k)=>{
+            const q = questions[i];
+            const res = picked.get(i);
+            const status = !res ? 'skipped' : res.isCorrect ? 'correct' : 'wrong';
+            const badge =
+              status==='correct' ? `<span class="badge ok">Correct</span>` :
+              status==='wrong'   ? `<span class="badge bad">Wrong</span>` :
+                                   `<span class="badge skp">Skipped</span>`;
+            const chosen = res?.picked ?? '—';
+            const timeTxt = qTimes[i] ? ` • <span class="muted">Time: ${fmtMs(qTimes[i])}</span>` : '';
+
+            const optsList = (q.options?.length>1)
+              ? `<ul class="review-opts">
+                  ${q.options.map((opt,ii)=>{
+                    const isRight = (typeof q.correctIndex==="number") ? (ii===q.correctIndex) : (opt===q.correct);
+                    const isChosenWrong = (!res?.isCorrect && res?.picked===opt);
+                    const cls = isRight ? 'correct' : isChosenWrong ? 'wrong' : '';
+                    return `<li class="${cls}">${opt}</li>`;
+                  }).join('')}
+                 </ul>`
+              : '';
+
+            return `
+              <details>
+                <summary><strong>${k+1}.</strong> ${q.q} ${badge}</summary>
+                <div class="muted" style="margin-top:6px">
+                  Your answer: <span style="color:${status==='wrong'?'#b33':status==='correct'?'#0a5':'#607d73'}">${chosen}</span>${timeTxt}
+                </div>
+                <div class="muted">Correct: <b>${typeof q.correctIndex==='number'? q.options[q.correctIndex] : (q.correct||'')}</b></div>
+                ${optsList}
+              </details>
+            `;
+          }).join("")}
+        </details>
+      </div>
     </div>
   `;
 }
