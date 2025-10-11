@@ -18,6 +18,7 @@
     --good:#14a44d; --bad:#e53935;
     --r: 18px;
     --shadow: 0 20px 40px rgba(30,70,50,.12);
+    --barTrack:#e9f7e8; --barFill:#79c07d;
   }
   *{box-sizing:border-box}
   body{margin:0;font:400 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
@@ -52,6 +53,23 @@
   .opt.correct{background:#e8f7ee;border-color:#9fe3c2;box-shadow:0 0 0 4px rgba(20,164,77,.12) inset}
   .opt.wrong{background:#fde8e7;border-color:#f5a3a0;box-shadow:0 0 0 4px rgba(229,57,53,.10) inset}
   .opt.disabled{pointer-events:none;opacity:.85}
+
+  /* progress row like screenshot */
+  .progressRow{
+    display:flex;align-items:center;gap:14px;margin:8px 0 18px;
+  }
+  .progressRow .left{white-space:nowrap;font-weight:700;color:var(--muted)}
+  .progBar{
+    flex:1;height:8px;border-radius:999px;background:var(--barTrack);
+    position:relative;overflow:hidden;
+  }
+  .progFill{
+    position:absolute;left:0;top:0;height:100%;width:0%;
+    background:var(--barFill);border-radius:999px;transition:width .25s ease;
+  }
+  .pager{display:flex;align-items:center;gap:10px}
+  .pageTag{background:#e6f4e5;border:1px solid #d5ebd3;color:#0b5f34;border-radius:12px;
+          padding:6px 12px;font-weight:800}
 
   /* bottom controls near card (sticky) */
   .controls{display:flex;gap:10px;align-items:center;justify-content:center;position:sticky;bottom:10px;margin-top:10px}
@@ -152,10 +170,20 @@ async function _catsFromGViz(){
       <div id="opts"></div>
     </div>
 
+    <!-- Progress row (like your screenshot) -->
+    <div class="progressRow">
+      <div class="left" id="progressLabel">Showing – / –</div>
+      <div class="progBar"><div id="progFill" class="progFill"></div></div>
+      <div class="pager">
+        <button id="prevBtnTop" class="btn btn-ghost">← Previous</button>
+        <span id="pageInfo" class="pageTag">Page 1 / 1</span>
+        <button id="nextBtnTop" class="btn">Next →</button>
+      </div>
+    </div>
+
+    <!-- Sticky control row (keep Show Answer near the card) -->
     <div class="controls">
-      <button id="prevBtn" class="btn btn-ghost btn-icon">← Prev</button>
       <button id="revealBtn" class="btn btn-ghost">Show Answer</button>
-      <button id="nextBtn" class="btn btn-icon">Next →</button>
     </div>
 
   </div>
@@ -173,7 +201,7 @@ function sample(arr, n){ if(!n || isNaN(n)) return arr.slice(); return shuffle(a
 /* ================== State ================== */
 const qs = new URLSearchParams(location.search);
 const mode = (qs.get("mode")||"").toLowerCase();
-const sheet = qs.get("sheet");          // resolved by the resolver for random
+const sheet = qs.get("sheet");          // resolved for random
 const N     = qs.get("n");              // how many
 let idx = 0, data = [], revealed = false;
 
@@ -211,6 +239,17 @@ async function fetchSheetTab(tab){
   return out;
 }
 
+/* ================== Render & Progress ================== */
+function updateProgress(){
+  if(!data.length) return;
+  const current = idx+1;
+  const total = data.length;
+  $("#progressLabel").textContent = `Showing ${current} / ${total}`;
+  $("#pageInfo").textContent = `Page ${current} / ${total}`;
+  const p = (current/total)*100;
+  $("#progFill").style.width = `${p}%`;
+}
+
 function render(){
   const q = data[idx];
   $("#qnum").textContent = `Question ${idx+1} / ${data.length}`;
@@ -218,7 +257,7 @@ function render(){
 
   const optsBox = $("#opts");
   optsBox.innerHTML = "";
-  const choices = q.opts.length ? q.opts.map(o=>o.txt) : [q.answer]; // fall back if only answer exists
+  const choices = q.opts.length ? q.opts.map(o=>o.txt) : [q.answer]; // fallback if only answer exists
   const shuffled = shuffle(choices.slice());
 
   shuffled.forEach(txt=>{
@@ -231,6 +270,7 @@ function render(){
 
   revealed = false;
   $("#revealBtn").textContent = "Show Answer";
+  updateProgress();
 }
 
 function check(el, answer){
@@ -248,6 +288,10 @@ function check(el, answer){
   revealed = true;
 }
 
+/* ================== Navigation ================== */
+function goPrev(){ if(idx>0){ idx--; render(); } }
+function goNext(){ if(idx < data.length-1){ idx++; render(); } }
+
 $("#revealBtn").addEventListener("click", ()=>{
   if(revealed) return;
   const ans = data[idx].answer;
@@ -258,12 +302,8 @@ $("#revealBtn").addEventListener("click", ()=>{
   revealed = true;
   $("#revealBtn").textContent = "Answer Shown";
 });
-$("#prevBtn").addEventListener("click", ()=>{
-  if(idx>0){ idx--; render(); }
-});
-$("#nextBtn").addEventListener("click", ()=>{
-  if(idx < data.length-1){ idx++; render(); }
-});
+$("#prevBtnTop").addEventListener("click", goPrev);
+$("#nextBtnTop").addEventListener("click", goNext);
 
 /* ================== Timer (optional) ================== */
 (function setupTimer(){
