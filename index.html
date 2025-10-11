@@ -7,110 +7,40 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-
   <style>
     :root{
-      --bg:#f2f8f2;
-      --card:#ffffff;
-      --muted:#6b7280;
-      --text:#0f2d1f;
-      --brand:#0f8346;
-      --brand-2:#157347;
-      --chip:#e8f6ee;
-      --chip-active:#0f8346;
-      --chip-text:#14532d;
-      --ring:rgba(15,131,70,.25);
-      --shadow:0 10px 25px rgba(0,0,0,.06);
-      --radius:16px;
+      --bg:#f2f8f2;--card:#fff;--muted:#6b7280;--text:#0f2d1f;
+      --brand:#0f8346;--ring:rgba(15,131,70,.25);--shadow:0 10px 25px rgba(0,0,0,.06);--r:16px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;
-      background:var(--bg);
-      color:var(--text);
-      font: 400 16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
-    }
+    *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:400 16px/1.5 Inter,system-ui}
     a{color:inherit;text-decoration:none}
     .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 56px}
-
-    header{
-      display:flex;align-items:center;gap:14px;
-      padding:12px 0 16px;
-    }
-    .logo{
-      height:34px;width:34px;border-radius:11px;
-      background:#0b5f2f;color:#fff;display:inline-grid;place-items:center;
-      font-weight:800;box-shadow:var(--shadow)
-    }
-    .hstack{display:flex;align-items:center;gap:10px;margin-left:auto}
-    .pill{
-      padding:6px 12px;border-radius:999px;background:#fff;
-      box-shadow:var(--shadow);font-weight:600
-    }
-
-    h1{font-size:28px;margin:18px 0 6px}
-    .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
-
-    .grid{
-      display:grid;grid-template-columns:1fr;gap:16px;
-    }
-    @media(min-width:860px){
-      .grid{grid-template-columns:1fr 1fr}
-    }
-
-    .card{
-      position:relative;background:var(--card);border-radius:var(--radius);
-      box-shadow:var(--shadow);padding:18px 16px 16px;
-    }
-    .card h3{margin:0 0 8px;font-size:18px}
-    .card p{margin:0;color:var(--muted);font-size:14px}
-
-    .btn{
-      display:inline-flex;align-items:center;gap:8px;
-      font-weight:700;padding:8px 14px;border-radius:10px;border:none;
-      background:var(--brand);color:#fff;cursor:pointer;transition:transform .02s ease-in;
-      box-shadow:0 6px 18px var(--ring);
-    }
-    .btn:active{transform:translateY(1px)}
-    .btn--ghost{
-      background:#fff;color:var(--brand);border:1px solid #d1e8db;
-    }
-
-    .chipbar{display:flex;align-items:center;gap:10px;margin:10px 0 10px}
-    .chip{
-      border:none;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;
-      background:var(--chip);color:var(--chip-text);
-    }
-    .chip.active{background:var(--chip-active);color:#fff}
-
+    header{display:flex;align-items:center;gap:14px;padding:12px 0 16px}
+    .logo{height:34px;width:34px;border-radius:11px;background:#0b5f2f;color:#fff;display:grid;place-items:center;font-weight:800;box-shadow:var(--shadow)}
+    .hstack{display:flex;gap:10px;margin-left:auto}
+    .pill{padding:6px 12px;border-radius:999px;background:#fff;box-shadow:var(--shadow);font-weight:600}
+    h1{font-size:28px;margin:18px 0 6px}.sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+    .grid{display:grid;grid-template-columns:1fr;gap:16px}@media(min-width:860px){.grid{grid-template-columns:1fr 1fr}}
+    .card{background:var(--card);border-radius:var(--r);box-shadow:var(--shadow);padding:18px 16px 16px}
+    .card h3{margin:0 0 8px;font-size:18px}.card p{margin:0;color:var(--muted);font-size:14px}
+    .btn{display:inline-flex;align-items:center;gap:8px;font-weight:700;padding:8px 14px;border-radius:10px;border:none;background:var(--brand);color:#fff;cursor:pointer;box-shadow:0 6px 18px var(--ring)}
+    .btn--ghost{background:#fff;color:var(--brand);border:1px solid #d1e8db}
+    .btn-sm{padding:6px 10px;font-size:14px;border-radius:999px}
+    .chipbar{display:flex;gap:10px;margin:10px 0 10px}
+    .chip{border:none;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;background:#e8f6ee;color:#14532d}
+    .chip.active{background:#0f8346;color:#fff}
     .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
     .muted{color:var(--muted)}
-
-    /* categories */
     .toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
-    .title{font-size:22px;margin:0}
-    .count{color:var(--muted);font-weight:700}
-    .search{
-      display:flex;align-items:center;gap:10px;background:#fff;border-radius:999px;
-      padding:10px 14px;box-shadow:var(--shadow);max-width:560px;width:100%;
-    }
+    .title{font-size:22px;margin:0}.count{color:var(--muted);font-weight:700}
+    .search{display:flex;align-items:center;gap:10px;background:#fff;border-radius:999px;padding:10px 14px;box-shadow:var(--shadow);max-width:560px;width:100%}
     .search input{border:none;outline:none;font:inherit;width:100%}
     .grid-cats{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
     @media(min-width:860px){.grid-cats{grid-template-columns:repeat(3,1fr)}}
-    .cat{
-      position:relative;background:#fff;border-radius:14px;padding:14px 14px 16px;
-      box-shadow:var(--shadow);overflow:hidden;min-height:108px
-    }
-    .cat h3{margin:0 0 6px}
-    .cat p{margin:0;color:var(--muted);font-size:14px}
+    .cat{position:relative;background:#fff;border-radius:14px;padding:14px 14px 16px;box-shadow:var(--shadow);min-height:108px}
+    .cat h3{margin:0 0 6px}.cat p{margin:0;color:var(--muted);font-size:14px}
     .stretched{position:absolute;inset:0}
-
     footer{margin-top:28px;color:var(--muted);font-size:13px;text-align:center}
-
-    /* badges within cards */
-    .btn-sm{padding:6px 10px;font-size:14px;border-radius:999px}
-    .flex{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   </style>
 </head>
 <body>
@@ -121,7 +51,6 @@
         <div style="font-weight:800">PSC Guru</div>
         <div class="muted" style="font-size:12px;margin-top:-2px">Kerala PSC Exam Prep</div>
       </div>
-
       <div class="hstack">
         <a class="pill" href="quiz.html">Quiz</a>
         <a class="pill" href="resources.html">Study</a>
@@ -133,11 +62,9 @@
     <p class="sub">Start instantly: random questions or play “AI vs You”.</p>
 
     <section class="grid">
-      <!-- Random Quiz -->
       <article class="card">
         <h3>Random Quiz</h3>
         <p>Start instantly with mixed questions (random category).</p>
-
         <div class="chipbar" id="chips">
           <button class="chip active" data-n="5">5</button>
           <button class="chip" data-n="10">10</button>
@@ -145,14 +72,12 @@
           <button class="chip" data-n="30">30</button>
           <button class="chip" data-n="N">N</button>
         </div>
-
         <div class="row">
           <span class="muted">How many questions?</span>
           <button class="btn btn-sm" id="startRandom">Start</button>
         </div>
       </article>
 
-      <!-- AI vs You -->
       <article class="card" id="aiCard">
         <h3>AI vs You</h3>
         <p>Timed MCQ — computer guesses vs your answers. Open any category below.</p>
@@ -162,24 +87,16 @@
         </div>
       </article>
 
-      <!-- Study Material -->
       <article class="card">
         <h3>Study Material</h3>
         <p>Downloadable PDFs & docs from Google Sheets</p>
-        <div class="row">
-          <span></span>
-          <a class="btn btn-sm btn--ghost" href="resources.html">Open</a>
-        </div>
+        <div class="row"><span></span><a class="btn btn-sm btn--ghost" href="resources.html">Open</a></div>
       </article>
 
-      <!-- Exam Notifications -->
       <article class="card">
         <h3>Exam Notifications</h3>
         <p>Latest notifications curated in Google Sheets</p>
-        <div class="row">
-          <span></span>
-          <a class="btn btn-sm btn--ghost" href="notices.html">Open</a>
-        </div>
+        <div class="row"><span></span><a class="btn btn-sm btn--ghost" href="notices.html">Open</a></div>
       </article>
     </section>
 
@@ -191,90 +108,64 @@
       </label>
     </div>
 
-    <section class="grid-cats" id="cats">
-      <!-- cards inserted here -->
-    </section>
+    <section class="grid-cats" id="cats"></section>
 
     <footer>© 2025 PSC Guru • Tea Green UI</footer>
   </div>
 
   <script>
     /* ================== CONFIG ================== */
+    // Your normal file-id (keep as-is, it’s fine if your doc is viewable by “Anyone with link”)
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-    const CATEGORIES_TAB = "Categories";
+
+    // Your Publish-to-web “E key” (strongly recommended for reliability):
+    // Paste the key part only (starts with 2PACX-…).
+    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+
+    const CATEGORIES_TAB = "Categories"; // tab name in your sheet
 
     /* ================ UI Handlers ================ */
-    // Chips
     let selectedN = 5;
     document.querySelectorAll('#chips .chip').forEach(ch => {
       ch.addEventListener('click', () => {
         document.querySelectorAll('#chips .chip').forEach(c => c.classList.remove('active'));
-        ch.classList.add('active');
-        selectedN = ch.dataset.n;
+        ch.classList.add('active'); selectedN = ch.dataset.n;
       });
     });
-
-    // Random start -> quiz.html
     document.getElementById('startRandom').addEventListener('click', () => {
-      const n = selectedN; // "N" or number
-      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}`;
+      location.href = `quiz.html?mode=random&n=${encodeURIComponent(selectedN)}`;
     });
-
-    // AI vs You info and play
     document.getElementById('aiInfo').addEventListener('click', () => {
-      alert("AI vs You is a timed MCQ mode. Pick any category below and it will run with a timer. Tip: you can also append ?timer=300 to the quiz URL for a 5-minute timer.");
+      alert("AI vs You is a timed MCQ mode. Choose any category below. Tip: add ?timer=300 to the quiz URL for a 5-minute timer.");
     });
     document.getElementById('aiPlay').addEventListener('click', () => {
-      // Scroll to category list so the user chooses a category.
       document.getElementById('gridTop').scrollIntoView({behavior:"smooth", block:"start"});
-      // brief hint
-      const card = document.getElementById('aiCard');
-      card.animate([{transform:"scale(1)"},{transform:"scale(1.02)"},{transform:"scale(1)"}],{duration:500});
+      document.getElementById('aiCard').animate([{transform:"scale(1)"},{transform:"scale(1.02)"},{transform:"scale(1)"}],{duration:500});
     });
 
-    /* ========== Helpers ========== */
-    const $ = (s,doc=document)=>doc.querySelector(s);
-    const $$= (s,doc=document)=>[...doc.querySelectorAll(s)];
-
-    function stripGVizJSON(txt){
-      // GViz wraps JSON in "/*O_o*/ google.visualization.Query.setResponse(...);"
-      const start = txt.indexOf('{');
-      const end   = txt.lastIndexOf('}');
-      return JSON.parse(txt.slice(start, end+1));
-    }
+    /* ================ Sheet loaders ================ */
+    function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error("GViz fetch failed");
-      const raw = await res.text();
-      const json = stripGVizJSON(raw);
-      const header = json.table.cols.map(c => (c.label || "").trim());
-      const rows = json.table.rows.map(r => (r.c || []).map(c=> (c && c.v)!=null ? String(c.v) : ""));
-      return { cols: header, rows };
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
+      const raw = await res.text(); const json = stripGVizJSON(raw);
+      const cols = json.table.cols.map(c => (c.label||"").trim());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+      return {cols, rows};
+    }
+    // “Publish to web” CSV endpoint using E-key (best reliability)
+    async function pubCsv(tab){
+      if(!GS_PUB_EKEY) throw new Error("No E-key set");
+      const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+      const res = await fetch(url, {cache:"no-store"}); if(!res.ok) throw new Error("CSV fetch failed");
+      const text = await res.text(); return text;
     }
 
-    /* ======= Category Loader with robust fallback ======= */
-    async function loadCategories(){
-      let list = [];
-      try{
-        list = await loadViaGViz(CATEGORIES_TAB);
-        if(!list.length){
-          list = await loadViaCSV(CATEGORIES_TAB);
-        }
-      }catch(e){
-        try{ list = await loadViaCSV(CATEGORIES_TAB); }catch(_){}
-      }
-      renderCategories(list);
-    }
-
-    async function loadViaGViz(tab){
-      const { cols, rows } = await gviz(tab);
-      const header = cols.map(c => (c||"").toLowerCase());
-
-      const idxName = header.findIndex(h => /name/.test(h));
-      const idxTab  = header.findIndex(h => /(get|sheet|tab)/.test(h));
-      const idxDesc = header.findIndex(h => /(desc|description)/.test(h));
-
+    function mapRowsToItems(headers, rows){
+      const h = headers.map(x => (x||"").toLowerCase());
+      const idxName = h.findIndex(t => /name/.test(t));
+      const idxTab  = h.findIndex(t => /(get|sheet|tab)/.test(t));
+      const idxDesc = h.findIndex(t => /(desc|description)/.test(t));
       return rows.map(r => ({
         name:  (r[idxName] || r[idxTab] || "").trim(),
         sheet: (r[idxTab]  || r[idxName] || "").trim(),
@@ -282,65 +173,62 @@
       })).filter(x => x.sheet && x.name);
     }
 
-    async function loadViaCSV(tab){
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
-      const res = await fetch(url,{cache:"no-store"});
-      if(!res.ok) throw new Error("CSV fetch failed");
-      const text = await res.text();
-
+    function parseCSV(text){
       const lines = text.split(/\r?\n/).filter(Boolean);
-      if(!lines.length) return [];
-
-      const headers = lines.shift().split(",").map(h=>h.trim().toLowerCase());
-      const idxName = headers.findIndex(h => /name/.test(h));
-      const idxTab  = headers.findIndex(h => /(get|sheet|tab)/.test(h));
-      const idxDesc = headers.findIndex(h => /(desc|description)/.test(h));
-
-      const parseCSVLine = (line)=>
-        line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,""));
-
-      const rows = lines.map(parseCSVLine);
-
-      return rows.map(c => ({
-        name:  (c[idxName] || c[idxTab] || "").trim(),
-        sheet: (c[idxTab]  || c[idxName] || "").trim(),
-        desc:  (c[idxDesc] || "").trim(),
-      })).filter(x => x.sheet && x.name);
+      const head  = lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim());
+      const rows  = lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
+      return mapRowsToItems(head, rows);
     }
 
-    function renderCategories(all){
-      const cont  = $("#cats");
-      const count = $("#catCount");
+    async function loadCategories(){
+      const cont  = document.getElementById('cats');
+      const count = document.getElementById('catCount');
 
-      if(!all.length){
+      let items = [];
+      // 1) Try the publish E-key CSV
+      try{
+        if(GS_PUB_EKEY){
+          const txt = await pubCsv(CATEGORIES_TAB);
+          items = parseCSV(txt);
+        }
+      }catch(e){ console.warn("E-key CSV failed:", e.message); }
+
+      // 2) Fallback to GViz
+      if(!items.length){
+        try{
+          const {cols, rows} = await gviz(CATEGORIES_TAB);
+          items = mapRowsToItems(cols, rows);
+        }catch(e){ console.warn("GViz failed:", e.message); }
+      }
+
+      if(!items.length){
         cont.innerHTML = `<div class="muted">
-          Unable to load categories. Make sure the sheet is <b>Published to the web</b> (entire document) and the tab is named <b>${CATEGORIES_TAB}</b>.
+          Unable to load categories. Ensure the sheet is <b>Published to the web</b> (Entire document)
+          AND the tab is named <b>${CATEGORIES_TAB}</b>. Also verify sharing is “Anyone with the link: Viewer”.
         </div>`;
         count.textContent = "(0)";
         return;
       }
 
-      cont.innerHTML = all.map(x => `
+      cont.innerHTML = items.map(x => `
         <article class="cat">
           <a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a>
           <h3>${x.name}</h3>
           <p>${x.desc || "From Google Sheets"}</p>
         </article>
       `).join("");
+      count.textContent = `(${items.length})`;
 
-      count.textContent = `(${all.length})`;
-
-      // client-side search
-      $("#q").addEventListener("input", (e)=>{
+      // Search
+      document.getElementById('q').addEventListener('input', (e)=>{
         const q = e.target.value.toLowerCase();
-        $$(".cat").forEach(card=>{
-          const text = card.querySelector("h3").textContent.toLowerCase();
-          card.style.display = text.includes(q) ? "" : "none";
+        [...document.querySelectorAll('.cat')].forEach(card=>{
+          const t = card.querySelector('h3').textContent.toLowerCase();
+          card.style.display = t.includes(q) ? "" : "none";
         });
       });
     }
 
-    // kick off
     loadCategories();
   </script>
 </body>
