@@ -54,21 +54,77 @@
 
     .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
 
-    /* ====== Top Bar ====== */
-    .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
-    .brand{
-      display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
-      background:var(--glass-2); backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    /* ========== APP BAR (mobile-first) ========== */
+    .appbar{
+      position: sticky; top: 8px; z-index: 50;
+      display:flex; align-items:center; gap:12px;
+      padding:10px 12px; margin-bottom:14px;
+      background: var(--glass-2);
+      border:1px solid rgba(255,255,255,.15);
+      border-radius:16px; backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
     }
-    .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
-      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
-    .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
-    .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+    .brand-mini{
+      display:flex; align-items:center; gap:10px;
+      text-decoration:none; color:inherit;
+    }
+    .logo-mini{
+      width:34px; height:34px; border-radius:10px;
+      display:grid; place-items:center; font-weight:900; font-size:12px; color:#fff;
+      background:linear-gradient(160deg,#0dcf8b,#0b8f6b);
+    }
+    .brand-text strong{font-weight:900; letter-spacing:.2px}
+    .brand-text small{display:none; color:var(--muted); font-weight:700}
+    @media(min-width:720px){ .brand-text small{display:block} }
 
-    .links{margin-left:auto;display:flex;gap:10px}
-    .pill{padding:8px 14px;border-radius:999px;background:var(--glass-2);backdrop-filter:blur(8px);
-      font-weight:700;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.15)}
+    /* Desktop pills on wide screens */
+    .links-desktop{margin-left:auto; display:none; gap:10px}
+    @media(min-width:720px){ .links-desktop{display:flex} }
+    .pill{
+      padding:8px 14px; border-radius:999px; background:var(--glass-2);
+      backdrop-filter:blur(8px); font-weight:700; box-shadow:var(--shadow);
+      border:1px solid rgba(255,255,255,.15); text-decoration:none; color:inherit;
+    }
     .pill:hover{transform:translateY(-1px); transition: .2s ease; }
+
+    /* Hamburger (mobile) */
+    .nav-toggle{
+      margin-left:auto; width:40px; height:40px; border-radius:12px; border:1px solid rgba(255,255,255,.18);
+      background:var(--glass-2); display:grid; place-items:center; cursor:pointer;
+    }
+    @media(min-width:720px){ .nav-toggle{display:none} }
+    .navbars{
+      width:18px; height:2px; background:var(--text); border-radius:2px; position:relative; display:block;
+    }
+    .navbars::before,.navbars::after{content:""; position:absolute; left:0; right:0; height:2px; border-radius:2px; background:var(--text)}
+    .navbars::before{top:-6px} .navbars::after{top:6px}
+
+    /* Bottom sheet for mobile menu */
+    .sheet{
+      position:fixed; inset:0; z-index:49;
+      display:grid; grid-template-rows:1fr auto;
+      background:rgba(0,0,0,.35);
+      opacity:0; visibility:hidden; transition:opacity .18s ease, visibility .18s ease;
+    }
+    .sheet.open{opacity:1; visibility:visible}
+    .sheet .panel{
+      background:var(--glass-2); backdrop-filter: blur(16px);
+      border-top-left-radius:18px; border-top-right-radius:18px;
+      border:1px solid rgba(255,255,255,.14);
+      padding:16px 16px 18px;
+      transform:translateY(100%); animation:slideUp .2s ease forwards;
+    }
+    @keyframes slideUp{to{transform:translateY(0)}}
+    .drag{
+      width:38px; height:4px; border-radius:999px; margin:6px auto 12px;
+      background:rgba(255,255,255,.35)
+    }
+    .sheet-nav a{
+      display:block; text-decoration:none; color:inherit; font-weight:800;
+      padding:14px 12px; border-radius:12px; margin-bottom:10px;
+      background:var(--glass); border:1px solid rgba(255,255,255,.14);
+    }
+    .sheet-nav a:active{transform:scale(.98)}
 
     /* ====== Hero ====== */
     .hero{
@@ -161,20 +217,39 @@
 <body>
   <div class="wrap">
 
-    <!-- Top Bar -->
-    <div class="bar">
-      <div class="brand">
-        <div class="logo">PSC</div>
-        <div>
-          <h1>PSC Guru</h1>
+    <!-- App Bar -->
+    <header class="appbar">
+      <a class="brand-mini" href="index.html" aria-label="PSC Guru home">
+        <span class="logo-mini">PSC</span>
+        <span class="brand-text">
+          <strong>PSC Guru</strong>
           <small>Kerala PSC Exam Prep</small>
-        </div>
-      </div>
-      <nav class="links">
+        </span>
+      </a>
+
+      <!-- Desktop nav pills -->
+      <nav class="links-desktop">
         <a class="pill" href="quiz.html">Quiz</a>
         <a class="pill" href="resources.html">Study</a>
         <a class="pill" href="notices.html">Notices</a>
       </nav>
+
+      <!-- Mobile hamburger -->
+      <button class="nav-toggle" type="button" aria-label="Open menu" aria-expanded="false" aria-controls="navSheet">
+        <span class="navbars"></span>
+      </button>
+    </header>
+
+    <!-- Bottom Sheet (mobile menu) -->
+    <div id="navSheet" class="sheet" hidden>
+      <div class="panel">
+        <div class="drag"></div>
+        <nav class="sheet-nav">
+          <a href="quiz.html">Quiz</a>
+          <a href="resources.html">Study</a>
+          <a href="notices.html">Notices</a>
+        </nav>
+      </div>
     </div>
 
     <!-- Hero -->
@@ -289,6 +364,23 @@
         {duration:500}
       );
     });
+
+    /* ============== Mobile menu (bottom sheet) ============== */
+    const navBtn = document.querySelector('.nav-toggle');
+    const navSheet = document.getElementById('navSheet');
+
+    function closeSheet(){
+      navSheet.classList.remove('open');
+      navBtn.setAttribute('aria-expanded','false');
+    }
+    navBtn.addEventListener('click', () => {
+      const open = navSheet.classList.toggle('open');
+      navBtn.setAttribute('aria-expanded', open ? 'true' : 'false');
+      navSheet.hidden = false;
+    });
+    navSheet.addEventListener('click', (e) => { if(e.target === navSheet) closeSheet(); });
+    navSheet.querySelectorAll('.sheet-nav a').forEach(a => a.addEventListener('click', closeSheet));
+    document.addEventListener('keydown', (e)=>{ if(e.key==='Escape' && navSheet.classList.contains('open')) closeSheet(); });
 
     /* ============== Sheets loaders ============== */
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
