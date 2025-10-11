@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>PSC Guru • Quiz</title>
 <style>
-  :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--accent:#0fa66d;--accent-weak:#c8efe2;--line:#e6eee9}
+  :root{--bg:#f2f8f4;--card:#fff;--ink:#113b2f;--muted:#58736c;--accent:#0fa66d;--line:#e6eee9}
   *{box-sizing:border-box} html,body{margin:0}
   body{font-family:system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial,sans-serif;background:var(--bg);color:var(--ink)}
   .wrap{max-width:1100px;margin:0 auto;padding:24px}
@@ -16,12 +16,12 @@
   .alert{background:#fff9e8;border:1px solid #f6e2b0;color:#5f4a00;padding:10px 12px;border-radius:10px}
   .card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:16px}
   .btn{background:#fff;border:1px solid var(--line);border-radius:10px;height:36px;padding:0 12px;display:inline-flex;align-items:center;gap:8px;cursor:pointer}
-  .btn-primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  .btn-primary{background:#0fa66d;border-color:#0fa66d;color:#fff}
   .grid{display:grid;grid-template-columns:1fr;gap:12px}
   .opt{border:1px solid var(--line);border-radius:12px;padding:12px;cursor:pointer}
   .opt.correct{border-color:#1f7c59;background:#eaf8f2}
   .opt.wrong{border-color:#c73b3b;background:#fdeeee}
-  .stickybar{position:sticky;bottom:0;background:rgba(242,248,244,.9);backdrop-filter:saturate(160%) blur(3px);border-top:1px solid var(--line);padding:10px 0}
+  .stickybar{position:sticky;bottom:0;background:rgba(242,248,244,.92);backdrop-filter:saturate(160%) blur(3px);border-top:1px solid var(--line);padding:10px 0}
 </style>
 </head>
 <body>
@@ -55,27 +55,12 @@
 /* ===== CONFIG ===== */
 const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 
-/* ===== utilities ===== */
+/* ===== utils ===== */
 const norm = s => (s ?? '').toString().normalize('NFKC').replace(/\u00A0/g,' ').trim();
 const low  = s => norm(s).toLowerCase();
 async function fetchText(url){ const r=await fetch(url,{cache:'no-store'}); if(!r.ok) throw new Error(r.statusText); return r.text();}
 function parseCSV(t){const R=[];let i=0,f='',r=[],q=false;const pf=()=>{r.push(f);f='';};const pr=()=>{R.push(r);r=[];};while(i<t.length){const c=t[i];if(q){if(c=='"'&&t[i+1]=='"'){f+='"';i+=2;continue}if(c=='"'){q=false;i++;continue}f+=c;i++;continue}if(c=='"'){q=true;i++;continue}if(c==','){pf();i++;continue}if(c=='\r'){i++;continue}if(c=='\n'){pf();pr();i++;continue}f+=c;i++}pf();pr();while(R.length&&R[R.length-1].every(c=>low(c)===''))R.pop();return R;}
-async function discoverPublishedEid(sheetId){const h=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);const m=h.match(/https:\/\/docs\.google\.com\/spreadsheets\/d\/e\/([a-zA-Z0-9_-]+)\/pubhtml/);return m?m[1]:null;}
-async function fetchCSVByGidRobust(sheetId,gid){
-  try{const u=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:csv&gid=${gid}`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}catch{}
-  try{const eid=await discoverPublishedEid(sheetId);if(eid){const u=`https://docs.google.com/spreadsheets/d/e/${eid}/pub?gid=${gid}&single=true&output=csv`;const t=await fetchText(u);const rows=parseCSV(t);if(rows.length)return rows;}}catch{}
-  const u=`https://docs.google.com/spreadsheets/d/${sheetId}/export?format=csv&gid=${gid}`;const t=await fetchText(u);return parseCSV(t);
-}
-async function getGidByName(sheetId,name){
-  const html=await fetchText(`https://docs.google.com/spreadsheets/d/${sheetId}/pubhtml`);
-  const re=/<a[^>]+href="[^"]*#gid=(\d+)"[^>]*>([\s\S]*?)<\/a>/gi; let m;
-  while((m=re.exec(html))){
-    const gid=m[1];
-    const label=m[2].replace(/<[^>]*>/g,'').replace(/&nbsp;/g,' ').replace(/&amp;/g,'&').trim();
-    if(label===name) return gid;
-  }
-  return null;
-}
+async function csvBySheet(sheet){ const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(sheet)}`; const t=await fetchText(u); return parseCSV(t); }
 
 /* ===== map rows to Qs ===== */
 function rowsToQuestions(rows){
@@ -83,10 +68,10 @@ function rowsToQuestions(rows){
   const H = rows[0].map(h=>low(h));
   const ixQ   = H.findIndex(h=>['question','q','prompt'].some(k=>h.includes(k)));
   const ixAns = H.findIndex(h=>['answer','ans','correct'].some(k=>h.includes(k)));
-  const ixA   = H.findIndex(h=>['opta','a','opt a'].some(k=>h===k));
-  const ixB   = H.findIndex(h=>['optb','b','opt b'].some(k=>h===k));
-  const ixC   = H.findIndex(h=>['optc','c','opt c'].some(k=>h===k));
-  const ixD   = H.findIndex(h=>['optd','d','opt d'].some(k=>h===k));
+  const ixA   = H.findIndex(h=>['opta','a','opt a'].includes(h));
+  const ixB   = H.findIndex(h=>['optb','b','opt b'].includes(h));
+  const ixC   = H.findIndex(h=>['optc','c','opt c'].includes(h));
+  const ixD   = H.findIndex(h=>['optd','d','opt d'].includes(h));
   const out=[];
   for(let i=1;i<rows.length;i++){
     const r = rows[i].map(v=>v??'');
@@ -100,10 +85,9 @@ function rowsToQuestions(rows){
 
 /* ===== state ===== */
 const qs = new URLSearchParams(location.search);
-const byGid   = qs.get('gid');
-const bySheet = qs.get('sheet');
-const limit   = parseInt(qs.get('limit')||'0',10);
-const timerS  = parseInt(qs.get('timer')||'0',10);
+const SHEET  = qs.get('sheet');           // we use sheet name
+const LIMIT  = parseInt(qs.get('limit')||'0',10);
+const TIMER  = parseInt(qs.get('timer')||'0',10);
 
 const titleEl = document.getElementById('title');
 const warnEl  = document.getElementById('warn');
@@ -111,74 +95,69 @@ const qwrap   = document.getElementById('qwrap');
 const qtext   = document.getElementById('qtext');
 const optsEl  = document.getElementById('opts');
 const pageEl  = document.getElementById('page');
-const timerBox = document.getElementById('timerBox');
-const showBtn  = document.getElementById('showAnswer');
+const timerEl = document.getElementById('timerBox');
+const showBtn = document.getElementById('showAnswer');
 
-let Q=[], idx=0, shuffledIndexes=[], reveal=false;
+let Q=[], idx=0;
 
 /* ===== timer ===== */
-if(timerS>0){
-  let left=timerS;
-  const tick=()=>{const m=Math.floor(left/60).toString().padStart(2,'0');const s=(left%60).toString().padStart(2,'0');timerBox.textContent=`${m}:${s}`;left--;if(left>=0) setTimeout(tick,1000);}; tick();
+if(TIMER>0){
+  let left=TIMER;
+  (function tick(){
+    const m=String(Math.floor(left/60)).padStart(2,'0');
+    const s=String(left%60).padStart(2,'0');
+    timerEl.textContent=`${m}:${s}`;
+    left--; if(left>=0) setTimeout(tick,1000);
+  })();
 }
 
-/* ===== shuffle helper ===== */
-function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()* (i+1)); [arr[i],arr[j]]=[arr[j],arr[i]] } return arr }
+/* shuffle helper */
+function shuffle(a){ for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]} return a }
 
-/* ===== render ===== */
+/* render */
 function render(){
   if(!Q.length){ qwrap.style.display='none'; return }
   const item = Q[idx];
-  titleEl.textContent = qs.get('title') || document.title.split('•')[0].trim();
-  qwrap.style.display = 'block';
+  titleEl.textContent = SHEET || 'Quiz';
+  qwrap.style.display='block';
   qtext.textContent = `${idx+1}. ${item.q}`;
   pageEl.textContent = `${idx+1} / ${Q.length}`;
 
-  // prepare MCQ: shuffle options and track correct
-  const withCorr = [...item.opts];
-  if(!withCorr.includes(item.ans) && item.ans) withCorr.push(item.ans);
-  const shuffled = shuffle(withCorr.slice());
-  const correctIndex = shuffled.findIndex(x => low(x) === low(item.ans));
+  const withAns = [...item.opts];
+  if(item.ans && !withAns.some(o=>low(o)===low(item.ans))) withAns.push(item.ans);
+  const shuffled = shuffle(withAns.slice());
+  const correctIndex = shuffled.findIndex(x => low(x)===low(item.ans));
 
-  optsEl.innerHTML = '';
+  optsEl.innerHTML='';
   shuffled.forEach((opt,i)=>{
-    const div = document.createElement('div');
-    div.className = 'opt';
-    div.textContent = opt || '(blank)';
-    div.addEventListener('click', ()=>{
-      [...optsEl.children].forEach(c => c.classList.remove('correct','wrong'));
-      div.classList.add(i===correctIndex ? 'correct' : 'wrong');
-    });
-    optsEl.appendChild(div);
+    const d=document.createElement('div');
+    d.className='opt';
+    d.textContent=opt||'(blank)';
+    d.onclick=()=>{
+      [...optsEl.children].forEach(c=>c.classList.remove('correct','wrong'));
+      d.classList.add(i===correctIndex ? 'correct' : 'wrong');
+    };
+    optsEl.appendChild(d);
   });
 
-  // show/hide answer
-  showBtn.onclick = ()=>{
-    [...optsEl.children].forEach((div, i) => {
-      div.classList.toggle('correct', i===correctIndex);
-    });
-  };
+  showBtn.onclick=()=>[...optsEl.children].forEach((div,i)=>div.classList.toggle('correct',i===correctIndex));
 }
 
-/* ===== navigation ===== */
+/* navigation */
 document.getElementById('prev').onclick = ()=>{ if(idx>0){idx--; render()} };
 document.getElementById('next').onclick = ()=>{ if(idx<Q.length-1){idx++; render()} };
 
-/* ===== load ===== */
+/* load */
 (async ()=>{
   try{
-    let gid = byGid;
-    if(!gid && bySheet){ gid = await getGidByName(GS_SHEET_ID, bySheet); }
-    if(!gid) throw new Error('No gid or sheet specified.');
-
-    // load rows
-    const rows = await fetchCSVByGidRobust(GS_SHEET_ID, gid);
-    const all = rowsToQuestions(rows);
-    Q = limit>0 ? all.sort(()=>Math.random()-0.5).slice(0,limit) : all;
+    if(!SHEET) throw new Error('No ?sheet= specified in URL.');
+    const rows = await csvBySheet(SHEET);
+    const all  = rowsToQuestions(rows);
+    Q = LIMIT>0 ? all.sort(()=>Math.random()-0.5).slice(0,LIMIT) : all;
     if(!Q.length) throw new Error('No questions found in this tab.');
     render();
   }catch(e){
-    warnEl.innerHTML = `<div class="alert">Failed to load this tab. ${e.message}. Make sure the sheet is <b>Public/Published</b>.</div>`;
+    warnEl.innerHTML = `<div class="alert">Failed to load this tab. Make sure the sheet is public and the tab exists. Error: ${e.message}</div>`;
   }
 })();
 </script>
