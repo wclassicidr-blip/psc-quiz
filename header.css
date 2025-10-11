@@ -1,44 +1,76 @@
-/* header.css – shared site header */
+/* ====== Mobile-first, glass header used on all pages ====== */
+
 :root{
-  --hdr-glass: rgba(255,255,255,.85);
-  --hdr-border: rgba(15, 45, 31, .08);
-  --pill-bg: rgba(255,255,255,.9);
-  --pill-border: rgba(15,45,31,.12);
-  --pill-active: #0f8346;
-  --pill-active-dark: #0b5f34;
+  --glass-2: rgba(255,255,255,.85);
+  --text: #0f2d1f;
+  --muted:#5f726a;
+  --shadow: 0 20px 40px rgba(30,70,50,.15);
+  --brand:#0f8346;
+  --brand-600:#0b5f34;
 }
-.site-header{position:sticky;top:0;z-index:1000}
-.site-header .hdr-wrap{
-  max-width:1200px;margin:0 auto;padding:12px 18px;
-  display:flex;gap:14px;align-items:center;
-  background:var(--hdr-glass);backdrop-filter:blur(8px);
-  border-bottom:1px solid var(--hdr-border);
+
+/* Sticky glass header */
+.site-header{
+  position: sticky; top: 0; z-index: 1000;
+  background: var(--glass-2);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(0,0,0,.06);
 }
-.site-header .brand{
-  display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
-  background:rgba(255,255,255,.9);box-shadow:0 10px 25px rgba(30,70,50,.08)
+
+/* Inner container */
+.header-inner{
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: calc(10px + env(safe-area-inset-top)) 16px 10px;
+  display: flex; align-items: center; gap: 12px;
 }
-.site-header .logo{
+
+/* Brand */
+.site-brand{
+  display:flex; align-items:center; gap:12px;
+  padding:8px 10px; border-radius:14px;
+  background: var(--glass-2);
+  box-shadow: var(--shadow);
+  text-decoration: none;
+  color: var(--text);
+}
+.site-logo{
   height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
-  font:800 14px/1 Inter,system-ui;letter-spacing:.3px;color:#fff;
-  background:linear-gradient(160deg,#0dcf8b,#0b8f6b);
+  font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);
 }
-.site-header .brand h1{margin:0;font:800 18px/1.2 Inter,system-ui}
-.site-header .brand small{display:block;margin-top:2px;color:#5f726a;font-weight:600}
-.site-header nav{margin-left:auto;display:flex;gap:10px;align-items:center}
-.site-header nav a{
-  text-decoration:none;color:inherit;
-  padding:8px 14px;border-radius:999px;background:var(--pill-bg);
-  border:1px solid var(--pill-border);font-weight:800;
-  box-shadow:0 10px 20px rgba(30,70,50,.08)
+.site-brand h1{font-size:18px;margin:0;font-weight:800}
+.site-brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+
+/* Nav */
+.site-nav{
+  margin-left:auto; display:flex; gap:10px;
 }
-.site-header nav a:focus{outline:none;box-shadow:0 0 0 6px rgba(15,131,70,.18)}
-.site-header nav a.active{
-  background:linear-gradient(180deg,var(--pill-active),var(--pill-active-dark));
-  color:#fff;border-color:transparent
+.site-nav a{
+  text-decoration:none; color:var(--text);
+  padding:8px 14px; border-radius:999px;
+  background: var(--glass-2); border:1px solid rgba(0,0,0,.06);
+  font-weight:700; box-shadow: var(--shadow);
 }
-@media (max-width:640px){
-  .site-header .hdr-wrap{padding:10px 12px}
-  .site-header nav{overflow:auto;gap:8px}
-  .site-header nav a{white-space:nowrap}
+.site-nav a.active{ background:#e7f6ee; border-color:#cfead9 }
+
+/* Hamburger (hidden on desktop) */
+.nav-toggle{
+  margin-left:auto; display:none; align-items:center; justify-content:center;
+  height:40px;width:40px;border-radius:10px;border:1px solid rgba(0,0,0,.08);
+  background:#fff; cursor:pointer;
+}
+.nav-toggle svg{width:20px;height:20px}
+
+/* Mobile layout */
+@media (max-width: 720px){
+  .site-nav{
+    position: fixed; left:16px; right:16px; top: calc(58px + env(safe-area-inset-top));
+    background: var(--glass-2);
+    border:1px solid rgba(0,0,0,.06);
+    box-shadow: var(--shadow);
+    border-radius:16px; padding:12px;
+    display:none; flex-direction:column; gap:10px;
+  }
+  .site-header.open .site-nav{ display:flex; }
+  .nav-toggle{ display:flex; }
 }
