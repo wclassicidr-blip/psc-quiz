@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz • PSC Guru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="header.css">
+  <script defer src="site-header.js"></script>
+  <style>
+    :root{--bg:#eef6f2;--text:#0f2d1f;--muted:#5f726a;--brand:#0f8346;--brand-600:#0b5f34;--ring:rgba(15,131,70,.22);--card:#fff;--border:#e2eee6;--wrong:#f43f5e;--wrong-bg:#fee2e2;--right:#16a34a;--right-bg:#dcfce7}
+    *{box-sizing:border-box}body{margin:0;font:400 16px/1.55 Inter, system-ui;color:var(--text);background:var(--bg)}
+    .wrap{max-width:980px;margin:0 auto;padding:18px}
+    h1{font:800 24px/1.2 Inter;margin:6px 0 16px}
+    .paper{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px 16px 10px;box-shadow:0 18px 40px rgba(15,45,31,.06)}
+    .qhead{color:var(--muted);font-weight:700;margin:4px 0 10px}.qtext{font:700 18px/1.35 Inter;margin:0 0 12px}
+    .opts{display:grid;gap:10px}.opt{border:1px solid var(--border);border-radius:12px;padding:12px 14px;cursor:pointer;transition:.15s ease;background:#fff}
+    .opt:hover{transform:translateY(-1px)}.opt.correct{background:var(--right-bg);border-color:var(--right);box-shadow:0 0 0 6px rgba(22,163,74,.12)}
+    .opt.wrong{background:var(--wrong-bg);border-color:var(--wrong);box-shadow:0 0 0 6px rgba(244,63,94,.12)}.opt.disabled{opacity:.7;pointer-events:none}
+    .deckbar{position:sticky;bottom:0;margin-top:12px;display:flex;gap:10px;justify-content:center;padding:10px;background:linear-gradient(0deg, rgba(238,246,242,1), rgba(238,246,242,.65));border-top:1px solid var(--border)}
+    .btn{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;border-radius:999px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
+    .btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#fff;border-color:transparent}.btn:disabled{opacity:.5;cursor:not-allowed}
+    .meta{display:flex;gap:8px;align-items:center;color:var(--muted);font-weight:700;margin:8px 0 10px}.pill{padding:3px 8px;border:1px solid var(--border);border-radius:999px;background:#fff}
+    .summary{background:#fff;border:1px solid var(--border);border-radius:16px;padding:14px;margin-top:10px}
+    details{border:1px solid var(--border);border-radius:10px;background:#fff;margin:8px 0}summary{cursor:pointer;padding:10px 12px;font-weight:800}.ans{padding:10px 12px;color:var(--muted)}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <h1 id="title">Quiz</h1>
+    <div class="paper" id="card" hidden>
+      <div class="qhead"><span id="pos">Question 1</span> • <span class="pill" id="sheetName"></span></div>
+      <p class="qtext" id="qtext"></p>
+      <div class="opts" id="opts"></div>
+    </div>
+    <div class="deckbar">
+      <button class="btn" id="prev">← Prev</button><button class="btn" id="show">Show Answer</button><button class="btn primary" id="next">Next →</button>
+    </div>
+    <section id="summary" hidden class="summary"></section>
+  </div>
+  <script>
+    const GS_SHEET_ID="16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o",GS_PUB_EKEY="2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A",CATEGORIES_TAB="Categories";
+    const qs=k=>new URLSearchParams(location.search).get(k);
+    function stripGVizJSON(t){const s=t.indexOf('{'),e=t.lastIndexOf('}');return JSON.parse(t.slice(s,e+1))}
+    async function gviz(tab){const u=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`,r=await fetch(u,{cache:"no-store"});if(!r.ok)throw new Error("GViz failed");const w=await r.text(),j=stripGVizJSON(w);return{cols:j.table.cols.map(c=>(c.label||"").trim()),rows:j.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):""))}}
+    function pick(a){return a[Math.floor(Math.random()*a.length)]}function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+    async function pickRandomSheet(){try{const {cols,rows}=await gviz(CATEGORIES_TAB);const h=cols.map(c=>c.toLowerCase());const iName=h.findIndex(t=>/name/.test(t));const iTab=h.findIndex(t=>/(get|sheet|tab)/.test(t));return rows.map(r=>(r[iTab]||r[iName]||"").trim()).filter(Boolean).sort(()=>Math.random()-0.5)[0]||null}catch(e){return null}}
+    let QA=[],idx=0,score=0,sheet=qs('sheet');const mode=(qs('mode')||'').toLowerCase(),limitN=qs('n');
+    async function load(){if(mode==='random'&&!sheet){sheet=await pickRandomSheet()}if(!sheet){const s=document.querySelector('#summary');s.hidden=false;s.innerHTML=`<div class="ans">No category selected.</div>`;return}
+      const {cols,rows}=await gviz(sheet);const h=cols.map(c=>c.toLowerCase());const iq=h.findIndex(x=>/question/.test(x));const ia=h.findIndex(x=>/(answer|ans)/.test(x));const io=[h.findIndex(x=>/opta/.test(x)),h.findIndex(x=>/optb/.test(x)),h.findIndex(x=>/optc/.test(x)),h.findIndex(x=>/optd/.test(x))].filter(x=>x>=0);
+      let data=rows.map(r=>{const correct=(r[ia]||"").trim();const opts=io.map(i=>(r[i]||"").trim()).filter(Boolean);if(correct&&!opts.includes(correct))opts.push(correct);return{q:(r[iq]||"").trim(),correct,opts:shuffle([...new Set(opts)])}}).filter(x=>x.q&&x.correct&&x.opts.length);
+      if(limitN&&limitN!=='N'){const n=Math.min(parseInt(limitN,10)||data.length,data.length);data=shuffle(data).slice(0,n)}
+      QA=data;idx=0;score=0;document.getElementById('title').textContent=sheet.replace(/_/g,' ');document.getElementById('sheetName').textContent=sheet;render();document.getElementById('card').hidden=false}
+    function render(){const q=QA[idx];document.getElementById('pos').textContent=`Question ${idx+1} / ${QA.length}`;document.getElementById('qtext').textContent=q.q;const box=document.getElementById('opts');box.innerHTML='';q.opts.forEach(opt=>{const d=document.createElement('div');d.className='opt';d.textContent=opt;d.addEventListener('click',()=>{[...box.children].forEach(x=>x.classList.add('disabled'));if(opt===q.correct){d.classList.add('correct');score++}else{d.classList.add('wrong');const hit=[...box.children].find(x=>x.textContent.trim()===q.correct);if(hit)hit.classList.add('correct')}},{once:true});box.appendChild(d)});document.getElementById('prev').disabled=(idx===0);document.getElementById('next').textContent=(idx===QA.length-1)?'Finish →':'Next →'}
+    document.getElementById('prev').addEventListener('click',()=>{if(idx>0){idx--;render()}});document.getElementById('next').addEventListener('click',()=>{if(idx<QA.length-1){idx++;render()}else{finish()}});document.getElementById('show').addEventListener('click',()=>{const q=QA[idx];const hit=[...document.querySelectorAll('.opt')].find(x=>x.textContent.trim()===q.correct);if(hit)hit.classList.add('correct');[...document.querySelectorAll('.opt')].forEach(x=>x.classList.add('disabled'))});
+    function finish(){document.getElementById('card').hidden=true;const sum=document.getElementById('summary');sum.hidden=false;const right=score,total=QA.length;const items=QA.map((x,i)=>`<details><summary>${i+1}. ${x.q}</summary><div class="ans"><b>Answer:</b> ${x.correct}</div></details>`).join('');sum.innerHTML=`<h2 style="margin:4px 0 6px">Summary</h2><div class="meta"><span class="pill">Score: ${right} / ${total}</span><span class="pill">${Math.round(100*right/total)}%</span></div>${items}<div style="margin-top:10px;display:flex;gap:8px"><a class="btn" href="index.html">← Back to Home</a><button class="btn primary" onclick="location.reload()">Restart</button></div>`}
+    load();
+  </script>
+</body>
+</html>
