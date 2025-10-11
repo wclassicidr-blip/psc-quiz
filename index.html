@@ -1,348 +1,346 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>PSC Guru • Kerala PSC Exam Prep</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet" />
+  <title>PSC Guru — Kerala PSC Exam Prep</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+
   <style>
     :root{
-      --bg:#f3faf4;
+      --bg:#f2f8f2;
       --card:#ffffff;
-      --ink:#102a19;
-      --muted:#5c7a68;
-      --accent:#1b8f4c;
-      --accent-ink:#fff;
-      --border:#e7ece9;
-      --chip:#ecf7f0;
-      --shadow:0 20px 40px rgba(16,42,25,.06);
+      --muted:#6b7280;
+      --text:#0f2d1f;
+      --brand:#0f8346;
+      --brand-2:#157347;
+      --chip:#e8f6ee;
+      --chip-active:#0f8346;
+      --chip-text:#14532d;
+      --ring:rgba(15,131,70,.25);
+      --shadow:0 10px 25px rgba(0,0,0,.06);
       --radius:16px;
     }
     *{box-sizing:border-box}
-    html,body{margin:0;background:var(--bg);color:var(--ink);font-family:Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    a{color:inherit;text-decoration:none}
-    header{
-      position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#edf8f0,rgba(237,248,240,.85));
-      backdrop-filter:saturate(120%) blur(8px); border-bottom:1px solid var(--border)
+    html,body{height:100%}
+    body{
+      margin:0;
+      background:var(--bg);
+      color:var(--text);
+      font: 400 16px/1.5 Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
     }
-    .wrap{max-width:1120px;margin:0 auto;padding:18px 16px}
-    .brand{display:flex;align-items:center;gap:10px;font-weight:800}
-    .badge{width:34px;height:34px;border-radius:12px;display:grid;place-items:center;font-weight:800;background:#dff3e7;color:#1b7a46}
-    .nav{display:flex;gap:10px;margin-left:auto}
-    .nav a{display:inline-flex;align-items:center;height:36px;padding:0 14px;border:1px solid var(--border);border-radius:999px;background:#fff}
-    main .grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);box-shadow:var(--shadow);padding:18px}
-    .card-title{font-weight:700;margin-bottom:8px}
-    .muted{color:var(--muted);font-size:.92rem}
-    .row-actions{display:flex;gap:10px;align-items:center;margin-top:10px}
-    .btn{background:var(--accent);color:var(--accent-ink);padding:10px 16px;border-radius:12px;border:none;cursor:pointer;font-weight:700}
-    .btn.secondary{background:#fff;color:var(--ink);border:1px solid var(--border)}
-    .chips{display:flex;gap:10px;margin-top:10px}
-    .chip{min-width:38px;height:36px;border-radius:999px;border:1px solid var(--border);background:var(--chip);display:grid;place-items:center;font-weight:700;color:#1e5d3b}
-    .chip[data-active="1"]{background:var(--accent);color:#fff;border-color:transparent}
-    h2{margin:26px 0 10px}
-    .search{width:100%;height:44px;border-radius:12px;border:1px solid var(--border);padding:0 12px;background:#fff}
-    .cats{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}
-    .cat{border:1px solid var(--border);background:#fff;border-radius:14px;padding:14px}
-    .cat h3{font-size:16px;margin:0 0 6px}
-    .cat p{margin:0;color:var(--muted);font-size:.9rem}
-    .cat a.stretched{position:relative;display:block}
-    .cat a.stretched::after{content:"";position:absolute;inset:0}
-    @media (max-width:960px){
-      main .grid{grid-template-columns:1fr}
-      .cats{grid-template-columns:1fr}
+    a{color:inherit;text-decoration:none}
+    .wrap{max-width:1180px;margin:0 auto;padding:20px 20px 56px}
+
+    header{
+      display:flex;align-items:center;gap:14px;
+      padding:12px 0 16px;
+    }
+    .logo{
+      height:34px;width:34px;border-radius:11px;
+      background:#0b5f2f;color:#fff;display:inline-grid;place-items:center;
+      font-weight:800;box-shadow:var(--shadow)
+    }
+    .hstack{display:flex;align-items:center;gap:10px;margin-left:auto}
+    .pill{
+      padding:6px 12px;border-radius:999px;background:#fff;
+      box-shadow:var(--shadow);font-weight:600
     }
 
-    /* <dialog> minimal styles (works in modern browsers) */
-    dialog{border:none;border-radius:16px;max-width:420px;width:92%;padding:16px;box-shadow:0 30px 80px rgba(0,0,0,.18)}
-    dialog::backdrop{background:rgba(0,0,0,.25)}
-    label{display:block;font-weight:700;margin:8px 0 6px}
-    select{width:100%;padding:10px;border:1px solid var(--border);border-radius:10px;background:#fff}
-    .row{display:flex;gap:10px}
-    .row>div{flex:1}
+    h1{font-size:28px;margin:18px 0 6px}
+    .sub{color:var(--muted);font-size:14px;margin-bottom:20px}
+
+    .grid{
+      display:grid;grid-template-columns:1fr;gap:16px;
+    }
+    @media(min-width:860px){
+      .grid{grid-template-columns:1fr 1fr}
+    }
+
+    .card{
+      position:relative;background:var(--card);border-radius:var(--radius);
+      box-shadow:var(--shadow);padding:18px 16px 16px;
+    }
+    .card h3{margin:0 0 8px;font-size:18px}
+    .card p{margin:0;color:var(--muted);font-size:14px}
+
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;
+      font-weight:700;padding:8px 14px;border-radius:10px;border:none;
+      background:var(--brand);color:#fff;cursor:pointer;transition:transform .02s ease-in;
+      box-shadow:0 6px 18px var(--ring);
+    }
+    .btn:active{transform:translateY(1px)}
+    .btn--ghost{
+      background:#fff;color:var(--brand);border:1px solid #d1e8db;
+    }
+
+    .chipbar{display:flex;align-items:center;gap:10px;margin:10px 0 10px}
+    .chip{
+      border:none;border-radius:999px;padding:8px 12px;font-weight:700;cursor:pointer;
+      background:var(--chip);color:var(--chip-text);
+    }
+    .chip.active{background:var(--chip-active);color:#fff}
+
+    .row{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:10px}
+    .muted{color:var(--muted)}
+
+    /* categories */
+    .toolbar{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:18px}
+    .title{font-size:22px;margin:0}
+    .count{color:var(--muted);font-weight:700}
+    .search{
+      display:flex;align-items:center;gap:10px;background:#fff;border-radius:999px;
+      padding:10px 14px;box-shadow:var(--shadow);max-width:560px;width:100%;
+    }
+    .search input{border:none;outline:none;font:inherit;width:100%}
+    .grid-cats{display:grid;grid-template-columns:1fr;gap:14px;margin-top:14px}
+    @media(min-width:860px){.grid-cats{grid-template-columns:repeat(3,1fr)}}
+    .cat{
+      position:relative;background:#fff;border-radius:14px;padding:14px 14px 16px;
+      box-shadow:var(--shadow);overflow:hidden;min-height:108px
+    }
+    .cat h3{margin:0 0 6px}
+    .cat p{margin:0;color:var(--muted);font-size:14px}
+    .stretched{position:absolute;inset:0}
+
+    footer{margin-top:28px;color:var(--muted);font-size:13px;text-align:center}
+
+    /* badges within cards */
+    .btn-sm{padding:6px 10px;font-size:14px;border-radius:999px}
+    .flex{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
   </style>
 </head>
 <body>
-  <header>
-    <div class="wrap" style="display:flex;align-items:center;gap:12px">
-      <div class="brand">
-        <div class="badge">PSC</div>
-        <div>
-          <div>PSC Guru</div>
-          <div class="muted" style="font-weight:600">Kerala PSC Exam Prep</div>
-        </div>
+  <div class="wrap">
+    <header>
+      <div class="logo">PSC</div>
+      <div>
+        <div style="font-weight:800">PSC Guru</div>
+        <div class="muted" style="font-size:12px;margin-top:-2px">Kerala PSC Exam Prep</div>
       </div>
-      <div class="nav">
-        <a href="quiz.html">Quiz</a>
-        <a href="resources.html">Study</a>
-        <a href="notices.html">Notices</a>
-      </div>
-    </div>
-  </header>
 
-  <main class="wrap">
-    <h1 style="margin:10px 0 14px">Quick Quiz</h1>
+      <div class="hstack">
+        <a class="pill" href="quiz.html">Quiz</a>
+        <a class="pill" href="resources.html">Study</a>
+        <a class="pill" href="notices.html">Notices</a>
+      </div>
+    </header>
+
+    <h1>Quick Quiz</h1>
+    <p class="sub">Start instantly: random questions or play “AI vs You”.</p>
 
     <section class="grid">
       <!-- Random Quiz -->
-      <div class="card">
-        <div class="card-title">Random Quiz</div>
-        <p class="muted">Start instantly with mixed questions (random category).</p>
+      <article class="card">
+        <h3>Random Quiz</h3>
+        <p>Start instantly with mixed questions (random category).</p>
 
-        <div class="chips" id="randN">
-          <button class="chip" data-n="5">5</button>
-          <button class="chip" data-n="10" data-active="1">10</button>
+        <div class="chipbar" id="chips">
+          <button class="chip active" data-n="5">5</button>
+          <button class="chip" data-n="10">10</button>
           <button class="chip" data-n="20">20</button>
           <button class="chip" data-n="30">30</button>
-          <button class="chip" data-n="">N</button>
+          <button class="chip" data-n="N">N</button>
         </div>
 
-        <div class="row-actions">
-          <button id="btnRandom" class="btn">Start</button>
+        <div class="row">
+          <span class="muted">How many questions?</span>
+          <button class="btn btn-sm" id="startRandom">Start</button>
         </div>
-      </div>
+      </article>
 
       <!-- AI vs You -->
-      <div class="card">
-        <div class="card-title">AI vs You</div>
-        <p class="muted">
-          Timed MCQ — computer guesses vs your answers. Open any category below.
-        </p>
-        <div class="row-actions">
-          <a class="btn secondary" href="ai.html">Info</a>
-          <button id="aiPlayBtn" class="btn">Play</button>
+      <article class="card" id="aiCard">
+        <h3>AI vs You</h3>
+        <p>Timed MCQ — computer guesses vs your answers. Open any category below.</p>
+        <div class="row">
+          <button class="btn btn-sm btn--ghost" id="aiInfo">Info</button>
+          <button class="btn btn-sm" id="aiPlay">Play</button>
         </div>
-      </div>
+      </article>
 
       <!-- Study Material -->
-      <div class="card">
-        <div class="card-title">Study Material</div>
-        <p class="muted">Downloadable PDFs &amp; docs from Google Sheets</p>
-        <div class="row-actions">
-          <a class="btn" href="resources.html">Open</a>
+      <article class="card">
+        <h3>Study Material</h3>
+        <p>Downloadable PDFs & docs from Google Sheets</p>
+        <div class="row">
+          <span></span>
+          <a class="btn btn-sm btn--ghost" href="resources.html">Open</a>
         </div>
-      </div>
+      </article>
 
       <!-- Exam Notifications -->
-      <div class="card">
-        <div class="card-title">Exam Notifications</div>
-        <p class="muted">Latest notifications curated in Google Sheets</p>
-        <div class="row-actions">
-          <a class="btn" href="notices.html">Open</a>
+      <article class="card">
+        <h3>Exam Notifications</h3>
+        <p>Latest notifications curated in Google Sheets</p>
+        <div class="row">
+          <span></span>
+          <a class="btn btn-sm btn--ghost" href="notices.html">Open</a>
         </div>
-      </div>
+      </article>
     </section>
 
-    <h2>Quiz Categories <span id="catCount" class="muted">(0)</span></h2>
-    <input id="q" class="search" placeholder="Search category…" />
-    <div id="cats" class="cats"></div>
-  </main>
+    <div class="toolbar" id="gridTop">
+      <h2 class="title">Quiz Categories <span class="count" id="catCount">(0)</span></h2>
+      <label class="search" title="Search category">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 21l-3.5-3.5M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Z" stroke="#64748b" stroke-width="2" stroke-linecap="round"/></svg>
+        <input id="q" type="search" placeholder="Search category..." />
+      </label>
+    </div>
 
-  <!-- AI vs You: picker dialog -->
-  <dialog id="aiPicker">
-    <form method="dialog" id="aiForm">
-      <h3 style="margin:0 0 8px">Play “AI vs You”</h3>
+    <section class="grid-cats" id="cats">
+      <!-- cards inserted here -->
+    </section>
 
-      <label>Category</label>
-      <select id="aiSheet" required></select>
-
-      <div class="row" style="margin-top:10px">
-        <div>
-          <label>Questions</label>
-          <select id="aiN">
-            <option value="5">5</option>
-            <option value="10" selected>10</option>
-            <option value="20">20</option>
-            <option value="30">30</option>
-            <option value="">All</option>
-          </select>
-        </div>
-        <div>
-          <label>Timer (min)</label>
-          <select id="aiTimer">
-            <option value="">Off</option>
-            <option value="3">3</option>
-            <option value="5" selected>5</option>
-            <option value="10">10</option>
-            <option value="15">15</option>
-          </select>
-        </div>
-      </div>
-
-      <div class="row-actions" style="justify-content:flex-end;margin-top:14px">
-        <button type="button" id="aiCancel" class="btn secondary">Cancel</button>
-        <button type="submit" class="btn">Start</button>
-      </div>
-    </form>
-  </dialog>
+    <footer>© 2025 PSC Guru • Tea Green UI</footer>
+  </div>
 
   <script>
-    /* ================= CONFIG ================= */
+    /* ================== CONFIG ================== */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const CATEGORIES_TAB = "Categories";
 
-    /* ================ helpers ================= */
-    const $ = s => document.querySelector(s);
-    const $$ = s => [...document.querySelectorAll(s)];
+    /* ================ UI Handlers ================ */
+    // Chips
+    let selectedN = 5;
+    document.querySelectorAll('#chips .chip').forEach(ch => {
+      ch.addEventListener('click', () => {
+        document.querySelectorAll('#chips .chip').forEach(c => c.classList.remove('active'));
+        ch.classList.add('active');
+        selectedN = ch.dataset.n;
+      });
+    });
 
-    function stripGVizJSON(text){
-      // gviz response begins with "/*O_o*/\ngoogle.visualization.Query.setResponse(...);"
-      const start = text.indexOf("{");
-      const end = text.lastIndexOf("}");
-      return JSON.parse(text.slice(start, end+1));
+    // Random start -> quiz.html
+    document.getElementById('startRandom').addEventListener('click', () => {
+      const n = selectedN; // "N" or number
+      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}`;
+    });
+
+    // AI vs You info and play
+    document.getElementById('aiInfo').addEventListener('click', () => {
+      alert("AI vs You is a timed MCQ mode. Pick any category below and it will run with a timer. Tip: you can also append ?timer=300 to the quiz URL for a 5-minute timer.");
+    });
+    document.getElementById('aiPlay').addEventListener('click', () => {
+      // Scroll to category list so the user chooses a category.
+      document.getElementById('gridTop').scrollIntoView({behavior:"smooth", block:"start"});
+      // brief hint
+      const card = document.getElementById('aiCard');
+      card.animate([{transform:"scale(1)"},{transform:"scale(1.02)"},{transform:"scale(1)"}],{duration:500});
+    });
+
+    /* ========== Helpers ========== */
+    const $ = (s,doc=document)=>doc.querySelector(s);
+    const $$= (s,doc=document)=>[...doc.querySelectorAll(s)];
+
+    function stripGVizJSON(txt){
+      // GViz wraps JSON in "/*O_o*/ google.visualization.Query.setResponse(...);"
+      const start = txt.indexOf('{');
+      const end   = txt.lastIndexOf('}');
+      return JSON.parse(txt.slice(start, end+1));
     }
-
-    async function gviz(sheetName){
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?tqx=out:json&sheet=${encodeURIComponent(sheetName)}`;
+    async function gviz(tab){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
       const res = await fetch(url, {cache:"no-store"});
-      if(!res.ok) throw new Error("Failed to fetch gviz");
-      const json = stripGVizJSON(await res.text());
-      const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
-      const rows = json.table.rows.map(r => (r.c||[]).map(c => c ? c.v : ""));
-      return {cols, rows};
+      if(!res.ok) throw new Error("GViz fetch failed");
+      const raw = await res.text();
+      const json = stripGVizJSON(raw);
+      const header = json.table.cols.map(c => (c.label || "").trim());
+      const rows = json.table.rows.map(r => (r.c || []).map(c=> (c && c.v)!=null ? String(c.v) : ""));
+      return { cols: header, rows };
     }
 
-    /* ====== Random Quiz ====== */
-    (function initRandom(){
-      const chips = $$("#randN .chip");
-      let current = chips.find(c => c.dataset.active === "1")?.dataset.n || "10";
-      chips.forEach(ch => {
-        ch.addEventListener("click", () => {
-          chips.forEach(x => x.removeAttribute("data-active"));
-          ch.setAttribute("data-active","1");
-          current = ch.dataset.n ?? "";
-        });
-      });
-      $("#btnRandom").addEventListener("click", () => {
-        const u = new URL("quiz.html", location.href);
-        u.searchParams.set("random","1");
-        if(current !== "") u.searchParams.set("n", current);
-        location.href = u.toString();
-      });
-    })();
-
-    /* ====== Categories grid ====== */
+    /* ======= Category Loader with robust fallback ======= */
     async function loadCategories(){
+      let list = [];
       try{
-        const {cols, rows} = await gviz("Categories");
-        // expected headers (case-insensitive):
-        //  name (display),  get (actual tab name),  desc (optional)
-        const idxDisplay = cols.findIndex(c => c.includes("name"));
-        const idxGet     = cols.findIndex(c => c.includes("get") || c.includes("tab"));
-        const idxDesc    = cols.findIndex(c => c.includes("desc"));
-
-        const all = rows
-          .map(r => ({
-            name: (r[idxDisplay] || r[idxGet] || "").toString().trim(),
-            sheet:(r[idxGet] || r[idxDisplay] || "").toString().trim(),
-            desc: (r[idxDesc] || "").toString().trim()
-          }))
-          .filter(x => x.sheet && x.name);
-
-        const cont = $("#cats");
-        cont.innerHTML = all.map(x => `
-          <article class="cat">
-            <a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a>
-            <h3>${x.name}</h3>
-            <p>${x.desc ? x.desc : "From Google Sheets"}</p>
-          </article>
-        `).join("");
-
-        $("#catCount").textContent = `(${all.length})`;
-
-        // quick search
-        const input = $("#q");
-        input.addEventListener("input", ()=>{
-          const q = input.value.toLowerCase();
-          $$("article.cat").forEach(card=>{
-            const text = card.querySelector("h3").textContent.toLowerCase();
-            card.style.display = text.includes(q) ? "" : "none";
-          });
-        });
-
-        return all;
+        list = await loadViaGViz(CATEGORIES_TAB);
+        if(!list.length){
+          list = await loadViaCSV(CATEGORIES_TAB);
+        }
       }catch(e){
-        console.warn(e);
-        $("#cats").innerHTML =
-          `<div class="muted">Unable to load categories. Ensure the sheet is <b>Published to the web</b> and a tab named <b>Categories</b> exists with a <i>name</i> column.</div>`;
-        return [];
+        try{ list = await loadViaCSV(CATEGORIES_TAB); }catch(_){}
       }
+      renderCategories(list);
     }
 
-    /* ====== AI vs You launcher ====== */
-    (function initAI(){
-      const playBtn = $("#aiPlayBtn");
-      const dlg = $("#aiPicker");
-      const sel = $("#aiSheet");
-      const selN = $("#aiN");
-      const selTimer = $("#aiTimer");
-      const cancelBtn = $("#aiCancel");
-      const form = $("#aiForm");
+    async function loadViaGViz(tab){
+      const { cols, rows } = await gviz(tab);
+      const header = cols.map(c => (c||"").toLowerCase());
 
-      function getSheetNamesFromCards(){
-        return $$('a[href*="quiz.html?sheet="]')
-          .map(a => {
-            try{
-              const u = new URL(a.href, location.href);
-              return u.searchParams.get("sheet");
-            }catch(e){ return null }
-          })
-          .filter(Boolean);
+      const idxName = header.findIndex(h => /name/.test(h));
+      const idxTab  = header.findIndex(h => /(get|sheet|tab)/.test(h));
+      const idxDesc = header.findIndex(h => /(desc|description)/.test(h));
+
+      return rows.map(r => ({
+        name:  (r[idxName] || r[idxTab] || "").trim(),
+        sheet: (r[idxTab]  || r[idxName] || "").trim(),
+        desc:  (r[idxDesc] || "").trim()
+      })).filter(x => x.sheet && x.name);
+    }
+
+    async function loadViaCSV(tab){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw new Error("CSV fetch failed");
+      const text = await res.text();
+
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      if(!lines.length) return [];
+
+      const headers = lines.shift().split(",").map(h=>h.trim().toLowerCase());
+      const idxName = headers.findIndex(h => /name/.test(h));
+      const idxTab  = headers.findIndex(h => /(get|sheet|tab)/.test(h));
+      const idxDesc = headers.findIndex(h => /(desc|description)/.test(h));
+
+      const parseCSVLine = (line)=>
+        line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,""));
+
+      const rows = lines.map(parseCSVLine);
+
+      return rows.map(c => ({
+        name:  (c[idxName] || c[idxTab] || "").trim(),
+        sheet: (c[idxTab]  || c[idxName] || "").trim(),
+        desc:  (c[idxDesc] || "").trim(),
+      })).filter(x => x.sheet && x.name);
+    }
+
+    function renderCategories(all){
+      const cont  = $("#cats");
+      const count = $("#catCount");
+
+      if(!all.length){
+        cont.innerHTML = `<div class="muted">
+          Unable to load categories. Make sure the sheet is <b>Published to the web</b> (entire document) and the tab is named <b>${CATEGORIES_TAB}</b>.
+        </div>`;
+        count.textContent = "(0)";
+        return;
       }
 
-      playBtn.addEventListener("click", async () => {
-        // use already-rendered cards
-        let names = getSheetNamesFromCards();
+      cont.innerHTML = all.map(x => `
+        <article class="cat">
+          <a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a>
+          <h3>${x.name}</h3>
+          <p>${x.desc || "From Google Sheets"}</p>
+        </article>
+      `).join("");
 
-        // fallback: fetch from sheet if grid not ready
-        if(names.length === 0){
-          const {cols, rows} = await gviz("Categories");
-          const idxDisplay = cols.findIndex(c => c.includes("name"));
-          const idxGet     = cols.findIndex(c => c.includes("get") || c.includes("tab"));
-          names = rows.map(r => (r[idxGet] || r[idxDisplay] || "").toString().trim()).filter(Boolean);
-        }
+      count.textContent = `(${all.length})`;
 
-        if(names.length === 0){
-          // last fallback: open info
-          location.href = "ai.html";
-          return;
-        }
-
-        sel.innerHTML = names.map(n => `<option value="${n}">${n}</option>`).join("");
-        if(typeof dlg.showModal === "function"){ dlg.showModal(); }
-        else {
-          const picked = prompt("Type a category name:", names[0]);
-          if(picked){
-            const url = new URL("ai.html", location.href);
-            url.searchParams.set("sheet", picked);
-            url.searchParams.set("n", selN.value || "10");
-            const t = selTimer.value ? (parseInt(selTimer.value,10)*60) : "";
-            if(t) url.searchParams.set("timer", t);
-            location.href = url.toString();
-          }
-        }
+      // client-side search
+      $("#q").addEventListener("input", (e)=>{
+        const q = e.target.value.toLowerCase();
+        $$(".cat").forEach(card=>{
+          const text = card.querySelector("h3").textContent.toLowerCase();
+          card.style.display = text.includes(q) ? "" : "none";
+        });
       });
+    }
 
-      cancelBtn.addEventListener("click", ()=> dlg.close());
-
-      form.addEventListener("submit", (e)=>{
-        e.preventDefault();
-        const sheet = sel.value;
-        const n = selN.value || "";
-        const tMin = selTimer.value || "";
-        const url = new URL("ai.html", location.href);
-        url.searchParams.set("sheet", sheet);
-        if(n) url.searchParams.set("n", n);
-        if(tMin){
-          const sec = parseInt(tMin,10) * 60;
-          if(sec) url.searchParams.set("timer", sec);
-        }
-        location.href = url.toString();
-      });
-    })();
-
-    // boot
+    // kick off
     loadCategories();
   </script>
 </body>
