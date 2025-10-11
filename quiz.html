@@ -37,7 +37,7 @@
                   linear-gradient(180deg,var(--bg),var(--bg-2));
     }
 
-    /* Header (mobile-optimized and shared across pages) */
+    /* Header (shared) */
     .site-header{position:sticky; top:0; z-index:50; backdrop-filter:saturate(1.1) blur(10px);
       background:linear-gradient(180deg, var(--glass-2), transparent); border-bottom:1px solid rgba(255,255,255,.12);}
     .nav{max-width:1200px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
@@ -151,13 +151,12 @@
     const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
     const CATEGORIES_TAB = "Categories";
 
-    /* Fallback list: if the Categories tab can't be read, we’ll try these tabs in order.
-       >>> IMPORTANT: put your real quiz sheet names here. <<<
-       Example:
-       const FALLBACK_TABS = ["GST Malayalam","Malayalam GK","India Facts","Biology"];
-    */
+    /* If *everything* fails, we try these in order. Put your real quiz tabs here. */
     const FALLBACK_TABS = [
-      /* e.g. "GST Malayalam","Malayalam GK" */
+      // "GST Malayalam",
+      // "Malayalam GK",
+      // "India Facts",
+      // "Biology"
     ];
 
     /* ================ Helpers ================ */
@@ -165,16 +164,26 @@
     const splash = $("#splash"), splashLabel = $("#splashLabel");
     function showSplash(on, text="Loading…"){ splashLabel.textContent=text; splash.classList.toggle("on", !!on); }
 
+    // GViz
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-    async function gviz(tab){
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+    async function gvizBySheet(sheet){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(sheet)}&tq=${encodeURIComponent("select *")}`;
       const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c=> (c.label||"").trim());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-    // CSV helpers for categories
+    async function gvizByGid(gid){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?gid=${encodeURIComponent(gid)}&tq=${encodeURIComponent("select *")}`;
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch gid failed");
+      const raw = await res.text(); const json = stripGVizJSON(raw);
+      const cols = json.table.cols.map(c=> (c.label||"").trim());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+      return {cols, rows};
+    }
+
+    // CSV helpers for Categories
     function splitCSV(line){ const re=/(?:[^,"\\]|\\.|"(?:\\.|[^"])*")+/g; return (line.match(re)||[]).map(s=>s.replace(/^"|"$/g,"").trim()); }
     function parseCSV(txt){
       const lines=txt.split(/\r?\n/).filter(Boolean); if(!lines.length) return {head:[],rows:[]};
@@ -197,12 +206,33 @@
         if(arr.length) return arr;
       }catch(e){ /* csv failed, try gviz */ }
       try{
-        const {cols,rows}=await gviz(CATEGORIES_TAB); const {idxName,idxTab,idxDesc}=pickColsForCategories(cols);
+        const {cols,rows}=await gvizBySheet(CATEGORIES_TAB);
+        const {idxName,idxTab,idxDesc}=pickColsForCategories(cols);
         return rows.map(r=>({name:r[idxName]||"",sheet:r[idxTab]||"",desc:(idxDesc>-1?r[idxDesc]:"")})).filter(x=>x.name&&x.sheet);
       }catch(err){ return []; }
     }
 
-    // flexible column detection for questions
+    // Published HTML crawler → returns [{name,gid}]
+    async function listTabsFromPubHtml(){
+      try{
+        const url=`https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/pubhtml`;
+        const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("pubhtml fetch failed");
+        const html=await res.text();
+        // Look for links like <a href="#gid=123456789">Sheet Name</a>
+        const rx=/#gid=(\d+)[^>]*>([^<]+)</g;
+        const out=[]; let m;
+        while((m=rx.exec(html))!==null){
+          const gid=m[1]; const name=m[2].trim();
+          if(name) out.push({name,gid});
+        }
+        // Remove duplicates
+        const seen=new Set(), unique=[];
+        for(const t of out){ const key=t.name+"|"+t.gid; if(!seen.has(key)){ seen.add(key); unique.push(t); } }
+        return unique;
+      }catch(e){ return []; }
+    }
+
+    // Question mapping (flexible)
     const rxQ = /(question|ques|qst|ചോദ്യ|പ്രശ്ന)/i;
     const rxA = /(answer|ans|correct|key|ഉത്തരം)/i;
     const rxOpt = /(opt|option|choice)/i;
@@ -352,53 +382,86 @@
     prevBtn.addEventListener('click',prev); nextBtn.addEventListener('click',next);
     showBtn.addEventListener('click',showAnswer); quitBtn.addEventListener('click',showSummary);
 
-    /* ============== Boot ============== */
-    async function loadFromTab(tabName, displayName){
-      const {cols,rows}=await gviz(tabName);
-      let items = mapQuestionsFlexible(cols, rows);
-      items = items.filter(x=>x.q && (x.a || (x.opts && x.opts.length)));
-      items = shuffle(items).slice(0, Math.min(limitN, items.length));
-      return {items, displayName: displayName||tabName};
+    /* ========= Data loaders used by Random ========= */
+
+    async function tryLoadBySheetName(sheetName){
+      try{
+        const {cols, rows} = await gvizBySheet(sheetName);
+        let items = mapQuestionsFlexible(cols, rows);
+        items = items.filter(x=>x.q && (x.a || (x.opts && x.opts.length)));
+        return items;
+      }catch(e){ return []; }
+    }
+    async function tryLoadByGidRecord(rec){
+      try{
+        const {cols, rows} = await gvizByGid(rec.gid);
+        let items = mapQuestionsFlexible(cols, rows);
+        items = items.filter(x=>x.q && (x.a || (x.opts && x.opts.length)));
+        return items;
+      }catch(e){ return []; }
     }
 
+    function shuffleCopy(arr){ return shuffle(arr.slice()); }
+
+    /* ============== Boot ============== */
     async function main(){
       showSplash(true,"Loading quiz…");
-      const mode = new URLSearchParams(location.search).get('mode') || 'sheet';
-      const sheetParam = new URLSearchParams(location.search).get('sheet') || '';
-      const nParam = new URLSearchParams(location.search).get('n') || 'N';
-      const limitN = (String(nParam).toUpperCase() === 'N') ? Infinity : Math.max(1, parseInt(nParam, 10) || 5);
-      const timerSeconds = parseInt(new URLSearchParams(location.search).get('timer') || '0', 10);
 
       let workingItems=[], title="";
-
       if(mode==='random'){
-        // 1) Try Categories
-        let cats = await fetchCategories();
-        // 2) If missing, use fallback list
-        if(!cats.length && FALLBACK_TABS.length){
-          cats = FALLBACK_TABS.map(n=>({name:n, sheet:n}));
-          console.warn("[Random] Using FALLBACK_TABS because Categories could not be loaded.");
+        // 1) Categories
+        let catRecords = await fetchCategories(); // [{name, sheet}]
+        // Remove obviously non-quiz tabs if present
+        const EXCLUDE = new Set(["categories","study material","exam notifications","resources","readme","config","sample","sheet1","sheet2"]);
+        catRecords = catRecords.filter(c => !EXCLUDE.has((c.sheet||"").toLowerCase()));
+
+        if(catRecords.length){
+          for(const rec of shuffleCopy(catRecords)){
+            const items = await tryLoadBySheetName(rec.sheet);
+            if(items.length){ workingItems=items; title=rec.name||rec.sheet; break; }
+          }
         }
 
-        // Shuffle categories and try one by one until we get questions
-        cats = shuffle(cats.slice());
-        for(const c of cats){
-          try{
-            const {items, displayName} = await loadFromTab(c.sheet, c.name || c.sheet);
-            if(items.length){ workingItems = items; title = displayName; break; }
-          }catch(e){ /* try next */ }
+        // 2) If still empty, crawl pubhtml and try by gid/name
+        if(!workingItems.length){
+          const pubTabs = await listTabsFromPubHtml(); // [{name,gid}]
+          // filter out known non-quiz tabs
+          const cand = pubTabs.filter(t => !EXCLUDE.has(t.name.toLowerCase()));
+          for(const rec of shuffleCopy(cand)){
+            const items = await tryLoadByGidRecord(rec);
+            if(items.length){ workingItems=items; title=rec.name; break; }
+          }
         }
-      }else{
+
+        // 3) Last resort: hard-coded list
+        if(!workingItems.length && FALLBACK_TABS.length){
+          for(const name of shuffleCopy(FALLBACK_TABS)){
+            const items = await tryLoadBySheetName(name);
+            if(items.length){ workingItems=items; title=name; break; }
+          }
+        }
+
+      } else {
+        // specific sheet mode
         if(!sheetParam) throw new Error("No category selected.");
-        const res = await loadFromTab(sheetParam, sheetParam);
-        workingItems = res.items; title = res.displayName;
+        const {cols,rows} = await gvizBySheet(sheetParam);
+        let items=mapQuestionsFlexible(cols,rows);
+        items = items.filter(x=>x.q && (x.a || (x.opts && x.opts.length)));
+        workingItems=items; title=sheetParam;
       }
 
       if(!workingItems.length){
-        throw new Error("No questions found in this tab (or Categories couldn’t be read). " +
-                        "If you’re using Random, either publish the sheet to the web (entire document) " +
-                        "so the Categories tab is readable, or add your quiz tab names to FALLBACK_TABS in quiz.html.");
+        throw new Error(
+          "No questions found. To fix Random:\n" +
+          "• Publish the sheet to the web (entire document)\n" +
+          "• Ensure a tab named ‘Categories’ exists with name + get/sheet columns\n" +
+          "• Or add your quiz tab names to FALLBACK_TABS in quiz.html\n" +
+          "• Also make sure at least one tab actually contains question/answer data."
+        );
       }
+
+      // limit and shuffle
+      workingItems = shuffle(workingItems).slice(0, Math.min(workingItems.length, (String(nParam).toUpperCase()==="N")?workingItems.length:Math.max(1,parseInt(nParam,10)||5)));
 
       questions=workingItems; picked=new Array(questions.length).fill(""); correct=new Array(questions.length).fill(false);
 
@@ -419,7 +482,7 @@
       $("#progressCard").style.display="none";
       const s=$("#summary"); s.style.display="block";
       s.innerHTML=`<h3>Couldn’t start the quiz</h3>
-        <p style="color:var(--muted);font-weight:700">${err.message}</p>
+        <p style="color:var(--muted);font-weight:700;white-space:pre-line">${err.message}</p>
         <div class="toolbar" style="justify-content:flex-start">
           <a class="btn btn--light" href="index.html">← Home</a>
         </div>`;
