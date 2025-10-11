@@ -1,147 +1,90 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>PSC Guru — Quiz</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-<style>
-  :root{
-    --bg: #f2f8f4; --bg-2: #eaf4ef;
-    --glass: rgba(255,255,255,.85);
-    --card:#ffffff;
-    --text:#0f2d1f; --muted:#5f726a;
-    --brand:#0f8346; --brand-600:#0b5f34;
-    --ring: rgba(15,131,70,.22);
-    --good:#14a44d; --bad:#e53935;
-    --r: 18px;
-    --shadow: 0 20px 40px rgba(30,70,50,.12);
-    --barTrack:#e9f7e8; --barFill:#79c07d;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;font:400 16px/1.55 Inter,system-ui,-apple-system,"Segoe UI",Roboto,"Helvetica Neue",Arial;
-       color:var(--text);background:linear-gradient(180deg,var(--bg),var(--bg-2));}
-  .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz — PSC Guru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  /* ===== Top Bar (same as home) ===== */
-  .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
-  .brand{display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
-         background:var(--glass);box-shadow:var(--shadow)}
-  .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
-        font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
-  .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
-  .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
-  .links{margin-left:auto;display:flex;gap:10px}
-  .pill{padding:8px 14px;border-radius:999px;background:#fff;font-weight:700;
-        border:1px solid #e9eee9;box-shadow:var(--shadow);text-decoration:none;color:var(--text)}
-  .pill.active{background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;border:none}
+  <style>
+    :root{
+      --bg:#f2f8f4; --bg-2:#eaf4ef; --text:#0f2d1f; --muted:#5f726a;
+      --brand:#0f8346; --brand-600:#0b5f34; --shadow:0 20px 40px rgba(30,70,50,.15);
+      --glass-2:rgba(255,255,255,.85); --ring:rgba(15,131,70,.22);
+    }
+    *{box-sizing:border-box} html,body{height:100%}
+    body{
+      margin:0; font:400 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+      color:var(--text);
+      background:
+        radial-gradient(1200px 700px at 20% -10%, #eaf8f1, transparent),
+        radial-gradient(1200px 700px at 80% -10%, #dff6ef, transparent),
+        linear-gradient(180deg, #f2f8f4, #eaf4ef);
+    }
+    .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
 
-  /* ===== Quiz ===== */
-  h2.title{font-size:26px;margin:6px 0 14px;font-weight:800}
-  .card{background:#fff;border:1px solid #e9eee9;border-radius:18px;box-shadow:var(--shadow);
-        padding:18px 18px;margin-bottom:14px}
-  .qhead{display:flex;justify-content:space-between;gap:10px;align-items:center;margin-bottom:10px}
-  .qnum{font-weight:800;color:var(--muted)}
-  .timer{font-weight:800;color:var(--brand-600)}
-  .qtxt{font-size:18px;font-weight:700;margin:8px 0 14px}
+    /* top bar (same as home) */
+    .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
+    .brand{
+      display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
+      background:var(--glass-2); backdrop-filter: blur(10px); box-shadow: var(--shadow);
+    }
+    .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
+      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
+    .brand h1{font-size:18px;margin:0;font-weight:800}
+    .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+    .links{margin-left:auto;display:flex;gap:10px}
+    .pill{padding:8px 14px;border-radius:999px;background:var(--glass-2);backdrop-filter:blur(8px);
+      font-weight:700;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.05);text-decoration:none;color:var(--text)}
+    .pill.active{background:#e7f6ee;border-color:#cfead9}
 
-  .opt{border:1px solid #e9eee9;border-radius:12px;padding:12px 14px;margin:10px 0;cursor:pointer;
-       transition:.15s ease;background:#fff}
-  .opt:hover{transform:translateY(-1px)}
-  .opt.correct{background:#e8f7ee;border-color:#9fe3c2;box-shadow:0 0 0 4px rgba(20,164,77,.12) inset}
-  .opt.wrong{background:#fde8e7;border-color:#f5a3a0;box-shadow:0 0 0 4px rgba(229,57,53,.10) inset}
-  .opt.disabled{pointer-events:none;opacity:.85}
+    h2{margin:8px 0 18px}
 
-  /* progress row like screenshot */
-  .progressRow{
-    display:flex;align-items:center;gap:14px;margin:8px 0 18px;
-  }
-  .progressRow .left{white-space:nowrap;font-weight:700;color:var(--muted)}
-  .progBar{
-    flex:1;height:8px;border-radius:999px;background:var(--barTrack);
-    position:relative;overflow:hidden;
-  }
-  .progFill{
-    position:absolute;left:0;top:0;height:100%;width:0%;
-    background:var(--barFill);border-radius:999px;transition:width .25s ease;
-  }
-  .pager{display:flex;align-items:center;gap:10px}
-  .pageTag{background:#e6f4e5;border:1px solid #d5ebd3;color:#0b5f34;border-radius:12px;
-          padding:6px 12px;font-weight:800}
+    .q-card{
+      background:var(--glass-2); border:1px solid rgba(0,0,0,.06);
+      box-shadow:var(--shadow); border-radius:18px; padding:18px;
+    }
+    .opts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .opt{
+      padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.08); background:white;
+      cursor:pointer; font-weight:600;
+    }
+    .opt.wrong{background:#fff5f5;border-color:#ffcfcf}
+    .opt.right{background:#eefcf4;border-color:#a6e8c6}
+    .toolbar{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin:14px 0}
+    .btn{display:inline-flex;gap:8px;align-items:center;border:none;border-radius:12px;padding:10px 14px;
+      background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;font-weight:900;box-shadow:0 10px 25px var(--ring);cursor:pointer}
+    .btn-ghost{background:white;border:1px solid rgba(0,0,0,.08);color:var(--text)}
+    .muted{color:var(--muted);font-weight:700}
 
-  /* bottom controls near card (sticky) */
-  .controls{display:flex;gap:10px;align-items:center;justify-content:center;position:sticky;bottom:10px;margin-top:10px}
-  .btn{display:inline-flex;align-items:center;gap:8px;font-weight:900;padding:10px 16px;border-radius:12px;
-       border:none;background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;
-       cursor:pointer;box-shadow:0 10px 25px var(--ring)}
-  .btn:hover{filter:brightness(1.05)}
-  .btn-ghost{background:#fff;border:1px solid #e9eee9;color:var(--text)}
-  .btn-icon{border-radius:999px;padding:10px 14px}
-  .muted{color:var(--muted);font-weight:700}
-  .alert{background:#fff5e9;border:1px solid #ffdcb5;border-radius:12px;padding:12px 14px;color:#6e4500}
-  .hidden{display:none}
-</style>
-
-<!-- ========== RANDOM MODE RESOLVER (fix for ?mode=random) ========== -->
-<script>
-const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
-const CATEGORIES_TAB = "Categories";
-
-function _stripGVizJSON(txt){ const s = txt.indexOf('{'); const e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-function _csvSplit(line){ return line.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")); }
-
-async function _catsFromCSV(){
-  if(!GS_PUB_EKEY) return [];
-  try{
-    const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(CATEGORIES_TAB)}`;
-    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw 0;
-    const text = await res.text();
-    const lines = text.trim().split(/\r?\n/);
-    const head  = _csvSplit(lines.shift()).map(h=>h.toLowerCase());
-    const iName = head.findIndex(h=>/name/.test(h));
-    const iTab  = head.findIndex(h=>/(get|sheet|tab)/.test(h));
-    return lines.map(l=>{
-      const r = _csvSplit(l);
-      return {name:(r[iName]||r[iTab]||"").trim(), sheet:(r[iTab]||r[iName]||"").trim()};
-    }).filter(x=>x.sheet);
-  }catch{return []}
-}
-async function _catsFromGViz(){
-  try{
-    const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(CATEGORIES_TAB)}&tq=${encodeURIComponent("select *")}`;
-    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw 0;
-    const json = _stripGVizJSON(await res.text());
-    const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
-    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
-    const iName = cols.findIndex(h=>/name/.test(h));
-    const iTab  = cols.findIndex(h=>/(get|sheet|tab)/.test(h));
-    return rows.map(r=>({name:(r[iName]||r[iTab]||"").trim(), sheet:(r[iTab]||r[iName]||"").trim()}))
-               .filter(x=>x.sheet);
-  }catch{return []}
-}
-
-(async function resolveRandom(){
-  const qs = new URLSearchParams(location.search);
-  const mode = (qs.get("mode")||"").toLowerCase();
-  if(mode!=="random" || qs.get("sheet")) return;
-
-  let cats = await _catsFromCSV();
-  if(!cats.length) cats = await _catsFromGViz();
-  if(!cats.length) return; // page will show "No category selected"
-
-  const pick = cats[Math.floor(Math.random()*cats.length)].sheet;
-  qs.set("sheet", pick);
-  location.replace(`${location.pathname}?${qs.toString()}`);
-})();
-</script>
+    /* Splash (reused) */
+    #splash{position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;
+      background:radial-gradient(1200px 700px at 20% -10%, #eaf8f1, transparent), radial-gradient(1200px 700px at 80% -10%, #dff6ef, transparent),
+      linear-gradient(180deg, #f2f8f4, #eaf4ef); transition: opacity .35s ease; opacity:1;}
+    #splash.hide{opacity:0; pointer-events:none}
+    .splash-card{display:flex;flex-direction:column;align-items:center;gap:14px; padding:22px;border-radius:16px;background:var(--glass-2);
+      box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.05)}
+    .splash-logo{height:44px;width:44px;border-radius:14px;display:grid;place-items:center;font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b)}
+    .spinner{width:30px;height:30px;border-radius:50%;border:3px solid rgba(15,131,70,.18);border-top-color:#0f8346;animation:spin 1s linear infinite}
+    .splash-msg{margin:0;color:#5f726a;font-weight:700}
+    @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+  </style>
 </head>
 <body>
-  <div class="wrap">
+  <!-- Splash overlay -->
+  <div id="splash" aria-live="polite" aria-busy="true">
+    <div class="splash-card">
+      <div class="splash-logo">PSC</div>
+      <h3 class="splash-title">PSC Guru</h3>
+      <div class="spinner" aria-hidden="true"></div>
+      <p id="splashMsg" class="splash-msg">Loading questions…</p>
+    </div>
+  </div>
 
-    <!-- Top Bar (same across pages) -->
+  <div class="wrap">
+    <!-- Same header as home -->
     <div class="bar">
       <div class="brand">
         <div class="logo">PSC</div>
@@ -158,190 +101,201 @@ async function _catsFromGViz(){
       </nav>
     </div>
 
-    <h2 class="title">Quiz</h2>
+    <h2>Quiz</h2>
 
-    <div id="quizBox" class="card">
-      <div id="alert" class="alert hidden"></div>
-      <div class="qhead">
-        <div class="qnum" id="qnum">Question —</div>
-        <div class="timer" id="timer"></div>
-      </div>
-      <div class="qtxt" id="qtxt">Loading…</div>
-      <div id="opts"></div>
-    </div>
-
-    <!-- Progress row (like your screenshot) -->
-    <div class="progressRow">
-      <div class="left" id="progressLabel">Showing – / –</div>
-      <div class="progBar"><div id="progFill" class="progFill"></div></div>
-      <div class="pager">
-        <button id="prevBtnTop" class="btn btn-ghost">← Previous</button>
-        <span id="pageInfo" class="pageTag">Page 1 / 1</span>
-        <button id="nextBtnTop" class="btn">Next →</button>
-      </div>
-    </div>
-
-    <!-- Sticky control row (keep Show Answer near the card) -->
-    <div class="controls">
+    <div class="toolbar">
+      <button id="prevBtn" class="btn btn-ghost">← Prev</button>
       <button id="revealBtn" class="btn btn-ghost">Show Answer</button>
+      <button id="nextBtn" class="btn">Next →</button>
     </div>
 
+    <div class="q-card" id="qCard">
+      <div class="muted" id="qMeta">Loading…</div>
+      <h3 id="qTitle" style="margin:10px 0 0">—</h3>
+      <div class="opts" id="opts"></div>
+    </div>
   </div>
 
-<script>
-/* ================== CONFIG ================== */
-const SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+  <script>
+    /* ==== same sheet config ==== */
+    const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+    const CATEGORIES_TAB = "Categories";
 
-/* ================== Utilities ================== */
-const $ = sel => document.querySelector(sel);
-function stripGVizJSON(txt){ const s = txt.indexOf('{'); const e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]] } return a }
-function sample(arr, n){ if(!n || isNaN(n)) return arr.slice(); return shuffle(arr.slice()).slice(0,Math.max(1,Math.min(+n,arr.length))); }
-
-/* ================== State ================== */
-const qs = new URLSearchParams(location.search);
-const mode = (qs.get("mode")||"").toLowerCase();
-const sheet = qs.get("sheet");          // resolved for random
-const N     = qs.get("n");              // how many
-let idx = 0, data = [], revealed = false;
-
-/* ================== Load Questions ================== */
-async function fetchSheetTab(tab){
-  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-  const res = await fetch(url,{cache:"no-store"});
-  if(!res.ok) throw new Error("Failed to load sheet");
-  const json = stripGVizJSON(await res.text());
-  const cols = json.table.cols.map(c => (c.label||"").toLowerCase());
-  const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
-
-  const iQ = cols.findIndex(x=>/question/.test(x));
-  const iAns = cols.findIndex(x=>/answer/.test(x));
-  const iCorrect = cols.findIndex(x=>/^correct$/.test(x));
-  const oi = {
-    A: cols.findIndex(x=>/^opta$/i.test(x)),
-    B: cols.findIndex(x=>/^optb$/i.test(x)),
-    C: cols.findIndex(x=>/^optc$/i.test(x)),
-    D: cols.findIndex(x=>/^optd$/i.test(x))
-  };
-  if(iQ<0) throw new Error("No question column");
-
-  const out = rows.map(r=>{
-    const q = (r[iQ]||"").trim();
-    const answerText = (iAns>=0 ? r[iAns] : "").trim();
-    const correctLetter = (iCorrect>=0 ? (r[iCorrect]||"").trim().toUpperCase() : "");
-    const opts = [];
-    ["A","B","C","D"].forEach(L => { const ii = oi[L]; if(ii>=0 && r[ii]) opts.push({key:L, txt:r[ii]}); });
-    let correctTxt = answerText;
-    if(correctLetter && oi[correctLetter]>=0){ correctTxt = r[oi[correctLetter]]; }
-    return { q, opts, answer: (correctTxt||"").trim() };
-  }).filter(x=>x.q && (x.opts.length || x.answer));
-
-  return out;
-}
-
-/* ================== Render & Progress ================== */
-function updateProgress(){
-  if(!data.length) return;
-  const current = idx+1;
-  const total = data.length;
-  $("#progressLabel").textContent = `Showing ${current} / ${total}`;
-  $("#pageInfo").textContent = `Page ${current} / ${total}`;
-  const p = (current/total)*100;
-  $("#progFill").style.width = `${p}%`;
-}
-
-function render(){
-  const q = data[idx];
-  $("#qnum").textContent = `Question ${idx+1} / ${data.length}`;
-  $("#qtxt").textContent = q.q;
-
-  const optsBox = $("#opts");
-  optsBox.innerHTML = "";
-  const choices = q.opts.length ? q.opts.map(o=>o.txt) : [q.answer]; // fallback if only answer exists
-  const shuffled = shuffle(choices.slice());
-
-  shuffled.forEach(txt=>{
-    const div = document.createElement("div");
-    div.className = "opt";
-    div.textContent = txt;
-    div.addEventListener("click", ()=>check(div, q.answer));
-    optsBox.appendChild(div);
-  });
-
-  revealed = false;
-  $("#revealBtn").textContent = "Show Answer";
-  updateProgress();
-}
-
-function check(el, answer){
-  if(revealed) return;
-  const chosen = el.textContent.trim();
-  const isCorrect = chosen === answer;
-  el.classList.add(isCorrect ? "correct" : "wrong");
-  // also show the correct answer
-  [...document.querySelectorAll(".opt")].forEach(opt=>{
-    if(opt.textContent.trim() === answer){
-      opt.classList.add("correct");
+    /* ==== splash helpers ==== */
+    const splash = document.getElementById('splash');
+    const splashMsg = document.getElementById('splashMsg');
+    let splashSlowTimer;
+    function showSplash(msg="Loading questions…"){
+      splashMsg.textContent = msg;
+      splash.classList.remove('hide');
+      clearTimeout(splashSlowTimer);
+      splashSlowTimer = setTimeout(()=>{
+        if(!splash.classList.contains('hide')){
+          splashMsg.textContent = "Still loading… network might be slow.";
+        }
+      },5500);
     }
-    opt.classList.add("disabled");
-  });
-  revealed = true;
-}
+    function hideSplash(){
+      clearTimeout(splashSlowTimer);
+      splash.classList.add('hide');
+    }
 
-/* ================== Navigation ================== */
-function goPrev(){ if(idx>0){ idx--; render(); } }
-function goNext(){ if(idx < data.length-1){ idx++; render(); } }
+    /* ==== helpers to read sheets ==== */
+    function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+    async function gviz(tab){
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
+      const raw = await res.text(); const json = stripGVizJSON(raw);
+      const cols = json.table.cols.map(c => (c.label||"").trim());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+      return {cols, rows};
+    }
+    async function pubCsv(tab){
+      const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("CSV fetch failed");
+      return await res.text();
+    }
+    function parseCSV(text){
+      const lines = text.split(/\r?\n/).filter(Boolean);
+      const head  = lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim());
+      const rows  = lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
+      const h = head.map(x=>(x||"").toLowerCase());
+      const qi = h.findIndex(v=>/question|q\b/i.test(v));
+      const ai = h.findIndex(v=>/answer|ans\b/i.test(v));
+      const oi = h.map((v,i)=>(/opt|choice|option/.test(v) && i!==ai) ? i : -1).filter(i=>i>=0);
+      return rows.map(r=>({
+        q: r[qi]||"",
+        a: r[ai]||"",
+        opts: oi.map(i=>r[i]).filter(Boolean)
+      })).filter(x=>x.q && (x.a || x.opts.length));
+    }
 
-$("#revealBtn").addEventListener("click", ()=>{
-  if(revealed) return;
-  const ans = data[idx].answer;
-  [...document.querySelectorAll(".opt")].forEach(opt=>{
-    if(opt.textContent.trim() === ans) opt.classList.add("correct");
-    opt.classList.add("disabled");
-  });
-  revealed = true;
-  $("#revealBtn").textContent = "Answer Shown";
-});
-$("#prevBtnTop").addEventListener("click", goPrev);
-$("#nextBtnTop").addEventListener("click", goNext);
+    /* ==== quiz state ==== */
+    let questions = []; let idx = 0; let locked = false;
 
-/* ================== Timer (optional) ================== */
-(function setupTimer(){
-  const secs = parseInt(qs.get("timer")||"",10);
-  if(!secs || secs<=0){ $("#timer").textContent=""; return; }
-  let t = secs;
-  const fmt = s => {
-    const m = Math.floor(s/60), r = s%60;
-    return `${String(m).padStart(2,"0")}:${String(r).padStart(2,"0")}`;
-  };
-  $("#timer").textContent = fmt(t);
-  setInterval(()=>{
-    if(t>0){ t--; $("#timer").textContent = fmt(t); }
-  }, 1000);
-})();
+    function render(){
+      const q = questions[idx];
+      document.getElementById('qMeta').textContent = `Question ${idx+1} / ${questions.length}`;
+      document.getElementById('qTitle').textContent = q.q;
 
-/* ================== Boot ================== */
-(async function main(){
-  if(!sheet){
-    $("#alert").classList.remove("hidden");
-    $("#alert").textContent = "No category selected.";
-    $("#qtxt").textContent = "";
-    $("#opts").innerHTML = "";
-    return;
-  }
-  try{
-    let items = await fetchSheetTab(sheet);
-    if(!items.length) throw 0;
-    if(mode === "random") items = sample(items, parseInt(N||"",10));
-    data = items;
-    render();
-  }catch(e){
-    $("#alert").classList.remove("hidden");
-    $("#alert").textContent = "Failed to load this tab. Make sure the sheet is public and the tab name matches exactly.";
-    $("#qtxt").textContent = "";
-    $("#opts").innerHTML = "";
-  }
-})();
-</script>
+      const optsWrap = document.getElementById('opts');
+      optsWrap.innerHTML = "";
+
+      // mix correct with opts if answer not among options
+      let options = q.opts.slice();
+      if(q.a && !options.includes(q.a)) options.push(q.a);
+      // shuffle
+      options.sort(()=>Math.random()-0.5);
+
+      options.forEach(text=>{
+        const b = document.createElement('button');
+        b.className = "opt";
+        b.textContent = text;
+        b.onclick = ()=>{
+          if(locked) return;
+          locked = true;
+          if(text === q.a){
+            b.classList.add('right');
+          }else{
+            b.classList.add('wrong');
+            // also mark right
+            [...optsWrap.children].forEach(el=>{
+              if(el.textContent === q.a) el.classList.add('right');
+            });
+          }
+        };
+        optsWrap.appendChild(b);
+      });
+
+      locked = false;
+    }
+
+    document.getElementById('prevBtn').onclick = ()=>{
+      if(idx>0){ idx--; render(); }
+    };
+    document.getElementById('nextBtn').onclick = ()=>{
+      if(idx<questions.length-1){ idx++; render(); }
+    };
+    document.getElementById('revealBtn').onclick = ()=>{
+      const q = questions[idx];
+      [...document.querySelectorAll('.opt')].forEach(el=>{
+        if(el.textContent === q.a) el.classList.add('right');
+        else el.classList.add('wrong');
+      });
+      locked = true;
+    };
+
+    async function pickRandomSheet(){
+      // try CSV list first
+      try{
+        const csv = await pubCsv(CATEGORIES_TAB);
+        const items = parseCSV(csv); // returns [{q,a,opts}] here? No—we only need names; but Categories CSV has columns [name, sheet, desc]
+        // QUICK parse for (name, sheet) from raw CSV header:
+        const lines = csv.split(/\r?\n/).filter(Boolean);
+        const head = lines[0].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").toLowerCase());
+        const nameIdx = head.findIndex(h=>/name/.test(h));
+        const tabIdx  = head.findIndex(h=>/(sheet|get|tab)/.test(h));
+        const rows = lines.slice(1).map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
+        const cats = rows.map(r=>({name:r[nameIdx]||r[tabIdx]||"", sheet:r[tabIdx]||r[nameIdx]||""})).filter(x=>x.sheet);
+        return cats[Math.floor(Math.random()*cats.length)];
+      }catch(e){
+        const {cols, rows} = await gviz(CATEGORIES_TAB);
+        const h = cols.map(c=>(c||"").toLowerCase());
+        const nameIdx = h.findIndex(v=>/name/.test(v));
+        const tabIdx  = h.findIndex(v=>/(sheet|get|tab)/.test(v));
+        const cats = rows.map(r=>({name:r[tabIdx]||r[nameIdx]||"", sheet:r[tabIdx]||r[nameIdx]||""})).filter(x=>x.sheet);
+        return cats[Math.floor(Math.random()*cats.length)];
+      }
+    }
+
+    async function init(){
+      showSplash("Loading questions…");
+
+      try{
+        const p = new URLSearchParams(location.search);
+        let sheet = p.get('sheet');
+        const mode = p.get('mode');
+        const n = p.get('n');
+
+        if(mode === 'random' || (!sheet && !mode)){
+          const chosen = await pickRandomSheet();
+          sheet = chosen?.sheet;
+        }
+        if(!sheet) throw new Error("No category selected.");
+
+        // fetch questions from sheet
+        const {cols, rows} = await gviz(sheet);
+        // map to {q, a, opts}
+        const head = cols.map(c=>(c||"").toLowerCase());
+        const qi = head.findIndex(v=>/question|q\b/i.test(v));
+        const ai = head.findIndex(v=>/answer|ans\b/i.test(v));
+        const oi = head.map((v,i)=>(/opt|choice|option/.test(v) && i!==ai) ? i : -1).filter(i=>i>=0);
+        questions = rows.map(r=>({
+          q: r[qi]||"",
+          a: r[ai]||"",
+          opts: oi.map(i=>r[i]).filter(Boolean)
+        })).filter(x=>x.q && (x.a || x.opts.length));
+
+        // limit to n if needed
+        let count = (n && n !== 'N') ? Number(n) : questions.length;
+        if(Number.isFinite(count) && count > 0) {
+          // random sample
+          questions = questions.sort(()=>Math.random()-0.5).slice(0, count);
+        }
+
+        idx = 0;
+        render();
+      } catch(e){
+        console.error(e);
+        document.getElementById('qTitle').textContent = "No category selected.";
+        document.getElementById('opts').innerHTML = "";
+      } finally {
+        hideSplash();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', init);
+  </script>
 </body>
 </html>
