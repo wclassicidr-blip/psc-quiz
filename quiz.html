@@ -4,298 +4,272 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>Quiz — PSC Guru</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
+  <link rel="stylesheet" href="header.css">
+
   <style>
     :root{
-      --bg:#f2f8f4; --bg-2:#eaf4ef; --text:#0f2d1f; --muted:#5f726a;
-      --brand:#0f8346; --brand-600:#0b5f34; --shadow:0 20px 40px rgba(30,70,50,.15);
-      --glass-2:rgba(255,255,255,.85); --ring:rgba(15,131,70,.22);
+      --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --error:#d24747;
+      --card:#fff; --shadow:0 20px 40px rgba(30,70,50,.15);
+      --border: rgba(0,0,0,.06); --bg:#f5fbf7;
     }
-    *{box-sizing:border-box} html,body{height:100%}
-    body{
-      margin:0; font:400 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
-      color:var(--text);
-      background:
-        radial-gradient(1200px 700px at 20% -10%, #eaf8f1, transparent),
-        radial-gradient(1200px 700px at 80% -10%, #dff6ef, transparent),
-        linear-gradient(180deg, #f2f8f4, #eaf4ef);
-    }
-    .wrap{max-width:1200px;margin:0 auto;padding:22px 18px 72px}
+    *{box-sizing:border-box} body{margin:0;font:400 16px/1.55 Inter,system-ui;background:var(--bg);color:var(--text)}
+    .wrap{max-width:980px;margin:0 auto;padding:22px 16px 60px}
 
-    /* top bar (same as home) */
-    .bar{display:flex;gap:14px;align-items:center;margin-bottom:22px}
-    .brand{
-      display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
-      background:var(--glass-2); backdrop-filter: blur(10px); box-shadow: var(--shadow);
-    }
-    .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
-      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
-    .brand h1{font-size:18px;margin:0;font-weight:800}
-    .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
-    .links{margin-left:auto;display:flex;gap:10px}
-    .pill{padding:8px 14px;border-radius:999px;background:var(--glass-2);backdrop-filter:blur(8px);
-      font-weight:700;box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.05);text-decoration:none;color:var(--text)}
-    .pill.active{background:#e7f6ee;border-color:#cfead9}
+    .title{font-weight:800;font-size:28px;margin:6px 0 14px}
 
-    h2{margin:8px 0 18px}
+    .progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 0 12px}
+    .progress{height:8px;background:#e7f3ec;border-radius:999px;flex:1;overflow:hidden}
+    .bar{height:100%;width:0;background:#b8e5cc;border-radius:999px;transition:width .3s ease}
+    .paging{color:var(--muted);font-weight:800}
 
-    .q-card{
-      background:var(--glass-2); border:1px solid rgba(0,0,0,.06);
-      box-shadow:var(--shadow); border-radius:18px; padding:18px;
-    }
-    .opts{display:flex;flex-direction:column;gap:10px;margin-top:12px}
+    .qcard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    .qhead{color:var(--muted);font-size:14px;margin-bottom:8px}
+    .qtext{font-size:18px;font-weight:700;margin:6px 0 12px}
+
+    .opts{display:grid;gap:10px}
     .opt{
-      padding:12px 14px;border-radius:12px;border:1px solid rgba(0,0,0,.08); background:white;
-      cursor:pointer; font-weight:600;
+      border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;
+      cursor:pointer; user-select:none;
     }
-    .opt.wrong{background:#fff5f5;border-color:#ffcfcf}
-    .opt.right{background:#eefcf4;border-color:#a6e8c6}
-    .toolbar{display:flex;gap:12px;align-items:center;justify-content:flex-end;margin:14px 0}
-    .btn{display:inline-flex;gap:8px;align-items:center;border:none;border-radius:12px;padding:10px 14px;
-      background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;font-weight:900;box-shadow:0 10px 25px var(--ring);cursor:pointer}
-    .btn-ghost{background:white;border:1px solid rgba(0,0,0,.08);color:var(--text)}
-    .muted{color:var(--muted);font-weight:700}
+    .opt:hover{box-shadow:0 6px 16px rgba(30,70,50,.10)}
+    .opt.correct{border-color:#8bd2a8;background:#ecfff4}
+    .opt.wrong{border-color:#f1b6b6;background:#fff4f4}
 
-    /* Splash (reused) */
-    #splash{position:fixed; inset:0; z-index:9999; display:flex; align-items:center; justify-content:center; flex-direction:column;
-      background:radial-gradient(1200px 700px at 20% -10%, #eaf8f1, transparent), radial-gradient(1200px 700px at 80% -10%, #dff6ef, transparent),
-      linear-gradient(180deg, #f2f8f4, #eaf4ef); transition: opacity .35s ease; opacity:1;}
-    #splash.hide{opacity:0; pointer-events:none}
-    .splash-card{display:flex;flex-direction:column;align-items:center;gap:14px; padding:22px;border-radius:16px;background:var(--glass-2);
-      box-shadow:var(--shadow);border:1px solid rgba(0,0,0,.05)}
-    .splash-logo{height:44px;width:44px;border-radius:14px;display:grid;place-items:center;font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b)}
-    .spinner{width:30px;height:30px;border-radius:50%;border:3px solid rgba(15,131,70,.18);border-top-color:#0f8346;animation:spin 1s linear infinite}
-    .splash-msg{margin:0;color:#5f726a;font-weight:700}
-    @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
+    .controls{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
+    .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+
+    .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
+    .splash.on{display:grid}
+    .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #d9f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+
+    .notice{padding:12px;border-radius:10px;border:1px solid #f7d6b5;background:#fff7ed;color:#7a4c22}
   </style>
 </head>
 <body>
-  <!-- Splash overlay -->
-  <div id="splash" aria-live="polite" aria-busy="true">
-    <div class="splash-card">
-      <div class="splash-logo">PSC</div>
-      <h3 class="splash-title">PSC Guru</h3>
-      <div class="spinner" aria-hidden="true"></div>
-      <p id="splashMsg" class="splash-msg">Loading questions…</p>
-    </div>
-  </div>
+  <!-- shared header -->
+  <script defer src="header.js"></script>
 
   <div class="wrap">
-    <!-- Same header as home -->
-    <div class="bar">
-      <div class="brand">
-        <div class="logo">PSC</div>
-        <div>
-          <h1>PSC Guru</h1>
-          <small>Kerala PSC Exam Prep</small>
-        </div>
-      </div>
-      <nav class="links">
-        <a class="pill" href="index.html">Home</a>
-        <a class="pill active" href="quiz.html">Quiz</a>
-        <a class="pill" href="resources.html">Study</a>
-        <a class="pill" href="notices.html">Notices</a>
-      </nav>
+    <h1 class="title">Quiz</h1>
+
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <span class="paging" id="paging">Page 1 / 1</span>
     </div>
 
-    <h2>Quiz</h2>
+    <div id="panel"></div>
 
-    <div class="toolbar">
-      <button id="prevBtn" class="btn btn-ghost">← Prev</button>
-      <button id="revealBtn" class="btn btn-ghost">Show Answer</button>
-      <button id="nextBtn" class="btn">Next →</button>
-    </div>
-
-    <div class="q-card" id="qCard">
-      <div class="muted" id="qMeta">Loading…</div>
-      <h3 id="qTitle" style="margin:10px 0 0">—</h3>
-      <div class="opts" id="opts"></div>
+    <div class="controls" id="controls" hidden>
+      <button class="btn" id="prevBtn">← Previous</button>
+      <button class="btn" id="revealBtn">Show Answer</button>
+      <button class="btn primary" id="nextBtn">Next →</button>
     </div>
   </div>
 
+  <div class="splash" id="splash"><div class="spinner" aria-label="Loading"></div></div>
+
   <script>
-    /* ==== same sheet config ==== */
+    /* ================== CONFIG ================== */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
     const CATEGORIES_TAB = "Categories";
 
-    /* ==== splash helpers ==== */
-    const splash = document.getElementById('splash');
-    const splashMsg = document.getElementById('splashMsg');
-    let splashSlowTimer;
-    function showSplash(msg="Loading questions…"){
-      splashMsg.textContent = msg;
-      splash.classList.remove('hide');
-      clearTimeout(splashSlowTimer);
-      splashSlowTimer = setTimeout(()=>{
-        if(!splash.classList.contains('hide')){
-          splashMsg.textContent = "Still loading… network might be slow.";
-        }
-      },5500);
-    }
-    function hideSplash(){
-      clearTimeout(splashSlowTimer);
-      splash.classList.add('hide');
-    }
+    // Helpers
+    const $ = sel => document.querySelector(sel);
+    const panel = $('#panel');
+    const splash = $('#splash');
+    const bar = $('#bar');
+    const paging = $('#paging');
+    const progressWrap = $('#progressWrap');
+    const prevBtn = $('#prevBtn');
+    const nextBtn = $('#nextBtn');
+    const revealBtn = $('#revealBtn');
+    const controls = $('#controls');
 
-    /* ==== helpers to read sheets ==== */
+    const params = new URLSearchParams(location.search);
+    const sheet = params.get('sheet');
+    const mode = params.get('mode'); // "random" or undefined
+    const N = params.get('n');       // requested number of Qs
+
+    let questions = [];
+    let i = 0, score = 0, revealed = false;
+
+    // Splash helpers
+    function showSplash(on){ splash.classList.toggle('on', !!on); }
+
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz failed");
       const raw = await res.text(); const json = stripGVizJSON(raw);
-      const cols = json.table.cols.map(c => (c.label||"").trim());
+      const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-    async function pubCsv(tab){
-      const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
-      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("CSV fetch failed");
-      return await res.text();
-    }
-    function parseCSV(text){
-      const lines = text.split(/\r?\n/).filter(Boolean);
-      const head  = lines.shift().split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").trim());
-      const rows  = lines.map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
-      const h = head.map(x=>(x||"").toLowerCase());
-      const qi = h.findIndex(v=>/question|q\b/i.test(v));
-      const ai = h.findIndex(v=>/answer|ans\b/i.test(v));
-      const oi = h.map((v,i)=>(/opt|choice|option/.test(v) && i!==ai) ? i : -1).filter(i=>i>=0);
-      return rows.map(r=>({
-        q: r[qi]||"",
-        a: r[ai]||"",
-        opts: oi.map(i=>r[i]).filter(Boolean)
-      })).filter(x=>x.q && (x.a || x.opts.length));
+
+    async function chooseRandomSheet(){
+      const {cols, rows} = await gviz(CATEGORIES_TAB);
+      const idxTab = cols.findIndex(t => /(get|sheet|tab)/.test(t));
+      const sheets = rows.map(r => (r[idxTab]||"").trim()).filter(Boolean);
+      if(!sheets.length) throw new Error("No categories found");
+      return sheets[Math.floor(Math.random()*sheets.length)];
     }
 
-    /* ==== quiz state ==== */
-    let questions = []; let idx = 0; let locked = false;
+    function shuffle(arr){
+      const a = [...arr];
+      for(let i=a.length-1;i>0;i--){
+        const j = Math.floor(Math.random()*(i+1));
+        [a[i],a[j]]=[a[j],a[i]];
+      }
+      return a;
+    }
+
+    function mapToQuestions(cols, rows){
+      const h = name => cols.findIndex(c => c === name);
+      const idxQ = h('question');
+      const idxA = h('answer');
+      const idxA1 = h('opta'), idxB1 = h('optb'), idxC1 = h('optc'), idxD1 = h('optd');
+
+      return rows.map(r=>{
+        const q = (r[idxQ]||"").trim();
+        const ans = (r[idxA]||"").trim();
+        const opts = [r[idxA1], r[idxB1], r[idxC1], r[idxD1]].map(x=> (x||"").trim()).filter(Boolean);
+
+        if(!q || !opts.length || !ans) return null;
+
+        // find correct option index with robust matching
+        let correct = -1;
+        const ansU = ans.toUpperCase();
+        if(['A','B','C','D'].includes(ansU)) correct = "ABCD".indexOf(ansU);
+        else correct = opts.findIndex(o => o.trim().toLowerCase() === ans.trim().toLowerCase());
+        if(correct < 0) correct = 0; // fallback
+
+        // shuffle options while keeping correctness
+        const pairs = opts.map((t,idx)=>({t,idx}));
+        const shuffled = shuffle(pairs);
+        const newOpts = shuffled.map(p=>p.t);
+        const newCorrect = shuffled.findIndex(p=>p.idx===correct);
+
+        return { q, opts:newOpts, correct:newCorrect };
+      }).filter(Boolean);
+    }
+
+    function sample(arr, n){
+      if(!n || String(n).toUpperCase()==='N') return arr;
+      const a=[...arr]; const out=[];
+      for(let k=0;k<n && a.length;k++){
+        out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);
+      }
+      return out;
+    }
 
     function render(){
-      const q = questions[idx];
-      document.getElementById('qMeta').textContent = `Question ${idx+1} / ${questions.length}`;
-      document.getElementById('qTitle').textContent = q.q;
+      if(!questions.length){
+        panel.innerHTML = `<div class="notice">No questions available.</div>`;
+        controls.hidden = true;
+        progressWrap.hidden = true;
+        return;
+      }
+      const q = questions[i];
+      progressWrap.hidden = false;
+      bar.style.width = `${((i+1)/questions.length)*100}%`;
+      paging.textContent = `Page ${i+1} / ${questions.length}`;
 
-      const optsWrap = document.getElementById('opts');
-      optsWrap.innerHTML = "";
+      panel.innerHTML = `
+        <div class="qcard">
+          <div class="qhead">Question ${i+1} / ${questions.length}</div>
+          <div class="qtext">${q.q}</div>
+          <div class="opts">
+            ${q.opts.map((o,idx)=>`<div class="opt" data-idx="${idx}">${o}</div>`).join('')}
+          </div>
+        </div>
+      `;
 
-      // mix correct with opts if answer not among options
-      let options = q.opts.slice();
-      if(q.a && !options.includes(q.a)) options.push(q.a);
-      // shuffle
-      options.sort(()=>Math.random()-0.5);
+      controls.hidden = false;
+      prevBtn.disabled = i===0;
+      nextBtn.textContent = (i===questions.length-1) ? 'Finish →' : 'Next →';
+      revealed = false;
 
-      options.forEach(text=>{
-        const b = document.createElement('button');
-        b.className = "opt";
-        b.textContent = text;
-        b.onclick = ()=>{
-          if(locked) return;
-          locked = true;
-          if(text === q.a){
-            b.classList.add('right');
-          }else{
-            b.classList.add('wrong');
-            // also mark right
-            [...optsWrap.children].forEach(el=>{
-              if(el.textContent === q.a) el.classList.add('right');
-            });
+      // Interaction
+      panel.querySelectorAll('.opt').forEach(el=>{
+        el.addEventListener('click', ()=>{
+          if(revealed) return;
+          const sel = Number(el.dataset.idx);
+          if(sel === q.correct){ el.classList.add('correct'); score++; }
+          else{
+            el.classList.add('wrong');
+            panel.querySelector(`.opt[data-idx="${q.correct}"]`)?.classList.add('correct');
           }
-        };
-        optsWrap.appendChild(b);
+          revealed = true;
+        });
       });
-
-      locked = false;
     }
 
-    document.getElementById('prevBtn').onclick = ()=>{
-      if(idx>0){ idx--; render(); }
-    };
-    document.getElementById('nextBtn').onclick = ()=>{
-      if(idx<questions.length-1){ idx++; render(); }
-    };
-    document.getElementById('revealBtn').onclick = ()=>{
-      const q = questions[idx];
-      [...document.querySelectorAll('.opt')].forEach(el=>{
-        if(el.textContent === q.a) el.classList.add('right');
-        else el.classList.add('wrong');
-      });
-      locked = true;
-    };
+    prevBtn.addEventListener('click', ()=>{
+      if(i>0){ i--; render(); }
+    });
+    nextBtn.addEventListener('click', ()=>{
+      if(i<questions.length-1){ i++; render(); }
+      else summary();
+    });
+    revealBtn.addEventListener('click', ()=>{
+      if(revealed) return;
+      const q = questions[i];
+      panel.querySelector(`.opt[data-idx="${q.correct}"]`)?.classList.add('correct');
+      revealed = true;
+    });
 
-    async function pickRandomSheet(){
-      // try CSV list first
-      try{
-        const csv = await pubCsv(CATEGORIES_TAB);
-        const items = parseCSV(csv); // returns [{q,a,opts}] here? No—we only need names; but Categories CSV has columns [name, sheet, desc]
-        // QUICK parse for (name, sheet) from raw CSV header:
-        const lines = csv.split(/\r?\n/).filter(Boolean);
-        const head = lines[0].split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"").toLowerCase());
-        const nameIdx = head.findIndex(h=>/name/.test(h));
-        const tabIdx  = head.findIndex(h=>/(sheet|get|tab)/.test(h));
-        const rows = lines.slice(1).map(l=>l.split(/,(?=(?:[^"]*"[^"]*")*[^"]*$)/).map(v=>v.replace(/^"|"$/g,"")));
-        const cats = rows.map(r=>({name:r[nameIdx]||r[tabIdx]||"", sheet:r[tabIdx]||r[nameIdx]||""})).filter(x=>x.sheet);
-        return cats[Math.floor(Math.random()*cats.length)];
-      }catch(e){
-        const {cols, rows} = await gviz(CATEGORIES_TAB);
-        const h = cols.map(c=>(c||"").toLowerCase());
-        const nameIdx = h.findIndex(v=>/name/.test(v));
-        const tabIdx  = h.findIndex(v=>/(sheet|get|tab)/.test(v));
-        const cats = rows.map(r=>({name:r[tabIdx]||r[nameIdx]||"", sheet:r[tabIdx]||r[nameIdx]||""})).filter(x=>x.sheet);
-        return cats[Math.floor(Math.random()*cats.length)];
-      }
+    function summary(){
+      progressWrap.hidden = true;
+      controls.hidden = true;
+      panel.innerHTML = `
+        <div class="qcard">
+          <div class="qtext">Summary</div>
+          <p class="qhead">Score: <b>${score}</b> / ${questions.length}</p>
+          <p>Refresh or go back to play again.</p>
+        </div>
+      `;
     }
 
-    async function init(){
-      showSplash("Loading questions…");
-
+    async function boot(){
       try{
-        const p = new URLSearchParams(location.search);
-        let sheet = p.get('sheet');
-        const mode = p.get('mode');
-        const n = p.get('n');
+        showSplash(true);
+        let targetSheet = sheet;
 
-        if(mode === 'random' || (!sheet && !mode)){
-          const chosen = await pickRandomSheet();
-          sheet = chosen?.sheet;
+        if(!targetSheet && mode === 'random'){
+          targetSheet = await chooseRandomSheet();
         }
-        if(!sheet) throw new Error("No category selected.");
-
-        // fetch questions from sheet
-        const {cols, rows} = await gviz(sheet);
-        // map to {q, a, opts}
-        const head = cols.map(c=>(c||"").toLowerCase());
-        const qi = head.findIndex(v=>/question|q\b/i.test(v));
-        const ai = head.findIndex(v=>/answer|ans\b/i.test(v));
-        const oi = head.map((v,i)=>(/opt|choice|option/.test(v) && i!==ai) ? i : -1).filter(i=>i>=0);
-        questions = rows.map(r=>({
-          q: r[qi]||"",
-          a: r[ai]||"",
-          opts: oi.map(i=>r[i]).filter(Boolean)
-        })).filter(x=>x.q && (x.a || x.opts.length));
-
-        // limit to n if needed
-        let count = (n && n !== 'N') ? Number(n) : questions.length;
-        if(Number.isFinite(count) && count > 0) {
-          // random sample
-          questions = questions.sort(()=>Math.random()-0.5).slice(0, count);
+        if(!targetSheet){
+          showSplash(false);
+          panel.innerHTML = `<div class="notice">No category selected.</div>`;
+          return;
         }
 
-        idx = 0;
+        // Fetch questions
+        const {cols, rows} = await gviz(targetSheet);
+        let qs = mapToQuestions(cols, rows);
+        qs = shuffle(qs);                 // random order of questions
+        qs = sample(qs, N);               // sample N if provided
+
+        questions = qs;
+        i = 0; score = 0;
         render();
-      } catch(e){
-        console.error(e);
-        document.getElementById('qTitle').textContent = "No category selected.";
-        document.getElementById('opts').innerHTML = "";
-      } finally {
-        hideSplash();
+      } catch (err){
+        console.error(err);
+        panel.innerHTML = `<div class="notice">Failed to load questions. Check sheet access / names.</div>`;
+      } finally{
+        showSplash(false);
       }
     }
 
-    document.addEventListener('DOMContentLoaded', init);
+    boot();
   </script>
 </body>
 </html>
