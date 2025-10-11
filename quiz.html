@@ -37,7 +37,7 @@
                   linear-gradient(180deg,var(--bg),var(--bg-2));
     }
 
-    /* Header (same on all pages) */
+    /* Header (mobile-optimized and shared across pages) */
     .site-header{position:sticky; top:0; z-index:50; backdrop-filter:saturate(1.1) blur(10px);
       background:linear-gradient(180deg, var(--glass-2), transparent); border-bottom:1px solid rgba(255,255,255,.12);}
     .nav{max-width:1200px;margin:0 auto;padding:12px 18px;display:flex;align-items:center;gap:12px}
@@ -111,7 +111,7 @@
     <h2 id="title">Quiz</h2>
 
     <div class="card" id="progressCard" style="margin-bottom:14px;display:none">
-      <div class="meta" id="meta">
+      <div class="meta">
         <span id="catName">Loading…</span>
         <span id="timer" hidden>• <span id="tmm">00</span>:<span id="tss">00</span></span>
       </div>
@@ -146,26 +146,35 @@
   </div>
 
   <script>
-    /* ============ CONFIG ============ */
+    /* ================= CONFIG ================= */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
     const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
     const CATEGORIES_TAB = "Categories";
 
-    /* ============ Helpers ============ */
+    /* Fallback list: if the Categories tab can't be read, we’ll try these tabs in order.
+       >>> IMPORTANT: put your real quiz sheet names here. <<<
+       Example:
+       const FALLBACK_TABS = ["GST Malayalam","Malayalam GK","India Facts","Biology"];
+    */
+    const FALLBACK_TABS = [
+      /* e.g. "GST Malayalam","Malayalam GK" */
+    ];
+
+    /* ================ Helpers ================ */
     const $ = s => document.querySelector(s);
-    const splash = $("#splash"), splashLabel=$("#splashLabel");
+    const splash = $("#splash"), splashLabel = $("#splashLabel");
     function showSplash(on, text="Loading…"){ splashLabel.textContent=text; splash.classList.toggle("on", !!on); }
 
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz failed");
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz fetch failed");
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c=> (c.label||"").trim());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-    // CSV utils for categories
+    // CSV helpers for categories
     function splitCSV(line){ const re=/(?:[^,"\\]|\\.|"(?:\\.|[^"])*")+/g; return (line.match(re)||[]).map(s=>s.replace(/^"|"$/g,"").trim()); }
     function parseCSV(txt){
       const lines=txt.split(/\r?\n/).filter(Boolean); if(!lines.length) return {head:[],rows:[]};
@@ -184,103 +193,73 @@
         const url=`https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(CATEGORIES_TAB)}`;
         const res=await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("csv");
         const {head,rows}=parseCSV(await res.text()); const {idxName,idxTab,idxDesc}=pickColsForCategories(head);
+        const arr = rows.map(r=>({name:r[idxName]||"",sheet:r[idxTab]||"",desc:(idxDesc>-1?r[idxDesc]:"")})).filter(x=>x.name&&x.sheet);
+        if(arr.length) return arr;
+      }catch(e){ /* csv failed, try gviz */ }
+      try{
+        const {cols,rows}=await gviz(CATEGORIES_TAB); const {idxName,idxTab,idxDesc}=pickColsForCategories(cols);
         return rows.map(r=>({name:r[idxName]||"",sheet:r[idxTab]||"",desc:(idxDesc>-1?r[idxDesc]:"")})).filter(x=>x.name&&x.sheet);
-      }catch(e){
-        try{
-          const {cols,rows}=await gviz(CATEGORIES_TAB); const {idxName,idxTab,idxDesc}=pickColsForCategories(cols);
-          return rows.map(r=>({name:r[idxName]||"",sheet:r[idxTab]||"",desc:(idxDesc>-1?r[idxDesc]:"")})).filter(x=>x.name&&x.sheet);
-        }catch(err){ return []; }
-      }
+      }catch(err){ return []; }
     }
 
-    // Flexible guessers
+    // flexible column detection for questions
     const rxQ = /(question|ques|qst|ചോദ്യ|പ്രശ്ന)/i;
     const rxA = /(answer|ans|correct|key|ഉത്തരം)/i;
     const rxOpt = /(opt|option|choice)/i;
 
     function guessQuestionCol(cols, rows){
-      // 1) header regex
       let idx = cols.findIndex(c => rxQ.test(c));
       if(idx>-1) return idx;
-      // 2) pick the column with highest average text length (first 8 columns)
       const K=Math.min(cols.length,8); let best=-1,bScore=-1;
       for(let i=0;i<K;i++){
-        let s=0,c=0;
-        for(const r of rows){ const v=r[i]||""; if(v){ s+=v.length; c++; } }
-        const avg = c? s/c : 0;
-        if(avg>bScore){ bScore=avg; best=i; }
+        let s=0,c=0; for(const r of rows){ const v=r[i]||""; if(v){ s+=v.length; c++; } }
+        const avg = c? s/c : 0; if(avg>bScore){ bScore=avg; best=i; }
       }
       return Math.max(0,best);
     }
-    function guessAnswerCol(cols){
-      const i = cols.findIndex(c => rxA.test(c));
-      return i; // may be -1
-    }
+    function guessAnswerCol(cols){ return cols.findIndex(c => rxA.test(c)); }
     function guessOptionCols(cols, qIdx, aIdx){
-      let indices = cols
-        .map((c,i)=>({c,i}))
-        .filter(o => (o.i!==qIdx && o.i!==aIdx) && (rxOpt.test(o.c) || /^[abcd]$/i.test(o.c.trim()) || /^[1-9]$/.test(o.c.trim()) ));
-      if(indices.length) return indices.map(o=>o.i);
-
-      // Fallback: take next 6 columns after Q (excluding A)
+      let idxs = cols.map((c,i)=>({c,i}))
+        .filter(o => (o.i!==qIdx && o.i!==aIdx) && (rxOpt.test(o.c) || /^[abcd]$/i.test(o.c.trim()) || /^[1-9]$/.test(o.c.trim())));
+      if(idxs.length) return idxs.map(o=>o.i);
       const order=[...Array(cols.length).keys()];
       const after = order.slice(qIdx+1).filter(i=>i!==aIdx).slice(0,6);
       if(after.length) return after;
-      // else: take any except q/a
       return order.filter(i=>i!==qIdx && i!==aIdx).slice(0,6);
     }
-
     function resolveAnswer(raw, options){
       if(!raw) return "";
       const val = String(raw).trim();
-      // A/B/C/D
-      if(/^[A-D]$/i.test(val)){
-        const idx = val.toUpperCase().charCodeAt(0) - 65; // 'A'->0
-        return options[idx] || options[0] || val;
-      }
-      // 1-9
-      if(/^[1-9]$/.test(val)){
-        const idx = parseInt(val,10)-1;
-        return options[idx] || options[0] || val;
-      }
+      if(/^[A-D]$/i.test(val)){ const i=val.toUpperCase().charCodeAt(0)-65; return options[i]||options[0]||val; }
+      if(/^[1-9]$/.test(val)){ const i=parseInt(val,10)-1; return options[i]||options[0]||val; }
       return val;
     }
-
     function mapQuestionsFlexible(cols, rows){
       const qIdx = guessQuestionCol(cols, rows);
       const aIdx = guessAnswerCol(cols);
       const optIdx = guessOptionCols(cols, qIdx, aIdx);
-
-      const items = [];
+      const items=[];
       for(const r of rows){
-        const q = (r[qIdx]||"").trim();
-        if(!q) continue;
-
-        const opts = optIdx.map(i => r[i]).filter(v => !!v && String(v).trim()!=="").map(s=>String(s).trim());
-        let ans = aIdx>-1 ? String(r[aIdx]||"").trim() : "";
+        const q=(r[qIdx]||"").trim(); if(!q) continue;
+        const opts=optIdx.map(i=>r[i]).filter(v=>!!v && String(v).trim()!=="").map(s=>String(s).trim());
+        const ans = aIdx>-1 ? String(r[aIdx]||"").trim() : "";
         const resolved = resolveAnswer(ans, opts);
-
-        // ensure answer appears among options
-        const localOpts = [...opts];
-        if(resolved && !localOpts.some(o => o.trim()===resolved.trim())){
-          localOpts.push(resolved);
-        }
-        if(!localOpts.length) continue;
-
-        items.push({ q, a: resolved, opts: localOpts });
+        const local=[...opts];
+        if(resolved && !local.some(o=>o.trim()===resolved.trim())) local.push(resolved);
+        if(!local.length) continue;
+        items.push({q, a: resolved, opts: local});
       }
       return items;
     }
-
     function shuffle(a){ for(let i=a.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [a[i],a[j]]=[a[j],a[i]]; } return a; }
 
-    /* ============ Quiz state/UI ============ */
-    const params = new URLSearchParams(location.search);
-    const mode   = params.get("mode") || "sheet";
-    const tab    = params.get("sheet") || "";
-    const nParam = params.get("n") || "N";
-    const limitN = (String(nParam).toUpperCase()==="N") ? Infinity : Math.max(1, parseInt(nParam,10)||5);
-    const timerSeconds = parseInt(params.get("timer")||"0",10);
+    /* ============ UI state ============ */
+    const urlp=new URLSearchParams(location.search);
+    const mode=urlp.get("mode")||"sheet";
+    const sheetParam=urlp.get("sheet")||"";
+    const nParam=urlp.get("n")||"N";
+    const limitN=(String(nParam).toUpperCase()==="N")?Infinity:Math.max(1,parseInt(nParam,10)||5);
+    const timerSeconds=parseInt(urlp.get("timer")||"0",10);
 
     const titleEl=$("#title"), catNameEl=$("#catName"), progressCard=$("#progressCard");
     const qCard=$("#qCard"), qiEl=$("#qi"), qnEl=$("#qn"), qText=$("#qText"), optsEl=$("#opts");
@@ -348,7 +327,7 @@
         </div>`;
       const blocks=questions.map((q,i)=>{
         const user=picked[i]||"—"; const ok=!!correct[i];
-        const col= ok? 'var(--good)': (picked[i]? 'var(--bad)': 'var(--muted)');
+        const col= ok? 'var(--good)': (picked[i]? 'var(--bad)':'var(--muted)');
         return `<details>
           <summary>Q${i+1}: <span style="color:${col}">${ok?'✔ Correct':(picked[i]?'✖ Wrong':'• Skipped')}</span></summary>
           <div class="qa">
@@ -369,17 +348,11 @@
         if(remain<=0){ clearInterval(countdown); showSummary(); } remain--; }
       tick(); countdown=setInterval(tick,1000);
     }
+
     prevBtn.addEventListener('click',prev); nextBtn.addEventListener('click',next);
     showBtn.addEventListener('click',showAnswer); quitBtn.addEventListener('click',showSummary);
 
-    /* ============ Boot ============ */
-    const urlp=new URLSearchParams(location.search);
-    const mode = urlp.get('mode')||'sheet';
-    const sheetParam = urlp.get('sheet')||'';
-    const nParam = urlp.get('n')||'N';
-    const limitN = (String(nParam).toUpperCase()==='N')? Infinity : Math.max(1, parseInt(nParam,10)||5);
-    const timerSeconds = parseInt(urlp.get('timer')||'0',10);
-
+    /* ============== Boot ============== */
     async function loadFromTab(tabName, displayName){
       const {cols,rows}=await gviz(tabName);
       let items = mapQuestionsFlexible(cols, rows);
@@ -390,17 +363,30 @@
 
     async function main(){
       showSplash(true,"Loading quiz…");
-      let workingItems = [], title = "";
+      const mode = new URLSearchParams(location.search).get('mode') || 'sheet';
+      const sheetParam = new URLSearchParams(location.search).get('sheet') || '';
+      const nParam = new URLSearchParams(location.search).get('n') || 'N';
+      const limitN = (String(nParam).toUpperCase() === 'N') ? Infinity : Math.max(1, parseInt(nParam, 10) || 5);
+      const timerSeconds = parseInt(new URLSearchParams(location.search).get('timer') || '0', 10);
+
+      let workingItems=[], title="";
+
       if(mode==='random'){
-        const cats = await fetchCategories();
-        const seen = new Set();
-        while(seen.size < cats.length){
-          const pick = cats[Math.floor(Math.random()*cats.length)];
-          if(seen.has(pick.sheet)) continue; seen.add(pick.sheet);
+        // 1) Try Categories
+        let cats = await fetchCategories();
+        // 2) If missing, use fallback list
+        if(!cats.length && FALLBACK_TABS.length){
+          cats = FALLBACK_TABS.map(n=>({name:n, sheet:n}));
+          console.warn("[Random] Using FALLBACK_TABS because Categories could not be loaded.");
+        }
+
+        // Shuffle categories and try one by one until we get questions
+        cats = shuffle(cats.slice());
+        for(const c of cats){
           try{
-            const {items, displayName} = await loadFromTab(pick.sheet, pick.name);
+            const {items, displayName} = await loadFromTab(c.sheet, c.name || c.sheet);
             if(items.length){ workingItems = items; title = displayName; break; }
-          }catch{ /* try another */ }
+          }catch(e){ /* try next */ }
         }
       }else{
         if(!sheetParam) throw new Error("No category selected.");
@@ -408,17 +394,22 @@
         workingItems = res.items; title = res.displayName;
       }
 
-      if(!workingItems.length) throw new Error("No questions found in this tab.");
+      if(!workingItems.length){
+        throw new Error("No questions found in this tab (or Categories couldn’t be read). " +
+                        "If you’re using Random, either publish the sheet to the web (entire document) " +
+                        "so the Categories tab is readable, or add your quiz tab names to FALLBACK_TABS in quiz.html.");
+      }
 
-      questions = workingItems; picked = new Array(questions.length).fill(""); correct = new Array(questions.length).fill(false);
+      questions=workingItems; picked=new Array(questions.length).fill(""); correct=new Array(questions.length).fill(false);
 
-      $("#title").textContent = `Quiz — ${title}`;
-      $("#catName").textContent = title;
+      $("#title").textContent=`Quiz — ${title}`;
+      $("#catName").textContent=title;
       $("#progressCard").style.display="block";
       $("#qCard").style.display="block";
       $("#summary").style.display="none";
       idx=0; renderQuestion(); updateProgress();
       if(timerSeconds>0) startTimer(timerSeconds);
+
       showSplash(false);
     }
 
@@ -432,6 +423,7 @@
         <div class="toolbar" style="justify-content:flex-start">
           <a class="btn btn--light" href="index.html">← Home</a>
         </div>`;
+      console.error(err);
     });
   </script>
 </body>
