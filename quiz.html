@@ -1,275 +1,522 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Quiz — PSC Guru</title>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>PSC Guru — Quiz</title>
 
+  <!-- Inter font -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
-  <link rel="stylesheet" href="header.css">
-
   <style>
     :root{
-      --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --error:#d24747;
-      --card:#fff; --shadow:0 20px 40px rgba(30,70,50,.15);
-      --border: rgba(0,0,0,.06); --bg:#f5fbf7;
+      --bg: #0b1b13;
+      --bg-2: #0f231a;
+      --grad-a:#1d4933; --grad-b:#0a5b38;
+      --glass: rgba(255,255,255,.06);
+      --glass-2: rgba(255,255,255,.1);
+      --text:#ecfdf5;
+      --muted:#b8d8cc;
+      --brand:#34d399;
+      --brand-600:#059669;
+      --ring: rgba(52, 211, 153, .35);
+      --shadow: 0 30px 60px rgba(0,0,0,.35);
+      --r: 18px;
+
+      --opt: rgba(255,255,255,.08);
+      --opt-border: rgba(255,255,255,.18);
+
+      --good:#16a34a;
+      --bad:#dc2626;
     }
-    *{box-sizing:border-box} body{margin:0;font:400 16px/1.55 Inter,system-ui;background:var(--bg);color:var(--text)}
-    .wrap{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+    @media (prefers-color-scheme: light) {
+      :root{
+        --bg: #f2f8f4;
+        --bg-2: #eaf4ef;
+        --grad-a:#eaf8f1; --grad-b:#dff6ef;
+        --glass: rgba(255,255,255,.6);
+        --glass-2: rgba(255,255,255,.85);
+        --text:#0f2d1f;
+        --muted:#5f726a;
+        --brand:#0f8346;
+        --brand-600:#0b5f34;
+        --ring: rgba(15,131,70,.22);
+        --shadow: 0 20px 40px rgba(30,70,50,.15);
 
-    .title{font-weight:800;font-size:28px;margin:6px 0 14px}
+        --opt: #fff;
+        --opt-border:#e6efe9;
+      }
+    }
 
-    .progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 0 12px}
-    .progress{height:8px;background:#e7f3ec;border-radius:999px;flex:1;overflow:hidden}
-    .bar{height:100%;width:0;background:#b8e5cc;border-radius:999px;transition:width .3s ease}
-    .paging{color:var(--muted);font-weight:800}
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font:400 16px/1.55 Inter, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans";
+      color:var(--text);
+      background: radial-gradient(1200px 700px at 20% -10%, var(--grad-a), transparent),
+                  radial-gradient(1200px 700px at 80% -10%, var(--grad-b), transparent),
+                  linear-gradient(180deg, var(--bg), var(--bg-2));
+    }
 
-    .qcard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-    .qhead{color:var(--muted);font-size:14px;margin-bottom:8px}
-    .qtext{font-size:18px;font-weight:700;margin:6px 0 12px}
+    /* ===== Sticky Header (same as index) ===== */
+    .site-header{
+      position:sticky; top:0; z-index:50;
+      backdrop-filter:saturate(1.1) blur(10px);
+      background:linear-gradient(180deg, var(--glass-2), transparent);
+      border-bottom:1px solid rgba(255,255,255,.12);
+    }
+    .nav{
+      max-width:1200px;margin:0 auto;padding:12px 18px;
+      display:flex;align-items:center;gap:12px;
+    }
+    .brand{
+      display:flex;align-items:center;gap:12px;padding:8px 10px;border-radius:14px;
+      background:var(--glass-2); box-shadow: var(--shadow);
+      text-decoration:none;color:inherit;
+    }
+    .logo{height:38px;width:38px;border-radius:12px;display:grid;place-items:center;
+      font-weight:900;color:#fff;background:linear-gradient(160deg,#0dcf8b,#0b8f6b);}
+    .brand h1{font-size:18px;margin:0;font-weight:800;letter-spacing:.2px}
+    .brand small{display:block;margin-top:-2px;font-size:12px;color:var(--muted);font-weight:600}
+
+    .links{margin-left:auto;display:flex;gap:10px;flex-wrap:wrap}
+    .pill{
+      padding:8px 14px;border-radius:999px;background:var(--glass-2);
+      font-weight:700;box-shadow:var(--shadow);border:1px solid rgba(255,255,255,.15);
+      color:var(--text); text-decoration:none;
+    }
+    .pill.active{background:linear-gradient(180deg,var(--brand),var(--brand-600)); color:#062016}
+
+    /* ===== Main ===== */
+    .wrap{max-width:1000px;margin:0 auto;padding:22px 18px 72px}
+    h2{margin:6px 0 12px;font-size:28px;font-weight:800}
+
+    .card{
+      background:var(--glass-2);border:1px solid rgba(255,255,255,.15);
+      border-radius: var(--r); padding:18px 16px; box-shadow: var(--shadow);
+    }
+
+    .meta{display:flex;gap:12px;align-items:center;flex-wrap:wrap;color:var(--muted);font-weight:700}
+    .kicker{color:var(--muted);font-weight:800;margin-bottom:8px}
+    .qtext{font-size:18px;font-weight:700;margin-bottom:12px}
 
     .opts{display:grid;gap:10px}
     .opt{
-      border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;
-      cursor:pointer; user-select:none;
+      background:var(--opt);border:1px solid var(--opt-border);border-radius:12px;padding:12px 14px;
+      cursor:pointer; font-weight:700;
     }
-    .opt:hover{box-shadow:0 6px 16px rgba(30,70,50,.10)}
-    .opt.correct{border-color:#8bd2a8;background:#ecfff4}
-    .opt.wrong{border-color:#f1b6b6;background:#fff4f4}
+    .opt:hover{filter:brightness(1.05)}
+    .opt.correct{outline:2px solid var(--good); background:rgba(22,163,74,.12)}
+    .opt.wrong{outline:2px solid var(--bad); background:rgba(220,38,38,.12)}
+    .opt[disabled]{opacity:.7;cursor:default}
 
-    .controls{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
-    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
-    .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+    .toolbar{
+      display:flex;gap:10px;align-items:center;justify-content:flex-end;margin-top:14px;flex-wrap:wrap
+    }
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;font-weight:900;padding:10px 16px;border-radius:12px;border:none;
+      background:linear-gradient(180deg,var(--brand),var(--brand-600));color:#062016;cursor:pointer;box-shadow:0 10px 25px var(--ring)
+    }
+    .btn--light{background:transparent;border:1px solid rgba(255,255,255,.25);color:var(--text)}
     .btn:disabled{opacity:.5;cursor:not-allowed}
 
-    .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
-    .splash.on{display:grid}
-    .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #d9f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
+    /* Progress */
+    .progressline{display:flex;gap:12px;align-items:center;margin:14px 0 6px}
+    .bar{flex:1;height:8px;border-radius:999px;background:rgba(255,255,255,.18);overflow:hidden}
+    .fill{height:100%;width:0;background:linear-gradient(90deg,var(--brand),#86efac)}
+    .small{color:var(--muted);font-weight:800}
 
-    .notice{padding:12px;border-radius:10px;border:1px solid #f7d6b5;background:#fff7ed;color:#7a4c22}
+    /* Summary */
+    .summary h3{margin:0 0 8px;font-size:22px;font-weight:800}
+    details{background:var(--glass-2);border:1px solid rgba(255,255,255,.15);border-radius:12px;padding:10px 12px}
+    summary{cursor:pointer;font-weight:800}
+    .qa{margin-top:10px;padding:12px;border-radius:12px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.12)}
+
+    /* Splash */
+    .splash{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;
+      background:radial-gradient(1000px 600px at 50% -10%, var(--grad-a), transparent), rgba(0,0,0,.25);
+      backdrop-filter: blur(6px);opacity:0;pointer-events:none;transition:opacity .25s ease; z-index:1000;
+    }
+    .splash.on{opacity:1;pointer-events:auto}
+    .sp-card{
+      background:var(--glass-2);border:1px solid rgba(255,255,255,.18);padding:18px 22px;border-radius:14px;
+      box-shadow:var(--shadow);display:flex;align-items:center;gap:12px;color:var(--text);font-weight:800
+    }
+    .spinner{width:22px;height:22px;border-radius:50%;border:3px solid rgba(255,255,255,.35);border-top-color:var(--brand);animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
   </style>
 </head>
+
 <body>
-  <!-- shared header -->
-  <script defer src="header.js"></script>
+  <!-- Header (consistent across pages) -->
+  <header class="site-header">
+    <div class="nav">
+      <a href="index.html" class="brand">
+        <div class="logo">PSC</div>
+        <div>
+          <h1>PSC Guru</h1>
+          <small>Kerala PSC Exam Prep</small>
+        </div>
+      </a>
+      <nav class="links" aria-label="Primary">
+        <a class="pill" href="index.html">Home</a>
+        <a class="pill active" href="quiz.html">Quiz</a>
+        <a class="pill" href="resources.html">Study</a>
+        <a class="pill" href="notices.html">Notices</a>
+      </nav>
+    </div>
+  </header>
 
   <div class="wrap">
-    <h1 class="title">Quiz</h1>
+    <h2 id="title">Quiz</h2>
 
-    <div class="progress-wrap" id="progressWrap" hidden>
-      <div class="progress"><div class="bar" id="bar"></div></div>
-      <span class="paging" id="paging">Page 1 / 1</span>
+    <!-- Meta + progress -->
+    <div class="card" id="progressCard" style="margin-bottom:14px;display:none">
+      <div class="meta" id="meta">
+        <span id="catName">Loading…</span>
+        <span id="timer" hidden>• <span id="tmm">00</span>:<span id="tss">00</span></span>
+      </div>
+      <div class="progressline">
+        <div class="small" id="showingSmall">Showing 0/0</div>
+        <div class="bar"><div class="fill" id="fill"></div></div>
+      </div>
     </div>
 
-    <div id="panel"></div>
+    <!-- Question card -->
+    <div class="card" id="qCard" style="display:none">
+      <div class="kicker" id="qKicker">Question <span id="qi">1</span> / <span id="qn">1</span></div>
+      <div class="qtext" id="qText">…</div>
+      <div class="opts" id="opts"></div>
 
-    <div class="controls" id="controls" hidden>
-      <button class="btn" id="prevBtn">← Previous</button>
-      <button class="btn" id="revealBtn">Show Answer</button>
-      <button class="btn primary" id="nextBtn">Next →</button>
+      <div class="toolbar">
+        <button class="btn btn--light" id="prevBtn">← Prev</button>
+        <button class="btn btn--light" id="showBtn">Show Answer</button>
+        <button class="btn btn--light" id="quitBtn">Quit Quiz</button>
+        <button class="btn" id="nextBtn">Next →</button>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card summary" id="summary" style="display:none"></div>
+
+    <footer style="margin-top:18px;color:var(--muted);text-align:center">© 2025 PSC Guru</footer>
+  </div>
+
+  <!-- Splash -->
+  <div class="splash" id="splash" aria-hidden="true">
+    <div class="sp-card">
+      <div class="spinner" aria-hidden="true"></div>
+      <span id="splashLabel">Loading…</span>
     </div>
   </div>
 
-  <div class="splash" id="splash"><div class="spinner" aria-label="Loading"></div></div>
-
   <script>
-    /* ================== CONFIG ================== */
+    /* ===== CONFIG (same as index) ===== */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
     const CATEGORIES_TAB = "Categories";
 
-    // Helpers
-    const $ = sel => document.querySelector(sel);
-    const panel = $('#panel');
-    const splash = $('#splash');
-    const bar = $('#bar');
-    const paging = $('#paging');
-    const progressWrap = $('#progressWrap');
-    const prevBtn = $('#prevBtn');
-    const nextBtn = $('#nextBtn');
-    const revealBtn = $('#revealBtn');
-    const controls = $('#controls');
-
+    /* ===== Helpers ===== */
+    const $ = s => document.querySelector(s);
     const params = new URLSearchParams(location.search);
-    const sheet = params.get('sheet');
-    const mode = params.get('mode'); // "random" or undefined
-    const N = params.get('n');       // requested number of Qs
+    const mode   = params.get("mode") || "sheet";
+    const tab    = params.get("sheet") || "";
+    const nParam = params.get("n") || "N";
+    const timerSeconds = parseInt(params.get("timer")||"0",10);
+    const limitN = (nParam.toUpperCase()==="N") ? Infinity : Math.max(1, parseInt(nParam,10)||5);
 
-    let questions = [];
-    let i = 0, score = 0, revealed = false;
-
-    // Splash helpers
-    function showSplash(on){ splash.classList.toggle('on', !!on); }
+    const splash = $("#splash"), splashLabel = $("#splashLabel");
+    function showSplash(on, text="Loading…"){
+      splashLabel.textContent = text;
+      splash.classList.toggle("on", !!on);
+    }
 
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
       const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz failed");
       const raw = await res.text(); const json = stripGVizJSON(raw);
-      const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
+      const cols = json.table.cols.map(c => (c.label||"").trim());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-
-    async function chooseRandomSheet(){
-      const {cols, rows} = await gviz(CATEGORIES_TAB);
-      const idxTab = cols.findIndex(t => /(get|sheet|tab)/.test(t));
-      const sheets = rows.map(r => (r[idxTab]||"").trim()).filter(Boolean);
-      if(!sheets.length) throw new Error("No categories found");
-      return sheets[Math.floor(Math.random()*sheets.length)];
+    // CSV read for Categories list
+    function splitCSV(line){
+      const re = /(?:[^,"\\]|\\.|"(?:\\.|[^"])*")+/g;
+      return (line.match(re) || []).map(s => s.replace(/^"|"$/g,"").trim());
     }
-
-    function shuffle(arr){
-      const a = [...arr];
-      for(let i=a.length-1;i>0;i--){
-        const j = Math.floor(Math.random()*(i+1));
-        [a[i],a[j]]=[a[j],a[i]];
+    function parseCSV(txt){
+      const lines = txt.split(/\r?\n/).filter(Boolean);
+      if(!lines.length) return {head:[],rows:[]};
+      const head = splitCSV(lines.shift());
+      const rows = lines.map(splitCSV);
+      return {head, rows};
+    }
+    function pickColsForCategories(head){
+      const norm = s => (s||"").toLowerCase();
+      const h = head.map(norm);
+      let idxName = h.findIndex(x=>x.includes('name'));
+      let idxTab  = h.findIndex(x=>x.includes('get')||x.includes('sheet')||x.includes('tab'));
+      let idxDesc = h.findIndex(x=>x.includes('desc'));
+      if(idxName<0) idxName=0; if(idxTab<0) idxTab=Math.min(1, head.length-1);
+      return {idxName,idxTab,idxDesc};
+    }
+    async function fetchCategories(){
+      try{
+        const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(CATEGORIES_TAB)}`;
+        const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("csv fail");
+        const {head, rows} = parseCSV(await res.text());
+        const {idxName, idxTab, idxDesc} = pickColsForCategories(head);
+        return rows.map(r => ({ name:r[idxName]||"", sheet:r[idxTab]||"", desc:(idxDesc>-1? r[idxDesc]:"") })).filter(x=>x.name && x.sheet);
+      }catch(e){
+        // GViz fallback
+        try{
+          const {cols, rows} = await gviz(CATEGORIES_TAB);
+          const head = cols, rws = rows;
+          const {idxName, idxTab, idxDesc} = pickColsForCategories(head);
+          return rws.map(r => ({ name:r[idxName]||"", sheet:r[idxTab]||"", desc:(idxDesc>-1? r[idxDesc]:"") })).filter(x=>x.name && x.sheet);
+        }catch(err){ return []; }
       }
-      return a;
     }
 
-    function mapToQuestions(cols, rows){
-      const h = name => cols.findIndex(c => c === name);
-      const idxQ = h('question');
-      const idxA = h('answer');
-      const idxA1 = h('opta'), idxB1 = h('optb'), idxC1 = h('optc'), idxD1 = h('optd');
-
-      return rows.map(r=>{
-        const q = (r[idxQ]||"").trim();
-        const ans = (r[idxA]||"").trim();
-        const opts = [r[idxA1], r[idxB1], r[idxC1], r[idxD1]].map(x=> (x||"").trim()).filter(Boolean);
-
-        if(!q || !opts.length || !ans) return null;
-
-        // find correct option index with robust matching
-        let correct = -1;
-        const ansU = ans.toUpperCase();
-        if(['A','B','C','D'].includes(ansU)) correct = "ABCD".indexOf(ansU);
-        else correct = opts.findIndex(o => o.trim().toLowerCase() === ans.trim().toLowerCase());
-        if(correct < 0) correct = 0; // fallback
-
-        // shuffle options while keeping correctness
-        const pairs = opts.map((t,idx)=>({t,idx}));
-        const shuffled = shuffle(pairs);
-        const newOpts = shuffled.map(p=>p.t);
-        const newCorrect = shuffled.findIndex(p=>p.idx===correct);
-
-        return { q, opts:newOpts, correct:newCorrect };
-      }).filter(Boolean);
+    // Map question rows: detect columns
+    function mapQuestions(cols, rows){
+      const h = cols.map(c => (c||"").toLowerCase());
+      const idxQ = h.findIndex(x=>x.includes('question'));
+      const idxA = h.findIndex(x=>x.includes('answer'));
+      const optIdx = h.map((v,i)=>({v,i})).filter(o=>/^opt/.test(o.v));
+      const items = rows.map(r=>{
+        const q = (idxQ>-1? r[idxQ]||"" : "");
+        const a = (idxA>-1? (r[idxA]||"").trim() : "");
+        const opts = optIdx.map(o=>r[o.i]).filter(Boolean);
+        return { q, a, opts };
+      }).filter(x=>x.q && (x.a || x.opts.length));
+      return items;
     }
 
-    function sample(arr, n){
-      if(!n || String(n).toUpperCase()==='N') return arr;
-      const a=[...arr]; const out=[];
-      for(let k=0;k<n && a.length;k++){
-        out.push(a.splice(Math.floor(Math.random()*a.length),1)[0]);
+    // Shuffle
+    function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]]; } return arr; }
+
+    /* ===== Quiz state ===== */
+    let categoryName = "";
+    let questions = []; // {q, a, opts, optsShuffled}
+    let idx = 0;
+    let picked = [];    // user selected value (string) or "" if not answered
+    let correct = [];   // boolean for each Q (true/false/undefined)
+
+    let countdown = null, remain = 0;
+
+    const titleEl = $("#title");
+    const catNameEl = $("#catName");
+    const progressCard = $("#progressCard");
+    const qCard = $("#qCard");
+    const qiEl = $("#qi"), qnEl=$("#qn"), qText=$("#qText"), optsEl=$("#opts");
+    const fillEl = $("#fill"), showingSmall=$("#showingSmall");
+    const prevBtn = $("#prevBtn"), nextBtn=$("#nextBtn"), showBtn=$("#showBtn"), quitBtn=$("#quitBtn");
+    const timerWrap = $("#timer"), tmm=$("#tmm"), tss=$("#tss");
+    const summaryEl = $("#summary");
+
+    function updateProgress(){
+      const total = questions.length;
+      const cur = idx+1;
+      qiEl.textContent = cur; qnEl.textContent= total;
+      showingSmall.textContent = `Showing ${cur}/${total}`;
+      fillEl.style.width = `${(cur-1)/Math.max(1,total-1)*100}%`;
+    }
+
+    function renderQuestion(){
+      const item = questions[idx];
+      const total = questions.length;
+
+      // Ensure shuffled options exist
+      if(!item.optsShuffled){
+        const opts = [...(item.opts||[])];
+        // Ensure answer appears among options
+        if(item.a && !opts.some(o => (o||"").trim()===item.a.trim())) opts.push(item.a);
+        item.optsShuffled = shuffle(opts.filter(Boolean));
       }
-      return out;
+
+      qText.textContent = item.q;
+      optsEl.innerHTML = "";
+      item.optsShuffled.forEach(opt => {
+        const btn = document.createElement('button');
+        btn.className = 'opt';
+        btn.textContent = opt;
+        btn.addEventListener('click', ()=>selectOption(opt));
+        optsEl.appendChild(btn);
+      });
+
+      // if answered already, show state
+      paintState();
+
+      prevBtn.disabled = idx===0;
+      nextBtn.textContent = (idx===total-1) ? "Finish →" : "Next →";
+      updateProgress();
     }
 
-    function render(){
-      if(!questions.length){
-        panel.innerHTML = `<div class="notice">No questions available.</div>`;
-        controls.hidden = true;
-        progressWrap.hidden = true;
-        return;
-      }
-      const q = questions[i];
-      progressWrap.hidden = false;
-      bar.style.width = `${((i+1)/questions.length)*100}%`;
-      paging.textContent = `Page ${i+1} / ${questions.length}`;
+    function paintState(showCorrectOnly=false){
+      const item = questions[idx];
+      const user = picked[idx] || "";
+      const ans  = item.a ? item.a.trim() : "";
 
-      panel.innerHTML = `
-        <div class="qcard">
-          <div class="qhead">Question ${i+1} / ${questions.length}</div>
-          <div class="qtext">${q.q}</div>
-          <div class="opts">
-            ${q.opts.map((o,idx)=>`<div class="opt" data-idx="${idx}">${o}</div>`).join('')}
-          </div>
-        </div>
-      `;
-
-      controls.hidden = false;
-      prevBtn.disabled = i===0;
-      nextBtn.textContent = (i===questions.length-1) ? 'Finish →' : 'Next →';
-      revealed = false;
-
-      // Interaction
-      panel.querySelectorAll('.opt').forEach(el=>{
-        el.addEventListener('click', ()=>{
-          if(revealed) return;
-          const sel = Number(el.dataset.idx);
-          if(sel === q.correct){ el.classList.add('correct'); score++; }
-          else{
-            el.classList.add('wrong');
-            panel.querySelector(`.opt[data-idx="${q.correct}"]`)?.classList.add('correct');
-          }
-          revealed = true;
-        });
+      const nodes = [...optsEl.querySelectorAll('.opt')];
+      nodes.forEach(n=>{
+        n.disabled = !!user || showCorrectOnly; // disable after answered or show mode
+        n.classList.remove('correct','wrong');
+        const val = n.textContent.trim();
+        if(user){
+          if(val===ans){ n.classList.add('correct'); }
+          if(val===user && user!==ans){ n.classList.add('wrong'); }
+        }else if(showCorrectOnly){
+          if(val===ans){ n.classList.add('correct'); }
+        }
       });
     }
 
-    prevBtn.addEventListener('click', ()=>{
-      if(i>0){ i--; render(); }
-    });
-    nextBtn.addEventListener('click', ()=>{
-      if(i<questions.length-1){ i++; render(); }
-      else summary();
-    });
-    revealBtn.addEventListener('click', ()=>{
-      if(revealed) return;
-      const q = questions[i];
-      panel.querySelector(`.opt[data-idx="${q.correct}"]`)?.classList.add('correct');
-      revealed = true;
-    });
+    function selectOption(val){
+      const item = questions[idx];
+      const ans = (item.a||"").trim();
+      picked[idx] = val;
+      correct[idx] = (ans ? val.trim()===ans : false);
+      paintState();
+    }
 
-    function summary(){
-      progressWrap.hidden = true;
-      controls.hidden = true;
-      panel.innerHTML = `
-        <div class="qcard">
-          <div class="qtext">Summary</div>
-          <p class="qhead">Score: <b>${score}</b> / ${questions.length}</p>
-          <p>Refresh or go back to play again.</p>
+    function showAnswer(){
+      paintState(true);
+    }
+
+    function next(){
+      if(idx < questions.length-1){ idx++; renderQuestion(); }
+      else { showSummary(); }
+    }
+    function prev(){
+      if(idx>0){ idx--; renderQuestion(); }
+    }
+
+    function showSummary(){
+      // stop timer if running
+      if(countdown) clearInterval(countdown);
+
+      qCard.style.display = "none";
+      progressCard.style.display = "none";
+      summaryEl.style.display = "block";
+
+      const total = questions.length;
+      const answered = picked.filter(Boolean).length;
+      const score = correct.filter(Boolean).length;
+
+      const header = `
+        <h3>Summary</h3>
+        <p style="color:var(--muted);font-weight:700;margin:0 0 10px">
+          Score: <b>${score}</b> / ${total} • Answered: ${answered} • Skipped: ${total-answered}
+        </p>
+        <div class="toolbar" style="justify-content:flex-start">
+          <a class="btn btn--light" href="index.html">← Home</a>
+          <button class="btn" onclick="location.reload()">Play Again</button>
         </div>
       `;
+
+      // Build details list
+      const blocks = questions.map((q,i)=>{
+        const user = picked[i] || "—";
+        const isRight = !!correct[i];
+        const col = isRight? 'var(--good)' : (picked[i] ? 'var(--bad)' : 'var(--muted)');
+        return `
+          <details>
+            <summary>Q${i+1}: <span style="color:${col}">${isRight? '✔ Correct' : (picked[i] ? '✖ Wrong' : '• Skipped')}</span></summary>
+            <div class="qa">
+              <div style="font-weight:800;margin-bottom:6px">${q.q}</div>
+              <div>Correct: <b>${q.a || '—'}</b></div>
+              <div>Your answer: <b>${user}</b></div>
+            </div>
+          </details>
+        `;
+      }).join("");
+
+      summaryEl.innerHTML = header + blocks;
+      titleEl.textContent = "Quiz — Summary";
     }
 
-    async function boot(){
-      try{
-        showSplash(true);
-        let targetSheet = sheet;
+    function startTimer(sec){
+      if(!sec || sec<=0) return;
+      remain = sec;
+      timerWrap.hidden = false;
 
-        if(!targetSheet && mode === 'random'){
-          targetSheet = await chooseRandomSheet();
-        }
-        if(!targetSheet){
-          showSplash(false);
-          panel.innerHTML = `<div class="notice">No category selected.</div>`;
-          return;
-        }
-
-        // Fetch questions
-        const {cols, rows} = await gviz(targetSheet);
-        let qs = mapToQuestions(cols, rows);
-        qs = shuffle(qs);                 // random order of questions
-        qs = sample(qs, N);               // sample N if provided
-
-        questions = qs;
-        i = 0; score = 0;
-        render();
-      } catch (err){
-        console.error(err);
-        panel.innerHTML = `<div class="notice">Failed to load questions. Check sheet access / names.</div>`;
-      } finally{
-        showSplash(false);
+      function tick(){
+        const mm = Math.floor(remain/60), ss = remain%60;
+        tmm.textContent = String(mm).padStart(2,'0');
+        tss.textContent = String(ss).padStart(2,'0');
+        if(remain<=0){ clearInterval(countdown); showSummary(); }
+        remain--;
       }
+      tick();
+      countdown = setInterval(tick, 1000);
     }
 
-    boot();
+    prevBtn.addEventListener('click', prev);
+    nextBtn.addEventListener('click', next);
+    showBtn.addEventListener('click', showAnswer);
+    quitBtn.addEventListener('click', showSummary);
+
+    /* ===== Load questions ===== */
+    async function main(){
+      showSplash(true, "Loading quiz…");
+
+      let chosenTab = tab, chosenName = tab;
+      // mode=random => pick a random category, then fetch questions.
+      if(mode==="random"){
+        const cats = await fetchCategories();
+        if(!cats.length) throw new Error("No categories available. Publish the sheet to web.");
+        const n = Math.floor(Math.random()*cats.length);
+        chosenTab = cats[n].sheet; chosenName = cats[n].name || chosenTab;
+      }else{
+        chosenName = tab || "Quiz";
+      }
+
+      const {cols, rows} = await gviz(chosenTab);
+      let items = mapQuestions(cols, rows);
+      // Clean: only keep with options or answer
+      items = items.filter(x => x.q && (x.a || (x.opts && x.opts.length)));
+      // Shuffle & limit
+      items = shuffle(items).slice(0, Math.min(limitN, items.length));
+
+      if(!items.length) throw new Error("No questions found in this tab.");
+
+      // Prepare
+      questions = items;
+      picked = new Array(items.length).fill("");
+      correct = new Array(items.length).fill(false);
+
+      // UI set
+      titleEl.textContent = `Quiz — ${chosenName}`;
+      catNameEl.textContent = chosenName;
+      progressCard.style.display = "block";
+      qCard.style.display = "block";
+      summaryEl.style.display = "none";
+      idx = 0;
+      renderQuestion();
+      updateProgress();
+      if(timerSeconds>0) startTimer(timerSeconds);
+
+      showSplash(false);
+    }
+
+    main().catch(err=>{
+      showSplash(false);
+      qCard.style.display = "none";
+      progressCard.style.display = "none";
+      summaryEl.style.display = "block";
+      summaryEl.innerHTML = `
+        <h3>Couldn’t start the quiz</h3>
+        <p style="color:var(--muted);font-weight:700">${err.message}</p>
+        <div class="toolbar" style="justify-content:flex-start">
+          <a class="btn btn--light" href="index.html">← Home</a>
+        </div>
+      `;
+    });
   </script>
 </body>
 </html>
