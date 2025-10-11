@@ -88,7 +88,7 @@ const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 const CATEGORIES_TAB = "Categories";
 
 /* ====== helpers ====== */
-const $ = sel=>document.querySelector(sel);
+const $ = s=>document.querySelector(s);
 function csvToRows(text){
   const rows=[], row=[], pushRow=()=>{rows.push([...row]);row.length=0};
   let s="", q=false;
@@ -131,29 +131,77 @@ async function fetchCSV(sheetName){
 }
 
 /* ====== parsers ====== */
+function firstNonEmpty(obj, names){
+  for(const n of names){ if(obj[n]!=null && obj[n]!=="") return obj[n]; }
+  return "";
+}
 function parseMCQ(headers, rows){
   const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
-  const optNames = ["opta","optb","optc","optd"].filter(x=>H[x]!=null);
+  const optCols = ["opta","optb","optc","optd","opt1","opt2","opt3","opt4"].filter(x=>H[x]!=null);
+  const correctCols = ["correct","answer","ans","key","answerkey","right","correctoption","solution","correctindex","ansindex"];
+
   return rows.map(r=>{
-    const q = r[H.question] || r[H.q] || r[0];
-    const ans = r[H.answer] || r[H.ans] || "";
-    const options = optNames.map(x=>r[H[x]]).filter(Boolean);
-    const correct = (r[H.correct] || ans || "").toString().trim();
-    return {q, answer: ans, options: options.length?options:[ans], correct};
-  }).filter(x=>x.q && x.answer);
+    const get = h => r[H[h]] ?? "";
+    const q = get("question") || get("q") || r[0] || "";
+    if(!q) return null;
+
+    // collect options (A,B,C,D order as found)
+    const options = optCols.map(h => (get(h)||"").toString().trim()).filter(Boolean);
+
+    // read "correct" raw
+    let rawCorrect = firstNonEmpty(Object.fromEntries(correctCols.map(c=>[c, get(c)])), correctCols).toString().trim();
+
+    // find correct index or text robustly
+    let correctIndex = -1;
+    let correctText = "";
+
+    // If raw is a letter A-D
+    const letter = rawCorrect.match(/^[abcd]$/i);
+    if(letter){ correctIndex = "abcd".indexOf(letter[0].toLowerCase()); }
+
+    // Or if raw is 1-4
+    const num = rawCorrect.match(/^[1-4]$/);
+    if(num){ correctIndex = parseInt(num[0],10)-1; }
+
+    // If still not found, try exact text match
+    if(correctIndex<0 && options.length){
+      const idx = options.findIndex(o => o.trim() === rawCorrect.trim());
+      if(idx>=0) correctIndex = idx;
+    }
+
+    // Fallback: if an "answer" cell contains the full text and matches options
+    if(correctIndex<0 && options.length){
+      const ansText = (get("answer") || "").toString().trim();
+      const idx = options.findIndex(o => o.trim() === ansText);
+      if(idx>=0){ correctIndex = idx; rawCorrect = ansText; }
+    }
+
+    // Last fallback: if nothing matched, assume first option is correct (prevents null)
+    if(correctIndex<0) correctIndex = 0;
+
+    correctText = options.length ? options[correctIndex] : (rawCorrect || "");
+
+    // If no explicit options, fall back to pure Q/A style
+    if(options.length===0){
+      const ans = (get("answer") || rawCorrect || "").toString().trim();
+      return { q, options:[ans], correct:ans };
+    }
+
+    return { q, options, correct: correctText, correctIndex };
+  }).filter(Boolean);
 }
 function fromQA(headers, rows){
   const H = Object.fromEntries(headers.map((h,i)=>[h,i]));
   return rows.map(r=>{
     const q = r[H.question] || r[0];
     const ans = (r[H.answer] || r[1] || "").toString().trim();
-    return {q, answer: ans, options:[ans], correct: ans};
-  }).filter(x=>x.q && x.answer);
+    return {q, options:[ans], correct: ans, correctIndex:0};
+  }).filter(x=>x.q && x.correct);
 }
 async function loadQuestions(sheet){
   const {headers, rows} = await fetchCSV(sheet);
   const norm = headers.map(normalizeHeader);
-  const hasOptions = norm.some(h=>/^opt[abcd]$/.test(h));
+  const hasOptions = norm.some(h=>/^opt[abcd1-4]$/.test(h));
   return (hasOptions ? parseMCQ(norm, rows) : fromQA(norm, rows));
 }
 
@@ -230,11 +278,14 @@ function showQuestion(i){
 
   let shuffled = optCache.get(qIndex);
   if(!shuffled){
-    const baseOpts = q.options && q.options.length>1 ? [...q.options] : [q.answer];
-    shuffled = shuffle(baseOpts.map(txt => ({
+    // Tag options with correctness using index if present
+    shuffled = (q.options && q.options.length ? [...q.options] : [q.correct]).map((txt,ii)=>({
       txt,
-      isCorrect: txt.toString().trim() === (q.correct||q.answer).toString().trim()
-    })));
+      isCorrect: (typeof q.correctIndex === "number")
+        ? (ii === q.correctIndex)
+        : (txt.toString().trim() === (q.correct||"").toString().trim())
+    }));
+    shuffled = shuffle(shuffled);
     optCache.set(qIndex, shuffled);
   }
 
@@ -243,7 +294,7 @@ function showQuestion(i){
     const div = document.createElement("div");
     div.className = "opt";
     div.textContent = o.txt;
-    div.dataset.correct = o.isCorrect ? "1" : "0";   // <-- tag the correct option
+    div.dataset.correct = o.isCorrect ? "1" : "0";   // <-- reliable tag
     div.onclick = ()=>{
       if(picked.has(qIndex)) return;
       const res = {picked:o.txt, isCorrect:o.isCorrect};
@@ -254,14 +305,14 @@ function showQuestion(i){
         div.classList.add("correct");
       }else{
         div.classList.add("wrong");
-        const right = area.querySelector('.opt[data-correct="1"]'); // <-- reliable
+        const right = area.querySelector('.opt[data-correct="1"]');
         if(right) right.classList.add("correct");
       }
     };
     area.appendChild(div);
   });
 
-  // restore previous state if answered before
+  // restore if already answered
   const past = picked.get(qIndex);
   if(past){
     [...area.children].forEach(el=>{
@@ -272,13 +323,12 @@ function showQuestion(i){
   }
 
   $("#answer").style.display = "none";
-  $("#answer").textContent = "Answer: " + (q.correct || q.answer);
+  $("#answer").textContent = "Answer: " + (q.correct || "");
 }
 
 /* ====== controls ====== */
 $("#showBtn").onclick = ()=>{
   $("#answer").style.display = "";
-  // also highlight the correct one if not answered yet
   const area = $("#opts");
   const right = area.querySelector('.opt[data-correct="1"]');
   if(right){
@@ -304,7 +354,10 @@ function showSummary(){
     const res = picked.get(i);
     const q = questions[i];
     if(!res) return;
-    if(res.picked.toString().trim() === (q.correct||q.answer).toString().trim()) correct++;
+    const isOk = (typeof q.correctIndex==="number")
+      ? (q.options.findIndex(t => t===res.picked) === q.correctIndex)
+      : (res.picked.toString().trim() === (q.correct||"").toString().trim());
+    if(isOk) correct++;
   });
 
   const s = $("#summary");
@@ -319,13 +372,14 @@ function showSummary(){
         ${order.map((i,k)=>{
           const q = questions[i];
           const res = picked.get(i) || {picked:"—", isCorrect:false};
-          const mine = res.picked;
-          const ok = mine.toString().trim() === (q.correct||q.answer).toString().trim();
+          const ok = (typeof q.correctIndex==="number")
+            ? (q.options.findIndex(t => t===res.picked) === q.correctIndex)
+            : (res.picked.toString().trim() === (q.correct||"").toString().trim());
           return `
             <details>
               <summary><strong>${k+1}.</strong> ${q.q}</summary>
-              <div class="muted">Your answer: <span style="color:${ok?'#0a5':'#b33'}">${mine}</span></div>
-              <div class="muted">Correct: ${q.correct||q.answer}</div>
+              <div class="muted">Your answer: <span style="color:${ok?'#0a5':'#b33'}">${res.picked}</span></div>
+              <div class="muted">Correct: ${typeof q.correctIndex==="number" ? q.options[q.correctIndex] : (q.correct||"")}</div>
             </details>
           `;
         }).join("")}
