@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Quiz — PSC Guru</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="header.css">
+  <script defer src="site-header.js"></script>
+  <style>
+    :root{ --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --error:#d24747; --card:#fff; --shadow:0 20px 40px rgba(30,70,50,.15); --border: rgba(0,0,0,.06); --bg:#f5fbf7; }
+    *{box-sizing:border-box} body{margin:0;font:400 16px/1.55 Inter,system-ui;background:var(--bg);color:var(--text)}
+    .wrap{max-width:980px;margin:0 auto;padding:22px 16px 60px}
+    .title{font-weight:800;font-size:28px;margin:6px 0 14px}
+    .progress-wrap{display:flex;align-items:center;gap:12px;margin:6px 0 12px}
+    .progress{height:8px;background:#e7f3ec;border-radius:999px;flex:1;overflow:hidden}
+    .bar{height:100%;width:0;background:#b8e5cc;border-radius:999px;transition:width .3s ease}
+    .paging{color:var(--muted);font-weight:800}
+    .qcard{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
+    .qhead{color:var(--muted);font-size:14px;margin-bottom:8px}
+    .qtext{font-size:18px;font-weight:700;margin:6px 0 12px}
+    .opts{display:grid;gap:10px}
+    .opt{border:1px solid var(--border);border-radius:12px;padding:12px 14px;background:#fff;cursor:pointer; user-select:none;}
+    .opt:hover{box-shadow:0 6px 16px rgba(30,70,50,.10)}
+    .opt.correct{border-color:#8bd2a8;background:#ecfff4}
+    .opt.wrong{border-color:#f1b6b6;background:#fff4f4}
+    .controls{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
+    .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
+    .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+    .btn:disabled{opacity:.5;cursor:not-allowed}
+    .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
+    .splash.on{display:grid}
+    .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #d9f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .notice{padding:12px;border-radius:10px;border:1px solid #f7d6b5;background:#fff7ed;color:#7a4c22}
+    .debug{margin:12px 0; font-size:12px; color:#7a4c22}
+    .errorbox{margin:12px 0; padding:10px; border:1px dashed #d24747; background:#fff1f1; color:#7a1f1f; border-radius:10px}
+  </style>
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <a href="index.html" class="site-brand" aria-label="PSC Guru Home">
+        <div class="site-logo">PSC</div>
+        <div><h1>PSC Guru</h1><small>Kerala PSC Exam Prep</small></div>
+      </a>
+      <button class="nav-toggle" aria-label="Toggle navigation" aria-expanded="false" aria-controls="primaryNav">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>
+        </svg>
+      </button>
+      <nav id="primaryNav" class="site-nav" aria-label="Primary">
+        <a href="index.html">Quiz</a><a href="resources.html">Study</a><a href="notices.html">Notices</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <h1 class="title">Quiz</h1>
+    <div id="debug" class="debug"></div>
+
+    <div class="progress-wrap" id="progressWrap" hidden>
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <span class="paging" id="paging">Page 1 / 1</span>
+    </div>
+
+    <div id="panel"></div>
+
+    <div class="controls" id="controls" hidden>
+      <button class="btn" id="prevBtn">← Previous</button>
+      <button class="btn" id="revealBtn">Show Answer</button>
+      <button class="btn primary" id="nextBtn">Next →</button>
+    </div>
+  </div>
+
+  <div class="splash" id="splash"><div class="spinner" aria-label="Loading"></div></div>
+
+  <script>
+    /* CONFIG */
+    const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+    const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+    const CATEGORIES_TAB = "Categories";
+
+    /* DOM */
+    const $ = s => document.querySelector(s);
+    const debug = $('#debug');
+    const panel = $('#panel'); const splash = $('#splash'); const bar = $('#bar'); const paging = $('#paging');
+    const progressWrap = $('#progressWrap'); const prevBtn = $('#prevBtn'); const nextBtn = $('#nextBtn'); const revealBtn = $('#revealBtn'); const controls = $('#controls');
+
+    const params = new URLSearchParams(location.search);
+    const sheetToken = params.get('sheet');
+    const mode = params.get('mode');
+    const N = params.get('n');
+
+    let questions = []; let i=0, score=0, revealed=false;
+
+    function showSplash(on){ splash.classList.toggle('on', !!on); }
+    function log(s){ debug.insertAdjacentHTML('beforeend', `<div>${s}</div>`); }
+
+    function splitCSV(line){ const re=/(?:[^,"\\]|\\.|"(?:\\.|[^"])*")+/g; return (line.match(re)||[]).map(s=>s.replace(/^"|"$/g,"").trim()); }
+    function parseCSV(text){ const lines=text.split(/\r?\n/).filter(Boolean); if(!lines.length) return {head:[],rows:[]}; const head=splitCSV(lines.shift()); const rows=lines.map(splitCSV); return {head,rows}; }
+    const norm = s => (s||"").toLowerCase().trim();
+    function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+
+    function parseToken(t){
+      const out = {gid:null, name:null, url:null};
+      if(!t) return out;
+      const str = String(t).trim();
+      if(/^https?:/i.test(str)){ out.url = str; const m = str.match(/gid=(\d+)/); if(m) out.gid = m[1]; return out; }
+      const m = str.match(/gid=(\d+)/); if(m){ out.gid = m[1]; return out; }
+      if(/^\d+$/.test(str)){ out.gid = str; return out; }
+      out.name = str; return out;
+    }
+
+    async function fetchCSV_viaEKey(token){
+      if(!GS_PUB_EKEY) return null;
+      const {gid, name} = parseToken(token);
+      const base = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv`;
+      const url = gid ? `${base}&gid=${gid}&single=true` : `${base}&sheet=${encodeURIComponent(name||"Sheet1")}`;
+      log(`CSV(EKEY): <code>${url.replace(/&/g,'&amp;')}</code>`);
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) return {error:`${res.status} ${res.statusText}`, url};
+      const txt = await res.text(); const {head, rows} = parseCSV(txt);
+      if(!rows.length) return {error:"empty CSV", url};
+      return {cols: head.map(h=>norm(h)), rows, url};
+    }
+
+    async function fetchCSV_directExport(token){
+      const {gid} = parseToken(token);
+      if(!gid) return null;
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/export?format=csv&gid=${gid}`;
+      log(`CSV(export): <code>${url.replace(/&/g,'&amp;')}</code>`);
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) return {error:`${res.status} ${res.statusText}`, url};
+      const txt = await res.text(); const {head, rows} = parseCSV(txt);
+      if(!rows.length) return {error:"empty CSV", url};
+      return {cols: head.map(h=>norm(h)), rows, url};
+    }
+
+    async function fetchCSV_ifDirectURL(token){
+      const {url} = parseToken(token);
+      if(!url) return null;
+      const direct = url.includes("output=csv") ? url : url.replace(/edit.*$/, "export?format=csv");
+      log(`CSV(direct): <code>${direct.replace(/&/g,'&amp;')}</code>`);
+      const res = await fetch(direct,{cache:"no-store"});
+      if(!res.ok) return {error:`${res.status} ${res.statusText}`, url:direct};
+      const txt = await res.text(); const {head, rows} = parseCSV(txt);
+      if(!rows.length) return {error:"empty CSV", url:direct};
+      return {cols: head.map(h=>norm(h)), rows, url:direct};
+    }
+
+    async function fetchGViz(token){
+      const {gid, name} = parseToken(token);
+      const url = gid
+        ? `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?gid=${gid}&tq=${encodeURIComponent("select *")}`
+        : `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(name||"Sheet1")}&tq=${encodeURIComponent("select *")}`;
+      log(`GViz: <code>${url.replace(/&/g,'&amp;')}</code>`);
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) return {error:`${res.status} ${res.statusText}`, url};
+      const raw = await res.text(); const json = stripGVizJSON(raw);
+      const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
+      const rows = json.table.rows.map(r => (r.c||[]).map(c => (c && c.v)!=null ? String(c.v) : ""));
+      if(!rows.length) return {error:"empty GViz", url};
+      return {cols, rows, url};
+    }
+
+    async function chooseRandomToken(){
+      // Prefer CSV from Categories
+      if(GS_PUB_EKEY){
+        try{
+          const url = `https://docs.google.com/spreadsheets/d/e/${GS_PUB_EKEY}/pub?output=csv&sheet=${encodeURIComponent(CATEGORIES_TAB)}`;
+          const res = await fetch(url,{cache:"no-store"});
+          if(res.ok){
+            const txt = await res.text(); const {head, rows} = parseCSV(txt); const h=head.map(norm);
+            let idxTab = h.findIndex(x=> x.includes('get')||x.includes('sheet')||x.includes('tab')); if(idxTab<0) idxTab=1;
+            const list = rows.map(r => (r[idxTab]||"").trim()).filter(Boolean);
+            if(list.length) return list[Math.floor(Math.random()*list.length)];
+          }
+        }catch(e){}
+      }
+      // Fallback GViz
+      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(CATEGORIES_TAB)}&tq=${encodeURIComponent("select *")}`;
+      const res = await fetch(url,{cache:"no-store"}); const raw=await res.text(); const json=stripGVizJSON(raw);
+      const cols=json.table.cols.map(c=>(c.label||"").trim().toLowerCase()); const rows=json.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):""));
+      const idxTab = cols.findIndex(t => /(get|sheet|tab)/.test(t));
+      const list = rows.map(r => (r[idxTab]||"").trim()).filter(Boolean);
+      return list[Math.floor(Math.random()*list.length)];
+    }
+
+    function smartMap(cols, rows){
+      const find = (cands) => { for(const p of cands){ let k=cols.findIndex(c => c===p); if(k>-1) return k; } for(const p of cands){ let k=cols.findIndex(c => c.includes(p)); if(k>-1) return k; } return -1; };
+      let iQ = find(["question","ques","q","question text"]);
+      let iA = find(["answer","ans","key","correct","solution"]);
+      let iA1 = find(["opta","a","option a","choice a","opt a"]);
+      let iB1 = find(["optb","b","option b","choice b","opt b"]);
+      let iC1 = find(["optc","c","option c","choice c","opt c"]);
+      let iD1 = find(["optd","d","option d","choice d","opt d"]);
+      if(iQ<0 && cols.length>=1) iQ=0;
+      const optIdx = [iA1,iB1,iC1,iD1].filter(x=>x>-1);
+      const clean = s => (s||"").toString().trim();
+      const ansIdx = (ans, opts)=>{
+        const a=clean(ans); if(!a) return -1; const u=a.toUpperCase();
+        if(["A","B","C","D"].includes(u)) return "ABCD".indexOf(u);
+        if(/^[1-4]$/.test(u)) return Number(u)-1;
+        return opts.findIndex(o => o.toLowerCase() === a.toLowerCase());
+      };
+      const out=[];
+      for(const r of rows){
+        const q=clean(r[iQ]); const opts = optIdx.map(ix=> clean(r[ix])).filter(Boolean);
+        let correct = ansIdx(r[iA], opts); if(correct<0) correct=0;
+        if(!q || opts.length<2) continue;
+        const pairs = opts.map((t,idx)=>({t,idx}));
+        for(let k=pairs.length-1;k>0;k--){ const j=Math.floor(Math.random()*(k+1)); [pairs[k],pairs[j]]=[pairs[j],pairs[k]]; }
+        const newOpts=pairs.map(p=>p.t); const newCorrect=pairs.findIndex(p=>p.idx===correct);
+        out.push({q, opts:newOpts, correct:newCorrect});
+      }
+      return out;
+    }
+
+    function render(){
+      if(!questions.length){ panel.innerHTML = `<div class="notice">No questions available for this category.</div>`; controls.hidden = true; progressWrap.hidden=true; return; }
+      const q = questions[i];
+      progressWrap.hidden = false;
+      bar.style.width = `${((i+1)/questions.length)*100}%`;
+      paging.textContent = `Page ${i+1} / ${questions.length}`;
+      panel.innerHTML = `<div class="qcard"><div class="qhead">Question ${i+1} / ${questions.length}</div><div class="qtext"></div><div class="opts">${q.opts.map((o,idx)=>`<div class="opt" data-idx="${idx}"></div>`).join('')}</div></div>`;
+      panel.querySelector(".qtext").textContent = q.q;
+      panel.querySelectorAll(".opt").forEach((el,idx)=>{ el.textContent=q.opts[idx]; });
+      controls.hidden = false; prevBtn.disabled = i===0; nextBtn.textContent = (i===questions.length-1) ? 'Finish →' : 'Next →'; revealed = false;
+      panel.querySelectorAll('.opt').forEach(el=>{
+        el.addEventListener('click', ()=>{
+          if(revealed) return;
+          const sel = Number(el.dataset.idx);
+          if(sel===q.correct){ el.classList.add('correct'); score++; } else { el.classList.add('wrong'); panel.querySelector(\`.opt[data-idx="\${q.correct}"]\`)?.classList.add('correct'); }
+          revealed = true;
+        });
+      });
+    }
+    prevBtn?.addEventListener('click', ()=>{ if(i>0){ i--; render(); } });
+    nextBtn?.addEventListener('click', ()=>{ if(i<questions.length-1){ i++; render(); } else { progressWrap.hidden=true; controls.hidden=true; panel.innerHTML = \`<div class="qcard"><div class="qtext">Summary</div><p class="qhead">Score: <b>\${score}</b> / \${questions.length}</p><p>Refresh or go back to play again.</p></div>\`; } });
+    revealBtn?.addEventListener('click', ()=>{ if(revealed) return; panel.querySelector(\`.opt[data-idx="\${questions[i].correct}"]\`)?.classList.add('correct'); revealed = true; });
+
+    async function loadQuestions(token){
+      const attempts = [];
+      // 1) Direct URL (published CSV pasted in Categories)
+      attempts.push(await fetchCSV_ifDirectURL(token));
+      // 2) EKEY (Publish to web -> entire document)
+      attempts.push(await fetchCSV_viaEKey(token));
+      // 3) Direct export by gid (requires "Anyone with link")
+      attempts.push(await fetchCSV_directExport(token));
+      // 4) GViz (requires "Anyone with link")
+      attempts.push(await fetchGViz(token));
+
+      const errs=[];
+      for(const r of attempts){
+        if(r && !r.error && r.rows && r.rows.length){
+          log(`<b>✅ Loaded:</b> ${r.url ? ('<code>'+r.url.replace(/&/g,'&amp;')+'</code>') : 'inline'}`);
+          return smartMap(r.cols, r.rows);
+        }
+        if(r && r.error){ errs.push(r); log(`<b>✖ Failed:</b> ${r.url ? ('<code>'+r.url.replace(/&/g,'&amp;')+'</code>') : ''} — ${r.error}`); }
+      }
+      // Demo fallback to prove UI works
+      log(`<div class="errorbox"><b>Could not load from Google Sheets.</b><br>Check “Publish to the web → Entire document” or share as “Anyone with link: Viewer”.</div>`);
+      return [
+        {q:"DEMO: Which is the capital of Kerala?", opts:["Thiruvananthapuram","Kochi","Kozhikode","Thrissur"], correct:0},
+        {q:"DEMO: 2 + 2 = ?", opts:["3","4","5","6"], correct:1},
+        {q:"DEMO: The largest planet?", opts:["Earth","Mars","Jupiter","Venus"], correct:2}
+      ];
+    }
+
+    async function boot(){
+      try{
+        showSplash(true);
+        let token = sheetToken;
+        if(!token && mode === 'random'){ token = await chooseRandomToken(); log(`<b>Random picked:</b> ${token}`); }
+        if(!token){ panel.innerHTML = `<div class="notice">No category selected.</div>`; return; }
+        const qs = await loadQuestions(token);
+        questions = (N && String(N).toUpperCase()!=='N') ? qs.slice(0, Math.max(1, Math.min(qs.length, Number(N)||5))) : qs;
+        i=0; score=0; render();
+      }catch(err){
+        console.error(err);
+        panel.innerHTML = `<div class="notice">Unexpected error. See console logs.</div>`;
+      }finally{ showSplash(false); }
+    }
+    boot();
+  </script>
+</body>
+</html>
