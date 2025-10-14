@@ -1,14 +1,17 @@
+// Minimal header controller: mobile menu toggle + active link highlight
 (function(){
   const header = document.querySelector('.site-header');
+
   function setActiveLink(){
     const links = document.querySelectorAll('.site-nav a, .links a');
     const path  = location.pathname.replace(/\/index\.html?$/,'/');
     links.forEach(a=>{
-      const href = a.getAttribute('href')||'';
+      const href = a.getAttribute('href') || '';
       const norm = href.replace(/\/index\.html?$/,'/');
       a.classList.toggle('active', norm===path || (norm==='index.html' && path==='/'));
     });
   }
+
   function setupToggle(){
     const btn = document.querySelector('.nav-toggle');
     const nav = document.querySelector('.site-nav');
@@ -25,5 +28,6 @@
       }
     });
   }
+
   document.addEventListener('DOMContentLoaded', ()=>{ setActiveLink(); setupToggle(); });
 })();
