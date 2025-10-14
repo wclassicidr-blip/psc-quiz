@@ -4,11 +4,14 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>PSC Guru — Kerala PSC Exam Prep</title>
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
   <link rel="stylesheet" href="header.css">
   <script defer src="site-header.js"></script>
+
   <style>
     :root{--bg:#f2f8f4;--bg-2:#eaf4ef;--glass:rgba(255,255,255,.85);--glass-2:rgba(255,255,255,.95);--text:#0f2d1f;--muted:#5f726a;--brand:#0f8346;--brand-600:#0b5f34;--ring:rgba(15,131,70,.22);--shadow:0 20px 40px rgba(30,70,50,.15);--r:18px;}
     *{box-sizing:border-box} body{margin:0;font:400 16px/1.55 Inter,system-ui;color:var(--text);background:linear-gradient(180deg,var(--bg),var(--bg-2));}
@@ -35,7 +38,7 @@
     .btn-sm{padding:8px 12px;border-radius:999px}
     .toolbar{display:flex;gap:14px;align-items:center;margin-top:24px;margin-bottom:10px;position:sticky;top:70px;z-index:3}
     .toolbar .title{font-size:22px;margin:0;font-weight:800}
-    .toolbar .count{color:var(--muted);font-weight:800}
+    .toolbar .count{color:#5f726a;font-weight:800}
     .search{margin-left:auto;display:flex;align-items:center;gap:10px;background:var(--glass-2);border:1px solid rgba(0,0,0,.06);border-radius:999px;padding:10px 14px;backdrop-filter: blur(8px);box-shadow:var(--shadow);max-width:560px;width:100%}
     .search input{border:none;outline:none;background:transparent;color:inherit;font:inherit;width:100%}
     .grid-cats{display:grid;grid-template-columns:1fr;gap:14px;margin-top:10px}
@@ -108,6 +111,7 @@
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
       <div class="skeleton"></div><div class="skeleton"></div><div class="skeleton"></div>
     </section>
+
     <footer>© 2025 PSC Guru • Tea Green UI</footer>
   </div>
 
@@ -116,6 +120,7 @@
   </div>
 
   <script>
+    /* CONFIG */
     const GS_SHEET_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
     const GS_PUB_EKEY = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
     const CATEGORIES_TAB = "Categories";
@@ -130,9 +135,7 @@
     document.getElementById('startRandom').addEventListener('click', ()=>{
       location.href = `quiz.html?mode=random&n=${encodeURIComponent(selectedN)}`;
     });
-    document.getElementById('aiInfo').addEventListener('click', ()=>{
-      alert("Open any category below and start. Add ?timer=300 to quiz URL for a 5-minute timer.");
-    });
+    document.getElementById('aiInfo').addEventListener('click', ()=>{ alert("Open any category below and start. Add ?timer=300 to quiz URL for a 5-minute timer."); });
     document.getElementById('aiPlay').addEventListener('click', ()=>{
       document.getElementById('gridTop').scrollIntoView({behavior:"smooth", block:"start"});
       document.getElementById('aiCard').animate([{transform:"scale(1)"},{transform:"scale(1.02)"},{transform:"scale(1)"}], {duration:500});
@@ -143,7 +146,7 @@
 
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     function splitCSV(line){ const re=/(?:[^,"\\]|\\.|"(?:\\.|[^"])*")+/g; return (line.match(re)||[]).map(s=>s.replace(/^"|"$/g,"").trim()); }
-    function parseCSV(text){ const lines=text.split(/\r?\n/).filter(l=>l.trim()!==""); if(!lines.length) return {head:[], rows:[]}; const head=splitCSV(lines.shift()); const rows=lines.map(splitCSV); return {head, rows}; }
+    function parseCSV(text){ const lines=text.split(/\\r?\\n/).filter(l=>l.trim()!==""); if(!lines.length) return {head:[], rows:[]}; const head=splitCSV(lines.shift()); const rows=lines.map(splitCSV); return {head, rows}; }
     const norm = s => (s||"").toLowerCase().trim();
 
     async function fetchCSVItems(){
@@ -166,27 +169,35 @@
       return {cols, rows};
     }
 
+    function rowsToItems(head, rows){
+      const h = head.map(norm);
+      let idxName = h.findIndex(x=>x.startsWith('name')); if(idxName<0) idxName=0;
+      let idxTab  = h.findIndex(x=> x.includes('get')||x.includes('sheet')||x.includes('tab')); if(idxTab<0) idxTab=1;
+      let idxDesc = h.findIndex(x=>x.startsWith('desc'));
+      return rows.map(r => ({name:(r[idxName]||"").trim(), sheet:(r[idxTab]||"").trim(), desc: idxDesc>-1 ? (r[idxDesc]||"").trim():""})).filter(x=>x.sheet);
+    }
+
     async function loadCategories(){
       showSplash(true, "Loading categories…");
       const cont  = document.getElementById('cats'); const count = document.getElementById('catCount');
+
       let items = [];
       try{ items = await fetchCSVItems(); }catch(e){ console.warn("CSV failed:", e.message); }
       if(!items.length){
-        try{ const {cols, rows} = await gviz(CATEGORIES_TAB); const h=cols.map(norm);
-          let idxName=h.findIndex(x=>x.startsWith('name')); if(idxName<0) idxName=0;
-          let idxTab=h.findIndex(x=>x.includes('get')||x.includes('sheet')||x.includes('tab')); if(idxTab<0) idxTab=1;
-          items = rows.map(r=>({name:(r[idxName]||"").trim(), sheet:(r[idxTab]||"").trim(), desc:""})).filter(x=>x.sheet);
-        }catch(e){ console.warn("GViz fallback failed:", e.message); }
+        try{ const {cols, rows} = await gviz(CATEGORIES_TAB); items = rowsToItems(cols, rows); }catch(e){ console.warn("GViz fallback failed:", e.message); }
       }
+
       showSplash(false);
       cont.setAttribute('aria-busy','false');
       if(!items.length){
         count.textContent="(0)";
-        cont.innerHTML = `<article class="cat" role="alert"><h3>Couldn’t load categories</h3><p>Make sure the sheet is <b>Published to the web</b> (entire document) and the tab is named <b>${CATEGORIES_TAB}</b>.</p></article>`;
+        cont.innerHTML = `<article class="cat" role="alert"><h3>Couldn’t load categories</h3><p>Publish the Google Sheet to the web (Entire document) or share as “Anyone with link: Viewer”.</p></article>`;
         return;
       }
+
       cont.innerHTML = items.map(x => `<article class="cat"><a class="stretched" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}"></a><h3>${x.name||x.sheet}</h3><p>${x.desc||"From Google Sheets"}</p></article>`).join("");
       count.textContent = `(${items.length})`;
+
       document.getElementById('q').addEventListener('input', (e)=>{
         const q = e.target.value.toLowerCase();
         [...document.querySelectorAll('.cat')].forEach(card=>{
