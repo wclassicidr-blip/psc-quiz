@@ -13,7 +13,7 @@
       </a>
 
       <button id="navToggle" class="nav-toggle" aria-label="Toggle menu" aria-expanded="false">
-        <svg viewBox="0 0 24 24" fill="none" stroke="#0f2d1f" stroke-width="2" stroke-linecap="round">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#1d1556" stroke-width="2" stroke-linecap="round">
           <path d="M3 6h18M3 12h18M3 18h18"/>
         </svg>
       </button>
