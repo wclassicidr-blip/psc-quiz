@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PSC Guru — Home</title>
+<title>Quizon — Home</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,264 +11,198 @@
 
 <style>
   :root{
-    --bg: #f6faf8;
-    --surface: #ffffff;
-    --ink: #0f241a;
-    --muted: #6c7b74;
-    --border: rgba(0,0,0,.08);
-    --shadow: 0 20px 60px rgba(15,35,25,.14);
+    --bg:#f7f6ff;
+    --card:#ffffff;
+    --ink:#18202b;
+    --muted:#7a8896;
+    --border:rgba(0,0,0,.08);
+    --shadow:0 24px 60px rgba(25,20,60,.15);
 
-    --brand-1: #7b66ff;
-    --brand-2: #52d1a5;
+    --purple:#7f5fff;
+    --purple-2:#6238ff;
+    --purple-3:#985eff;
+    --accent:#28d0a0;
 
-    --grad-1: linear-gradient(160deg, #7b66ff, #a573ff);
-    --grad-2: linear-gradient(160deg, #0f8346, #0b5f34);
-    --glass: rgba(255,255,255,.6);
+    --surface:#ffffffcc;
   }
-  @media (prefers-color-scheme: dark){
+  @media (prefers-color-scheme:dark){
     :root{
-      --bg:#0b1411; --surface:#0f1f18; --ink:#e9fcf4; --muted:#b9d7cb;
-      --border:rgba(255,255,255,.12); --shadow:0 20px 60px rgba(0,0,0,.55);
-      --glass: rgba(12, 31, 24, .55);
+      --bg:#0d0a19;
+      --card:#15132a;
+      --ink:#f5f6ff;
+      --muted:#c7c9d6;
+      --border:rgba(255,255,255,.12);
+      --shadow:0 24px 60px rgba(0,0,0,.55);
+      --surface:#0d0a19cc;
     }
   }
 
   *{box-sizing:border-box}
-  html,body{height:100%; background:var(--bg); color:var(--ink); font:400 15.5px/1.55 Inter,system-ui; overflow-x:hidden}
+  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:400 15.5px/1.55 Inter,system-ui;overflow-x:hidden}
 
-  /* Header */
-  .sitebar{
-    position:sticky; top:0; z-index:50; height:64px;
-    display:flex; align-items:center; gap:12px; padding:0 12px;
-    backdrop-filter: blur(10px); background:var(--glass); border-bottom:1px solid var(--border);
-  }
-  .sitebar .brand{
-    display:flex; align-items:center; gap:10px; font-weight:800;
-    padding:6px 10px; border-radius:12px;
-    background: linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,.2));
-    border:1px solid var(--border);
-  }
-  .sitebar .brand i{
-    width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
-    background: #ecf7f1; border:1px solid var(--border);
-  }
-  .nav{ margin-left:auto; display:flex; gap:8px }
-  .pill{
-    appearance:none; border:none; cursor:pointer;
-    padding:10px 14px; border-radius:12px; font-weight:800;
-    background:#fff; border:1px solid var(--border);
-  }
-  .pill.active{ background:var(--grad-2); color:#fff; border:none }
-  @media (prefers-color-scheme:dark){ .pill{ background:#0c1b13; color:var(--ink) } }
+  /* App frame (centers on desktop, full-width on phones) */
+  .app{max-width:980px;margin:0 auto;padding:16px 12px 96px}
 
-  /* Page container */
-  .container{ max-width:1080px; margin:0 auto; padding:16px 12px 96px }
+  /* Top “app header” */
+  .topbar{
+    position:sticky;top:0;z-index:50;height:56px;
+    display:flex;align-items:center;justify-content:center;
+    background:var(--surface);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)
+  }
+  .brand{font:800 18px/1 Inter;letter-spacing:.2px;display:flex;gap:10px;align-items:center}
+  .brand i{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#fff;border:1px solid var(--border)}
+  @media (prefers-color-scheme:dark){ .brand i{background:#0f0c23} }
 
-  /* Hero */
+  /* Purple header card */
   .hero{
-    position:relative; margin:14px 0 18px; border-radius:20px; color:#fff; padding:18px;
-    background: var(--grad-1); box-shadow: var(--shadow); overflow:hidden;
+    margin:14px 0 12px;padding:18px;border-radius:22px;color:#fff;box-shadow:var(--shadow);
+    background: radial-gradient(1200px 400px at -10% 0%, #a07aff, #7f5fff 60%, #6b4bff);
   }
-  .hero .top{ display:flex; align-items:center; gap:12px }
-  .avatar{ width:48px; height:48px; border-radius:14px; background:#fff1; display:grid; place-items:center; font-size:26px }
-  .hello{ font:800 18px/1.2 Inter }
-  .sub{ opacity:.9; font-size:13px; margin-top:3px }
-  .hero .icons{ margin-left:auto; display:flex; gap:8px }
-  .ic{ width:38px; height:38px; border-radius:12px; background:#fff2; display:grid; place-items:center }
+  .hero-head{display:flex;align-items:center;gap:12px}
+  .avatar{width:44px;height:44px;border-radius:14px;background:#ffffff24;display:grid;place-items:center;font-size:24px}
+  .hero-title{font:800 18px/1.2 Inter}
+  .hero-sub{opacity:.95;font-size:13px;margin-top:4px}
+  .bell{margin-left:auto;width:36px;height:36px;border-radius:12px;background:#ffffff24;display:grid;place-items:center}
 
-  .stats{
-    display:grid; gap:12px; margin-top:14px; grid-template-columns:repeat(3, 1fr)
+  /* Mode cards row */
+  .modes{display:flex;gap:10px;overflow:auto;padding:6px 0 2px;scroll-snap-type:x mandatory}
+  .mode{scroll-snap-align:start;flex:0 0 clamp(160px, 27vw, 220px);background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px 12px 10px;color:#18202b;box-shadow:var(--shadow)}
+  .mode .tag{font:800 11px/1.2 Inter;color:#7a8896}
+  .mode .name{margin:4px 0 6px;font:800 16px/1.2 Inter}
+  .mode .art{height:80px;border-radius:12px;background:linear-gradient(135deg,#ffe2f2,#ffd3e8);display:grid;place-items:center;font-size:38px;border:1px solid var(--border)}
+  .mode.blue .art{background:linear-gradient(135deg,#e6f2ff,#e3e8ff)}
+  .mode.green .art{background:linear-gradient(135deg,#d9ffe9,#c9ffe6)}
+
+  /* Search input pill */
+  .search{
+    display:flex;align-items:center;gap:10px;margin:12px 0 6px;background:#fff;border:1px solid var(--border);
+    border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
   }
-  .stat{
-    background:#fff; color:var(--ink); border-radius:14px; padding:12px 10px; text-align:center;
-    border:1px solid var(--border);
-  }
-  .stat small{ display:block; color:var(--muted); font-weight:700 }
+  .search input{border:none;outline:none;background:transparent;flex:1;font:600 14px/1 Inter;color:var(--ink)}
+  .search i{opacity:.7}
 
-  /* Sections + cards */
-  .section{ margin-top:18px }
-  .section h3{ margin:0 0 10px; font:800 18px/1.2 Inter }
-  .row{
-    display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; padding-bottom:4px;
-    scroll-snap-type:x mandatory; min-width:0;
-  }
-  .row::-webkit-scrollbar{ height:8px } .row::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.14); border-radius:999px }
+  /* Section + grid */
+  .section{margin-top:12px}
+  .section h3{margin:0 0 10px;font:800 16px/1.2 Inter;display:flex;align-items:center}
+  .section h3 a{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--purple-3),var(--purple));padding:6px 10px;border-radius:12px;font-size:12px}
 
-  .card{
-    flex:0 0 clamp(200px, 28vw, 256px); scroll-snap-align:start;
-    background:var(--surface); border:1px solid var(--border); border-radius:16px;
-    box-shadow: var(--shadow); padding:12px; min-width:0;
-  }
-  .thumb{
-    height:104px; border-radius:12px;
-    background:linear-gradient(135deg, #eaf5ee, #f8fffb); display:grid; place-items:center;
-    font-size:36px; border:1px solid var(--border);
-  }
-  @media (prefers-color-scheme:dark){ .thumb{ background:linear-gradient(135deg, #11241b, #0f1f18) } }
+  .grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
+  @media (min-width:560px){ .grid{grid-template-columns:repeat(3,1fr)} }
+  @media (min-width:860px){ .grid{grid-template-columns:repeat(4,1fr)} }
 
-  .title{ margin:10px 0 6px; font:800 16px/1.2 Inter; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
-  .meta{ font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center; min-width:0 }
-  .badge{ font-size:11px; font-weight:800; background:#0f83461a; border:1px solid #0f834633; color:#0e5732; padding:3px 8px; border-radius:999px }
+  .cat{
+    background:var(--card);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:var(--shadow);
+    display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px;align-items:center;min-width:0
+  }
+  .cat .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:24px;border:1px solid var(--border);
+    background:linear-gradient(135deg,#f4f6ff,#fff)}
+  .cat .title{font:800 14.5px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cat .desc{grid-column:1/3;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* CTA */
-  .cta{
-    background:linear-gradient(180deg, rgba(123,102,255,.10), rgba(123,102,255,.05));
-    border:1px solid rgba(123,102,255,.25); border-radius:16px;
-    padding:14px; display:flex; align-items:center; justify-content:space-between; margin:10px 0
+  /* Random Quiz tile styling */
+  .cat.random{background:linear-gradient(180deg,#ffe9f7,#fff);border-color:#ffd5ef}
+  @media (prefers-color-scheme:dark){
+    .mode,.search,.cat{background:#15132a;color:var(--ink)}
+    .cat.random{background:linear-gradient(180deg,#321d4a,#1a1430);border-color:#3b2a60}
   }
 
-  /* Desktop layout */
-  .grid-2{ display:grid; grid-template-columns:1.25fr .75fr; gap:16px }
-  .grid-2 > *{ min-width:0 } /* ← prevents sidebar from causing page overflow */
-  @media (max-width:960px){ .grid-2{ display:block } }
+  /* Bottom purple nav (mobile) */
+  .nav{position:fixed;left:0;right:0;bottom:0;height:64px;background:linear-gradient(90deg,#7f5fff,#6238ff);display:grid;grid-template-columns:repeat(3,1fr);z-index:60}
+  .nav a{display:grid;place-items:center;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
+  .nav a i{font-size:18px;display:block;margin-bottom:2px}
 
-  /* Bottom nav + FAB (mobile) */
-  .nav-bottom{
-    position:fixed; left:0; right:0; bottom:0; background:var(--surface);
-    border-top:1px solid var(--border); height:64px; display:grid; grid-template-columns:repeat(4, 1fr); z-index:60
-  }
-  .nav-bottom a{ display:grid; place-items:center; font-size:12px; color:var(--muted); text-decoration:none }
-  .fab{
-    position:fixed; left:50%; transform:translateX(-50%); bottom:36px; z-index:70;
-    width:64px; height:64px; border-radius:50%; display:grid; place-items:center; font-weight:800;
-    background:linear-gradient(160deg, #a573ff, #7b66ff); color:#fff; border:3px solid var(--surface);
-    box-shadow:0 16px 36px rgba(123,102,255,.55)
-  }
-  @media (min-width:960px){ .nav-bottom, .fab{ display:none } }
+  /* Cards never cause page overflow */
+  .grid, .modes { min-width:0 }
+  html, body { overflow-x:hidden }
 
-  /* Progress chip in Recent Plays */
-  .progress{ height:8px; border-radius:999px; background:#e9f5ef; overflow:hidden; margin-top:8px }
-  .progress > i{ display:block; height:100%; width:0%; background:var(--grad-2) }
-
-  /* Safety */
-  a{text-decoration:none; color:inherit}
-  .btn{ padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:#fff; font-weight:800; cursor:pointer }
-  .btn.primary{ background:var(--grad-2); color:#fff; border:none }
-  @media (prefers-color-scheme:dark){ .btn{ background:#0c1b13; color:var(--ink) } }
-
-  /* Tiny debug popup (only shows on error) */
-  #debug{ position:fixed; right:10px; bottom:10px; max-width:92vw; display:none;
-          background:#fff; color:#7a2f2f; border:1px solid #f0c6c6; border-radius:10px;
-          padding:8px 10px; box-shadow:0 12px 30px rgba(0,0,0,.12); font:12px/1.4 Inter; z-index:2000 }
-  #debug pre{ margin:6px 0 0; max-height:180px; overflow:auto; white-space:pre-wrap }
+  /* Debug popup shows only on errors */
+  #debug{position:fixed;right:10px;bottom:10px;background:#fff;border:1px solid #f0c6c6;border-radius:10px;padding:8px 10px;
+    box-shadow:0 12px 30px rgba(0,0,0,.14);display:none;z-index:2000;color:#7a2f2f;font:12px/1.4 Inter}
+  #debug pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
 
-<!-- Top bar (lightweight, no external JS) -->
-<header class="sitebar">
-  <div class="brand"><i>🧠</i> PSC Guru</div>
-  <nav class="nav">
-    <a class="pill active" href="/">Home</a>
-    <a class="pill" href="quiz.html">Quiz</a>
-    <a class="pill" href="resources.html">Study</a>
-    <a class="pill" href="notices.html">Notices</a>
-  </nav>
-</header>
+<!-- App top bar -->
+<div class="topbar">
+  <div class="brand"><i>❓</i> Quizon</div>
+</div>
 
-<div class="container">
-  <!-- Hero -->
+<div class="app">
+  <!-- Purple header (no points/rank) -->
   <section class="hero">
-    <div class="top">
-      <div class="avatar">🎓</div>
+    <div class="hero-head">
+      <div class="avatar">👩‍🎓</div>
       <div>
-        <div class="hello">Hello, <span id="playerName">Player</span> 👋</div>
-        <div class="sub">Let’s play quiz</div>
+        <div class="hero-title">Hello, <span id="playerName">Player</span></div>
+        <div class="hero-sub">Let’s play quiz</div>
       </div>
-      <div class="icons"><div class="ic">🔔</div><div class="ic">⚙️</div></div>
+      <div class="bell">🔔</div>
     </div>
 
-    <div class="stats">
-      <div class="stat"><small>Rank</small><span id="stat-rank">892</span></div>
-      <div class="stat"><small>Level</small><span id="stat-level">7</span></div>
-      <div class="stat"><small>XP</small><span id="stat-xp">60</span></div>
+    <!-- Modes -->
+    <div class="modes" style="margin-top:12px">
+      <a class="mode pink" href="quiz.html?mode=random&n=10">
+        <div class="tag">START</div>
+        <div class="name">Solo<br/>Mode</div>
+        <div class="art">🧑‍💻</div>
+      </a>
+
+      <a class="mode blue" href="#">
+        <div class="tag">START</div>
+        <div class="name">Multiplayer<br/>Mode</div>
+        <div class="art">👨‍👩‍👧‍👦</div>
+      </a>
+
+      <a class="mode green" href="#">
+        <div class="tag">START</div>
+        <div class="name">1 Vs. 1<br/>Mode</div>
+        <div class="art">⚔️</div>
+      </a>
     </div>
   </section>
 
-  <div class="grid-2">
-    <main>
-      <!-- Recent Plays -->
-      <section class="section">
-        <h3>Recent Plays</h3>
-        <div class="row" id="recentRow">
-          <div class="card" style="flex:1 0 300px">
-            <div class="title">Nothing yet</div>
-            <div class="meta">Play any quiz to see it here.</div>
-          </div>
-        </div>
-      </section>
-
-      <!-- CTA -->
-      <div class="cta">
-        <div>
-          <b>Create and join a room</b><br>
-          <span style="color:var(--muted);font-size:13px">Play quickly with friends.</span>
-        </div>
-        <a class="btn" href="#">Join</a>
-      </div>
-
-      <!-- New Release -->
-      <section class="section">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <h3 style="margin:0">New Release</h3>
-          <a href="#" style="margin-left:auto;color:var(--brand-1);font-weight:800">View All</a>
-        </div>
-        <div class="row" id="newRow">
-          <div class="card"><div class="title">Loading…</div></div>
-        </div>
-      </section>
-
-      <!-- Update -->
-      <section class="section">
-        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-          <h3 style="margin:0">Update</h3>
-          <a href="#" style="margin-left:auto;color:var(--brand-1);font-weight:800">View All</a>
-        </div>
-        <div class="row" id="updRow">
-          <div class="card"><div class="title">Loading…</div></div>
-        </div>
-      </section>
-    </main>
-
-    <!-- Sidebar -->
-    <aside>
-      <section class="section">
-        <h3>Start playing</h3>
-        <div class="row" id="startRow">
-          <div class="card"><div class="title">Loading…</div></div>
-        </div>
-      </section>
-    </aside>
+  <!-- Search -->
+  <div class="search">
+    <i>🔎</i>
+    <input id="q" placeholder="Search Quiz Categories" />
   </div>
+
+  <!-- Explore -->
+  <section class="section">
+    <h3>Explore Categories <a href="#" id="viewAll">VIEW ALL</a></h3>
+    <div class="grid" id="grid">
+      <!-- JS renders here -->
+    </div>
+  </section>
 </div>
 
-<!-- Mobile FAB + bottom nav -->
-<a class="fab" id="fabPlay">Play</a>
-<nav class="nav-bottom">
-  <a href="/" style="font-weight:800;color:var(--ink)">🏠 Home</a>
-  <a href="resources.html">📚 Categories</a>
-  <a href="notices.html">🏆 Leaderboard</a>
-  <a href="profile.html">👤 Profile</a>
+<!-- Bottom purple nav -->
+<nav class="nav">
+  <a href="#"><i>🔎</i>Search</a>
+  <a href="#"><i>👥</i>Groups</a>
+  <a href="profile.html"><i>👤</i>Profile</a>
 </nav>
 
-<!-- Debug (only appears if an error occurs) -->
+<!-- Debug popup -->
 <div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
 
 <script>
 (function(){
-  /* ================= CONFIG ================= */
-  // Put your Sheet ID here (or leave '' to run only with local categories)
+  /* ============== CONFIG ============== */
+  // Put your Google Sheet ID here (or keep '' to use only the local list).
   const SHEET_ID = ''; // e.g. '1dLIO...yourSheetId...'
-  const TRY_TABS = ['Categories', 'Category', 'Index']; // which tab holds the category list
+  const TRY_TABS = ['Categories','Category','Index'];
 
-  // Local categories (used if sheet missing/unreachable). Add optional `date` for "latest" sort.
+  // Local fallback categories — make sure 'sheet' matches your quiz sheet tab.
   const LOCAL = [
-    { title:'Information Technology', sheet:'Information Technology', emoji:'💻', desc:'ഐ.ടി. അടിസ്ഥാനങ്ങൾ', date:'2025-01-20' },
-    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതു ജ്ഞാനം', date:'2025-01-15' },
-    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം', date:'2025-01-10' },
-    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം', date:'2024-12-22' },
+    { title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic',   random:true },
+    { title:'Sports',            sheet:'Sports',      emoji:'⚽',   desc:'All about sports', date:'2025-01-23' },
+    { title:'Space',             sheet:'Space',       emoji:'🚀',   desc:'Planets & space',  date:'2025-01-18' },
+    { title:'Maths',             sheet:'Maths',       emoji:'🧮',   desc:'Numbers & logic',  date:'2025-01-15' },
+    { title:'History',           sheet:'History',     emoji:'🛡️',  desc:'Past & events',    date:'2024-12-09' },
   ];
-  /* ========================================== */
+  /* ==================================== */
 
   // Never-blank-screen error catcher
   const dbg = document.getElementById('debug'), dbgText = document.getElementById('dbgText');
@@ -276,113 +210,113 @@
   window.onerror = (m, s, l, c, e)=>{ showErr(e||m); };
   window.onunhandledrejection = (ev)=>{ showErr(ev.reason||ev); };
 
-  const qs  = (s,el=document)=>el.querySelector(s);
-  const qsa = (s,el=document)=>[...el.querySelectorAll(s)];
+  const $  = (s,el=document)=>el.querySelector(s);
+  const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
 
-  // Stats/name from localStorage
+  // Load name
   const playerName = localStorage.getItem('psc_name') || 'Player';
-  qs('#playerName').textContent = playerName;
-  qs('#stat-level').textContent = localStorage.getItem('psc_level') || '7';
-  qs('#stat-rank').textContent  = localStorage.getItem('psc_rank')  || '892';
-  qs('#stat-xp').textContent    = localStorage.getItem('psc_xp')    || '60';
+  $('#playerName').textContent = playerName;
 
-  // Helpers for GViz
-  function stripGVizJSON(txt){ const s = txt.indexOf('{'), e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s, e+1)); }
-  async function gviz(tab){
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent('select *')}`;
-    const res = await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('GViz HTTP '+res.status);
+  // Helpers
+  function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+  async function gviz(sheetId, tab){
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz '+res.status);
     const raw = await res.text(); const json = stripGVizJSON(raw);
-    const cols = json.table.cols.map(c => (c.label||'').trim().toLowerCase());
-    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c && c.v)!=null ? String(c.v) : ''));
+    const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
+    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
     return {cols, rows};
   }
-  function pickIndex(cols, arr){ return cols.findIndex(t => arr.some(rx => rx.test(t))); }
+  function pickIndex(cols, rx){ return cols.findIndex(c => rx.some(r=>r.test(c))); }
   function toTs(v){
     if(!v) return NaN; if(/^\d{13}$/.test(v)) return +v; if(/^\d{10}$/.test(v)) return +v*1000;
-    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t = +d; return Number.isFinite(t) ? t : NaN;
+    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t=+d; return Number.isFinite(t)?t:NaN;
   }
 
-  // Renderers
-  function renderRow(sel, items){
-    const row = qs(sel); row.innerHTML = '';
-    items.forEach(x=>{
+  function renderCategories(list){
+    const grid = $('#grid'); grid.innerHTML = '';
+    // Always put the Random tile first
+    const random = list.find(x=>x.random) || { title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic', random:true };
+    const rest = list.filter(x=>x!==random);
+
+    // Random tile
+    const r = document.createElement('a');
+    r.className = 'cat random';
+    r.href = '#'; r.onclick = (e)=>{ e.preventDefault(); startRandom(); };
+    r.innerHTML = `<div class="icon">🤔</div><div class="title">${random.title}</div><div class="desc">${random.desc||''}</div>`;
+    grid.appendChild(r);
+
+    // The rest
+    rest.forEach(x=>{
       const a = document.createElement('a');
-      a.className = 'card';
-      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`; // your quiz route
-      a.innerHTML = `
-        <div class="thumb">${x.emoji || '🧠'}</div>
-        <div class="title" title="${x.title}">${x.title}</div>
-        <div class="meta">${x.desc ? `<span>${x.desc}</span>` : ''}</div>
-      `;
-      row.appendChild(a);
+      a.className = 'cat';
+      a.href = x.sheet==='__RANDOM__' ? '#' : `quiz.html?sheet=${encodeURIComponent(x.sheet)}`;
+      if(x.sheet==='__RANDOM__'){ a.addEventListener('click', (e)=>{e.preventDefault(); startRandom();}); }
+      a.innerHTML = `<div class="icon">${x.emoji||'🎯'}</div><div class="title" title="${x.title}">${x.title}</div><div class="desc">${x.desc||''}</div>`;
+      grid.appendChild(a);
     });
   }
 
-  function renderRecent(){
-    const row = qs('#recentRow'); row.innerHTML='';
-    let data = [];
-    try{ data = JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){}
-    data = data.slice(0,10);
-    if(!data.length){
-      row.innerHTML = `<div class="card" style="flex:1 0 300px"><div class="title">Nothing yet</div><div class="meta">Play any quiz to see it here.</div></div>`;
-      return;
-    }
-    data.forEach(x=>{
-      const p = Math.max(0, Math.min(100, x.progress||0));
-      const a = document.createElement('a'); a.className='card'; a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`;
-      a.innerHTML = `
-        <div class="thumb">${x.emoji||'🧠'}</div>
-        <div class="title">${x.title}</div>
-        <div class="progress"><i style="width:${p}%"></i></div>
-        <div class="meta"><span>${p}%</span></div>
-      `;
-      row.appendChild(a);
+  function filterCategories(q){
+    q = q.toLowerCase();
+    $$('.cat').forEach(el=>{
+      const t = el.querySelector('.title')?.textContent.toLowerCase()||'';
+      const d = el.querySelector('.desc')?.textContent.toLowerCase()||'';
+      el.style.display = (t.includes(q) || d.includes(q)) ? '' : 'none';
     });
   }
 
-  // Load categories: Sheet ➜ fallback. Sort newest for "New Release".
+  function startRandom(){
+    // Choose a random category (excluding the random tile)
+    const cards = $$('.cat:not(.random)');
+    if(!cards.length){ alert('No categories found'); return; }
+    const pick = cards[Math.floor(Math.random()*cards.length)];
+    pick.click();
+  }
+
   async function loadCategories(){
     let list = [];
     if(SHEET_ID){
       for(const tab of TRY_TABS){
         try{
-          const {cols, rows} = await gviz(tab);
+          const {cols, rows} = await gviz(SHEET_ID, tab);
           const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
           const iSheet = pickIndex(cols, [/sheet|tab|get/]);
           const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
           const iDate  = pickIndex(cols, [/date|updated|created|modified|timestamp|release|added|time/]);
 
           list = rows.map((r,idx)=>({
-            title: (r[iName]||'').trim(),
-            sheet: (r[iSheet]||'').trim(),
-            desc:  iDesc>-1 ? (r[iDesc]||'').trim() : '',
-            emoji: '🧠',
-            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length - idx) * 60_000
+            title:(r[iName]||'').trim(),
+            sheet:(r[iSheet]||'').trim(),
+            desc: iDesc>-1 ? (r[iDesc]||'').trim() : '',
+            emoji:'🧠',
+            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length-idx)*60_000
           })).filter(x=>x.title && x.sheet);
 
           if(list.length) break;
         }catch(_){ /* try next tab */ }
       }
     }
+
     if(!list.length){
       list = LOCAL.map((x,i)=>({...x, ts: x.date ? toTs(x.date) : (LOCAL.length - i) * 60_000}));
     }
 
-    const sorted = list.slice().sort((a,b)=> (b.ts||0) - (a.ts||0));
-    renderRow('#newRow', sorted.slice(0,12));                      // New Release
-    renderRow('#updRow', sorted.slice(12,24).length ? sorted.slice(12,24) : sorted.slice(0,12)); // Update
-    renderRow('#startRow', sorted.slice(0,8));                     // Sidebar tiles
+    // Sort newest first for “Explore” order (after the Random tile)
+    const sorted = list.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
 
-    // FAB: random pick from available list
-    qs('#fabPlay').onclick = ()=>{
-      const pick = sorted[Math.floor(Math.random()*sorted.length)];
-      if(pick) location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}`;
-    };
+    // Ensure a random tile exists
+    const withRandom = [{ title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic', random:true }, ...sorted];
+
+    renderCategories(withRandom);
   }
 
-  // Boot (safe)
+  // Search
+  $('#q').addEventListener('input', e=>filterCategories(e.target.value));
+  $('#viewAll').addEventListener('click', e=>{ e.preventDefault(); $('#q').value=''; filterCategories(''); });
+
+  // Boot
   try{
-    renderRecent();
     loadCategories();
   }catch(e){ showErr(e); }
 })();
