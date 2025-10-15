@@ -40,3 +40,6 @@ This build was generated on 2025-10-15T12:09:46.553282.
 
 
 Update: Supports a 'Categories' sheet with headers 'name (display)', 'sheet (actual tab name)', 'desc (optional)'. If present, it drives the category list and latest section.
+
+
+v3: Default CORS proxy enabled. Optional Vercel serverless proxy at /api/proxy.js. Set window.CORS_PROXY='/api/proxy?url=' to self-host.
