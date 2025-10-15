@@ -1,168 +1,293 @@
-<script>
-  /* ===================== CONFIG (EDIT) ===================== */
-  // If you use Google Sheets, put your Sheet ID here or add ?sheetId=... to the URL.
-  const P = new URLSearchParams(location.search);
-  const GS_SHEET_ID = P.get('sheetId') || '';  // keep empty to run only with local categories
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>PSC Guru — Home</title>
 
-  // Categories tab names to try in your sheet:
-  const TRY_CAT_TABS = ['Categories','Category','Index'];
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  // Local categories (used if sheet fails or is not set). Replace with your own.
-  // You can optionally add a `date: "2025-01-25"` to improve "latest" sorting when using local only.
-  const LOCAL_CATEGORIES = [
-    { title:'Disney',        sheet:'Disney',        emoji:'🅳', desc:'Cartoon',           date:'2025-01-22' },
-    { title:'Shrek',         sheet:'Shrek',         emoji:'🟢', desc:'Movie',             date:'2025-01-20' },
-    { title:'Breaking Bad',  sheet:'Breaking Bad',  emoji:'☣️', desc:'Movie',             date:'2024-12-15' },
-    { title:'Harry Potter',  sheet:'Harry Potter',  emoji:'🪄', desc:'Movie',             date:'2024-12-02' },
-    { title:'Logo Guest',    sheet:'Logo Guest',    emoji:'🔤', desc:'General Knowledge', date:'2024-11-30' },
-    { title:'The Office',    sheet:'The Office',    emoji:'📺', desc:'TV',                date:'2024-11-18' },
-    { title:'Ozark',         sheet:'Ozark',         emoji:'🌉', desc:'Movie',             date:'2024-11-10' },
-    { title:'Formula 1',     sheet:'Formula 1',     emoji:'🏎️', desc:'Sport',            date:'2024-10-22' },
+<style>
+  :root{
+    --bg:#f5fbf7; --card:#fff; --muted:#6c7b74; --text:#0e2b1d; --brand:#6f58ff;
+    --border:rgba(0,0,0,.08); --shadow:0 25px 60px rgba(20,50,35,.15);
+    --grad1:#7b66ff; --grad2:#a573ff;
+  }
+  @media (prefers-color-scheme:dark){
+    :root{
+      --bg:#0b1411; --card:#0f1f18; --muted:#b9d7cb; --text:#e9fcf4; --border:rgba(255,255,255,.12);
+      --shadow:0 25px 60px rgba(0,0,0,.55);
+      --grad1:#5f55ff; --grad2:#9a63ff;
+    }
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);font:400 15.5px/1.55 Inter,system-ui}
+
+  /* simple in-file header (no external deps) */
+  .site-header{position:sticky;top:0;z-index:50;height:60px;background:#ffffffcf;backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  @media (prefers-color-scheme:dark){ .site-header{background:#0c1b13cc} }
+  .site-header .wrap{max-width:1080px;margin:0 auto;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
+  .brand i{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;border:1px solid var(--border)}
+  .nav{margin-left:auto;display:flex;gap:8px}
+  .nav a{padding:8px 12px;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);font-weight:800}
+  .nav a.active{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+
+  /* layout */
+  .container{max-width:1080px;margin:0 auto;padding:16px 12px 90px}
+  .hero{margin:12px 0 16px;border-radius:20px;color:#fff;padding:16px;background:linear-gradient(160deg,var(--grad1),var(--grad2));box-shadow:var(--shadow)}
+  .hero .top{display:flex;align-items:center;gap:10px}
+  .avatar{width:44px;height:44px;border-radius:12px;background:#fff1;display:grid;place-items:center;font-size:24px}
+  .hello{font-weight:800;font-size:18px}
+  .sub{opacity:.9;font-size:13px;margin-top:2px}
+  .icons{margin-left:auto;display:flex;gap:8px}
+  .ic{width:36px;height:36px;border-radius:10px;background:#fff2;display:grid;place-items:center}
+
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+  .chip{background:#fff;border:1px solid var(--border);color:var(--text);border-radius:12px;padding:10px 12px;text-align:center;font-weight:800}
+  .chip small{display:block;color:var(--muted);font-weight:700}
+
+  .section{margin-top:18px}
+  .section h3{margin:0 0 10px;font:800 18px/1.2 Inter}
+  .row{display:flex;gap:12px;overflow:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+  .row::-webkit-scrollbar{height:8px}
+  .row::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:999px}
+
+  .card{flex:0 0 240px;scroll-snap-align:start;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:12px}
+  .thumb{height:100px;border-radius:12px;background:#dff3e6;display:grid;place-items:center;font-size:34px}
+  @media (prefers-color-scheme:dark){ .thumb{background:#10231c} }
+  .title{margin:10px 0 6px;font:800 16px/1.2 Inter}
+  .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
+  .badge{font-size:11px;font-weight:800;background:#0f83461a;border:1px solid #0f834633;color:#0e5732;padding:3px 8px;border-radius:999px}
+
+  .cta{background:#ede7ff;border:1px solid #cfc6ff;border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:space-between;margin:10px 0}
+  @media (prefers-color-scheme:dark){ .cta{background:#1a1730;border-color:#2b2850} }
+  .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
+  .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+
+  /* bottom nav + FAB */
+  .nav-bottom{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border);height:64px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;z-index:60}
+  .nav-bottom a{display:grid;place-items:center;font-size:12px;color:var(--muted);text-decoration:none}
+  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:36px;z-index:70;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:17px;background:linear-gradient(180deg,var(--grad2),var(--grad1));color:#fff;border:3px solid var(--card);box-shadow:0 12px 30px rgba(123,102,255,.5);font-weight:800}
+
+  @media (min-width:960px){
+    .stats{grid-template-columns:repeat(6,1fr)}
+    .nav-bottom,.fab{display:none}
+    .grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+  }
+
+  /* tiny debug panel so you never get a blank screen */
+  #debug{position:fixed;right:10px;bottom:10px;max-width:90vw;background:#fff;border:1px solid #f0c6c6;color:#7a2f2f;border-radius:10px;padding:8px 10px;font:12px/1.4 Inter;box-shadow:0 12px 30px rgba(0,0,0,.1);display:none;z-index:2000}
+  #debug pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap}
+</style>
+</head>
+<body>
+  <!-- Header -->
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/"><i>🧠</i><span>PSC Guru</span></a>
+      <nav class="nav">
+        <a href="/" class="active">Home</a>
+        <a href="/quiz.html">Quiz</a>
+        <a href="/resources.html">Study</a>
+        <a href="/notices.html">Notices</a>
+      </nav>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- Hero -->
+    <section class="hero">
+      <div class="top">
+        <div class="avatar">🎓</div>
+        <div>
+          <div class="hello">Hello, <span id="playerName">Player</span> 👋</div>
+          <div class="sub">Let’s play quiz</div>
+        </div>
+        <div class="icons"><div class="ic">🔔</div><div class="ic">⚙️</div></div>
+      </div>
+      <div class="stats">
+        <div class="chip"><small>Rank</small><span id="stat-rank">892</span></div>
+        <div class="chip"><small>Level</small><span id="stat-level">7</span></div>
+        <div class="chip"><small>XP</small><span id="stat-xp">60</span></div>
+      </div>
+    </section>
+
+    <div class="grid-2">
+      <main>
+        <section class="section">
+          <h3>Recent Plays</h3>
+          <div class="row" id="recentRow">
+            <div class="card"><div class="title">Loading…</div><div class="meta"> </div></div>
+          </div>
+        </section>
+
+        <div class="cta">
+          <div><b>Create and join a room</b><br><span style="color:var(--muted);font-size:13px">Play quickly with friends.</span></div>
+          <a class="btn" href="#">Join</a>
+        </div>
+
+        <section class="section">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <h3 style="margin:0">New Release</h3>
+            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
+          </div>
+          <div class="row" id="newRow">
+            <div class="card"><div class="title">Loading…</div></div>
+          </div>
+        </section>
+
+        <section class="section">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <h3 style="margin:0">Update</h3>
+            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
+          </div>
+          <div class="row" id="updRow">
+            <div class="card"><div class="title">Loading…</div></div>
+          </div>
+        </section>
+      </main>
+
+      <aside>
+        <section class="section">
+          <h3>Start playing</h3>
+          <div class="row" id="startRow">
+            <div class="card"><div class="title">Loading…</div></div>
+          </div>
+        </section>
+      </aside>
+    </div>
+  </div>
+
+  <!-- Mobile FAB + bottom nav -->
+  <a class="fab" id="fabPlay">Play</a>
+  <nav class="nav-bottom">
+    <a href="/" style="font-weight:800;color:var(--text)">🏠 Home</a>
+    <a href="/resources.html">📚 Categories</a>
+    <a href="/notices.html">🏆 Leaderboard</a>
+    <a href="/profile.html">👤 Profile</a>
+  </nav>
+
+  <!-- Tiny debug panel -->
+  <div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
+
+<script defer>
+(function(){
+  /* =================== CONFIG =================== */
+  // Put your Google Sheet ID here (or leave blank to use local categories only)
+  const SHEET_ID = ''; // e.g. '1dLIO...yourSheetId...'  ← leave '' to avoid any fetch
+  const TRY_TABS = ['Categories','Category','Index'];
+
+  // Local categories (edit to your real tabs + descriptions). Add optional `date` (YYYY-MM-DD).
+  const LOCAL = [
+    { title:'Information Technology', sheet:'Information Technology', emoji:'💻', desc:'ഐ.ടി. അടിസ്ഥാനങ്ങൾ', date:'2025-01-20' },
+    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതുജ്ഞാനം', date:'2025-01-15' },
+    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം',     date:'2025-01-10' },
+    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം',  date:'2024-12-22' },
   ];
-  /* ========================================================= */
+  /* ============================================== */
 
-  // ---------- utilities ----------
-  const qs=(s,el=document)=>el.querySelector(s);
-  const qsa=(s,el=document)=>[...el.querySelectorAll(s)];
-  function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-  async function gviz(sheetId, tab){
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz');
+  // Never-blank-screen debug catcher
+  const dbg = document.getElementById('debug'), dbgText = document.getElementById('dbgText');
+  function showErr(e){ dbg.style.display='block'; dbgText.textContent = (e && (e.stack||e.message||e)) + ''; }
+  window.onerror = (m, s, l, c, e)=>{ showErr(e||m); };
+  window.onunhandledrejection = (ev)=>{ showErr(ev.reason||ev); };
+
+  const $ = (s,el=document)=>el.querySelector(s);
+  const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+  const playerName = localStorage.getItem('psc_name') || 'Player';
+  $('#playerName').textContent = playerName;
+
+  function stripGVizJSON(txt){ const s = txt.indexOf('{'), e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+  async function gviz(tab){
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz HTTP '+res.status);
     const raw = await res.text(); const json = stripGVizJSON(raw);
     const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
     const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
     return {cols, rows};
   }
-  function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
-  function toTs(v){                 // flexible date parser -> ms
-    if(!v) return NaN;
-    // allow ISO, dd/mm/yyyy, mm/dd/yyyy, and numeric timestamps
-    if(/^\d{10}$/.test(v)) return +v*1000;
-    if(/^\d{13}$/.test(v)) return +v;
-    const parts = v.trim().replaceAll('.', '/').replaceAll('-', '/');
-    const d = new Date(parts);
-    const t = +d;
-    return Number.isFinite(t) ? t : NaN;
+  function pickIndex(cols, re){ return cols.findIndex(t => re.some(rx=>rx.test(t))); }
+  function toTs(v){
+    if(!v) return NaN; if(/^\d{13}$/.test(v)) return +v; if(/^\d{10}$/.test(v)) return +v*1000;
+    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t=+d; return Number.isFinite(t)?t:NaN;
   }
 
-  // ---------- stats & recent ----------
-  const playerName = localStorage.getItem('psc_name') || 'Player';
-  qs('#playerName') && (qs('#playerName').textContent = playerName);
-  qs('#stat-level') && (qs('#stat-level').textContent = localStorage.getItem('psc_level')||'7');
-  qs('#stat-rank')  && (qs('#stat-rank').textContent  = localStorage.getItem('psc_rank')||'892');
-  qs('#stat-xp')    && (qs('#stat-xp').textContent    = localStorage.getItem('psc_xp')||'60');
-
-  function getRecent(){ try{ return JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){ return []; } }
-  function renderRecent(){
-    const row = qs('#recentRow'); if(!row) return;
-    row.innerHTML='';
-    const data = getRecent().slice(0,10);
-    if(!data.length){
-      row.innerHTML = `<div class="card" style="flex:1 0 300px"><div class="title">Nothing yet</div><div class="meta">Play any quiz to see it here.</div></div>`;
-      return;
-    }
-    data.forEach(x=>{
-      const p = Math.max(0, Math.min(100, x.progress||0));
-      const a = document.createElement('a');
-      a.className='card';
-      const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
-      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}`;
+  function renderRow(sel, items){
+    const row = $(sel); row.innerHTML='';
+    items.forEach(x=>{
+      const a = document.createElement('a'); a.className='card';
+      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`; // keep your quiz link
       a.innerHTML = `
         <div class="thumb">${x.emoji||'🧠'}</div>
         <div class="title">${x.title}</div>
-        <div class="progress"><i style="width:${p}%"></i></div>
-        <div class="meta"><span>${p}%</span></div>
+        <div class="meta">${x.desc?`<span>${x.desc}</span>`:''}</div>
       `;
       row.appendChild(a);
     });
   }
 
-  // ---------- rows ----------
-  function renderRow(sel, items){
-    const row = qs(sel); if(!row) return;
-    row.innerHTML='';
-    items.forEach(x=>{
-      const a=document.createElement('a');
-      a.className='card';
-      const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
-      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}`;
-      a.innerHTML = `
-        <div class="thumb">${x.emoji || '🎯'}</div>
-        <div class="title">${x.title}</div>
-        <div class="meta"><span>${x.desc||''}</span></div>
-      `;
+  function renderRecent(){
+    const row = $('#recentRow'); row.innerHTML='';
+    const rec = JSON.parse(localStorage.getItem('psc_recent')||'[]').slice(0,10);
+    if(!rec.length){
+      row.innerHTML = `<div class="card" style="flex:1 0 300px"><div class="title">Nothing yet</div><div class="meta">Play any quiz to see it here.</div></div>`;
+      return;
+    }
+    rec.forEach(r=>{
+      const a=document.createElement('a'); a.className='card';
+      a.href=`quiz.html?sheet=${encodeURIComponent(r.sheet)}`;
+      const p = Math.max(0,Math.min(100, r.progress||0));
+      a.innerHTML = `<div class="thumb">${r.emoji||'🧠'}</div><div class="title">${r.title}</div>
+        <div class="meta"><span>${p}%</span></div>`;
       row.appendChild(a);
     });
   }
 
-  // ---------- categories (SHEET ➜ fallback) ----------
   async function loadCategories(){
     let list = [];
-    if(GS_SHEET_ID){
-      for(const tab of TRY_CAT_TABS){
+    if(SHEET_ID){
+      for(const tab of TRY_TABS){
         try{
-          const {cols, rows} = await gviz(GS_SHEET_ID, tab);
-          const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
-          const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
-          const idxDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
-          const idxDate  = pickIndex(cols, [/date|updated|modified|release|added|created|timestamp|time/]);
-
-          // Map rows -> items; compute ts (date) for sorting newest first
-          list = rows.map((r,i) => {
-            const title = (r[idxName]||'').trim();
-            const sheet = (r[idxSheet]||'').trim();
-            const desc  = (idxDesc>-1 ? (r[idxDesc]||'').trim() : '');
-            // If no date col, use row order (top rows = newest) by giving bigger ts to earlier rows
-            const tsRow = (rows.length - i) * 60_000; // minute steps
-            const tsCol = idxDate>-1 ? toTs(r[idxDate]) : NaN;
-            const ts    = Number.isFinite(tsCol) ? tsCol : tsRow;
-            return { title, sheet, desc, emoji:'🧠', ts };
-          }).filter(x => x.title && x.sheet);
-
+          const {cols, rows} = await gviz(tab);
+          const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
+          const iSheet = pickIndex(cols, [/sheet|tab|get/]);
+          const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
+          const iDate  = pickIndex(cols, [/date|updated|created|timestamp|time|modified|release|added/]);
+          list = rows.map((r,idx)=>({
+            title:(r[iName]||'').trim(),
+            sheet:(r[iSheet]||'').trim(),
+            desc: iDesc>-1 ? (r[iDesc]||'').trim() : '',
+            emoji:'🧠',
+            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length-idx)*60_000
+          })).filter(x=>x.title&&x.sheet);
           if(list.length) break;
         }catch(_){ /* try next tab */ }
       }
     }
-
     if(!list.length){
-      // Fallback: local categories with optional `date`
-      list = LOCAL_CATEGORIES.map((x,i)=>({
-        ...x,
-        ts: x.date ? toTs(x.date) : (LOCAL_CATEGORIES.length - i) * 60_000
-      }));
+      list = LOCAL.map((x,i)=>({...x, ts: x.date?toTs(x.date):(LOCAL.length-i)*60_000}));
     }
 
-    // Sort newest ➜ oldest for "New Release"
-    const sorted = list.slice().sort((a,b) => (b.ts||0)-(a.ts||0));
-    const latest = sorted.slice(0, 12);          // NEW RELEASE rail
-    const older  = sorted.slice(12, 24);         // UPDATE rail (rest)
-
-    renderRow('#newRow', latest);
-    renderRow('#updRow', older.length ? older : sorted.slice(0,12));
+    // newest first for "New Release"
+    const sorted = list.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
+    renderRow('#newRow', sorted.slice(0,12));
+    renderRow('#updRow', sorted.slice(12,24).length ? sorted.slice(12,24) : sorted.slice(0,12));
     renderRow('#startRow', sorted.slice(0,8));
 
-    // Keep around for FAB random
-    loadedCategories = sorted;
-    return sorted;
+    // FAB random
+    const pick = ()=> sorted[Math.floor(Math.random()*sorted.length)];
+    $('#fabPlay').onclick = ()=>{ const c = pick(); if(c) location.href=`quiz.html?sheet=${encodeURIComponent(c.sheet)}`; };
   }
 
-  // ---------- FAB Play (random pick) ----------
-  let loadedCategories = [];
-  qs('#fabPlay')?.addEventListener('click', ()=>{
-    const n = 10;
-    const list = loadedCategories.length ? loadedCategories : LOCAL_CATEGORIES;
-    const pick = list[Math.floor(Math.random()*list.length)];
-    if(!pick){ alert('No categories available'); return; }
-    const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
-    location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}${sid}&n=${n}`;
-  });
-
-  // ---------- chip (visual state only) ----------
-  qsa('.chip').forEach(c=>c.addEventListener('click',()=>{
-    qsa('.chip').forEach(x=>x.classList.remove('active')); c.classList.add('active');
-  }));
-
-  // ---------- boot ----------
-  renderRecent();
-  loadCategories();
+  // safe boot (never blank)
+  try{
+    renderRecent();
+    loadCategories();
+  }catch(e){ showErr(e); }
+})();
 </script>
+</body>
+</html>
