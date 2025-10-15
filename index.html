@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Quizon — Home</title>
+<title>PSC Guru — Kerala PSC Exam Prep</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -11,267 +11,296 @@
 
 <style>
   :root{
-    --bg:#f7f6ff;
-    --card:#ffffff;
-    --ink:#18202b;
-    --muted:#7a8896;
+    --bg:#f6faf8;
+    --surface:#ffffff;
+    --ink:#10261b;
+    --muted:#6c7b74;
     --border:rgba(0,0,0,.08);
-    --shadow:0 24px 60px rgba(25,20,60,.15);
+    --shadow:0 22px 60px rgba(20,50,35,.14);
 
-    --purple:#7f5fff;
-    --purple-2:#6238ff;
-    --purple-3:#985eff;
-    --accent:#28d0a0;
+    --brand:#0f8346;
+    --brand-2:#0b5f34;
+    --accent:#6b7cff;
 
-    --surface:#ffffffcc;
+    --hero-from:#f2fff7;
+    --hero-to:#dff6ea;
   }
   @media (prefers-color-scheme:dark){
     :root{
-      --bg:#0d0a19;
-      --card:#15132a;
-      --ink:#f5f6ff;
-      --muted:#c7c9d6;
-      --border:rgba(255,255,255,.12);
-      --shadow:0 24px 60px rgba(0,0,0,.55);
-      --surface:#0d0a19cc;
+      --bg:#0b1411; --surface:#0f1f18; --ink:#e9fcf4; --muted:#b9d7cb;
+      --border:rgba(255,255,255,.12); --shadow:0 22px 60px rgba(0,0,0,.55);
+      --hero-from:#0e2019; --hero-to:#0a1712;
     }
   }
 
   *{box-sizing:border-box}
-  html,body{height:100%;margin:0;background:var(--bg);color:var(--ink);font:400 15.5px/1.55 Inter,system-ui;overflow-x:hidden}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.55 Inter,system-ui;overflow-x:hidden}
+  a{color:inherit;text-decoration:none}
 
-  /* App frame (centers on desktop, full-width on phones) */
-  .app{max-width:980px;margin:0 auto;padding:16px 12px 96px}
+  /* Top app bar */
+  .topbar{position:sticky;top:0;z-index:50;height:62px;display:flex;align-items:center;gap:10px;
+    background:rgba(255,255,255,.65);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
+  @media (prefers-color-scheme:dark){ .topbar{background:rgba(12,27,20,.65)} }
+  .topbar .wrap{max-width:1120px;margin:0 auto;height:62px;display:flex;align-items:center;padding:0 12px;width:100%}
+  .brand{display:flex;gap:10px;align-items:center;font:800 18px/1 Inter}
+  .brand i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#ecf7f1;border:1px solid var(--border)}
+  @media (prefers-color-scheme:dark){ .brand i{background:#10231b} }
+  .nav{margin-left:auto;display:flex;gap:8px}
+  .pill{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-weight:800}
+  .pill.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none;color:#fff}
 
-  /* Top “app header” */
-  .topbar{
-    position:sticky;top:0;z-index:50;height:56px;
-    display:flex;align-items:center;justify-content:center;
-    background:var(--surface);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)
-  }
-  .brand{font:800 18px/1 Inter;letter-spacing:.2px;display:flex;gap:10px;align-items:center}
-  .brand i{width:28px;height:28px;border-radius:9px;display:grid;place-items:center;background:#fff;border:1px solid var(--border)}
-  @media (prefers-color-scheme:dark){ .brand i{background:#0f0c23} }
+  /* Page container */
+  .page{max-width:1120px;margin:0 auto;padding:16px 12px 100px}
 
-  /* Purple header card */
+  /* Hero */
   .hero{
-    margin:14px 0 12px;padding:18px;border-radius:22px;color:#fff;box-shadow:var(--shadow);
-    background: radial-gradient(1200px 400px at -10% 0%, #a07aff, #7f5fff 60%, #6b4bff);
+    margin:16px 0;border-radius:22px;overflow:hidden;box-shadow:var(--shadow);position:relative;
+    background:linear-gradient(160deg,var(--hero-from),var(--hero-to));
+    border:1px solid var(--border)
   }
-  .hero-head{display:flex;align-items:center;gap:12px}
-  .avatar{width:44px;height:44px;border-radius:14px;background:#ffffff24;display:grid;place-items:center;font-size:24px}
-  .hero-title{font:800 18px/1.2 Inter}
-  .hero-sub{opacity:.95;font-size:13px;margin-top:4px}
-  .bell{margin-left:auto;width:36px;height:36px;border-radius:12px;background:#ffffff24;display:grid;place-items:center}
+  .hero-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;padding:18px}
+  @media (max-width:900px){ .hero-inner{grid-template-columns:1fr} }
 
-  /* Mode cards row */
-  .modes{display:flex;gap:10px;overflow:auto;padding:6px 0 2px;scroll-snap-type:x mandatory}
-  .mode{scroll-snap-align:start;flex:0 0 clamp(160px, 27vw, 220px);background:#fff;border:1px solid var(--border);border-radius:18px;padding:12px 12px 10px;color:#18202b;box-shadow:var(--shadow)}
-  .mode .tag{font:800 11px/1.2 Inter;color:#7a8896}
-  .mode .name{margin:4px 0 6px;font:800 16px/1.2 Inter}
-  .mode .art{height:80px;border-radius:12px;background:linear-gradient(135deg,#ffe2f2,#ffd3e8);display:grid;place-items:center;font-size:38px;border:1px solid var(--border)}
-  .mode.blue .art{background:linear-gradient(135deg,#e6f2ff,#e3e8ff)}
-  .mode.green .art{background:linear-gradient(135deg,#d9ffe9,#c9ffe6)}
+  .title{font:800 26px/1.15 Inter;margin:0 0 6px}
+  .subtitle{color:var(--muted);margin:0}
 
-  /* Search input pill */
-  .search{
-    display:flex;align-items:center;gap:10px;margin:12px 0 6px;background:#fff;border:1px solid var(--border);
-    border-radius:14px;padding:10px 12px;box-shadow:var(--shadow)
+  .quick{
+    margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;display:grid;gap:8px
   }
-  .search input{border:none;outline:none;background:transparent;flex:1;font:600 14px/1 Inter;color:var(--ink)}
-  .search i{opacity:.7}
+  .chips{display:flex;gap:8px;flex-wrap:wrap}
+  .chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer}
+  .chip.active{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;border:none}
+  @media (prefers-color-scheme:dark){ .chip{background:#0c1b13;color:var(--ink)} }
 
-  /* Section + grid */
-  .section{margin-top:12px}
-  .section h3{margin:0 0 10px;font:800 16px/1.2 Inter;display:flex;align-items:center}
-  .section h3 a{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--purple-3),var(--purple));padding:6px 10px;border-radius:12px;font-size:12px}
+  .cta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
+  .btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;border:none}
 
-  .grid{display:grid;gap:10px;grid-template-columns:repeat(2,1fr)}
-  @media (min-width:560px){ .grid{grid-template-columns:repeat(3,1fr)} }
-  @media (min-width:860px){ .grid{grid-template-columns:repeat(4,1fr)} }
+  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .metric{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;text-align:center}
+  .metric small{color:var(--muted);display:block;font-weight:700}
 
-  .cat{
-    background:var(--card);border:1px solid var(--border);border-radius:18px;padding:10px;box-shadow:var(--shadow);
-    display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px;align-items:center;min-width:0
+  .art{border-radius:16px;background:linear-gradient(135deg,#eaf5ee,#f8fffb);border:1px solid var(--border);height:180px;display:grid;place-items:center;font-size:80px}
+  @media (prefers-color-scheme:dark){ .art{background:linear-gradient(135deg,#0e2019,#0f1f18)} }
+
+  /* Section */
+  .section{margin-top:18px}
+  .section h3{margin:0 0 10px;font:800 18px/1.2 Inter;display:flex;gap:10px;align-items:center}
+  .section h3 a{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--accent),#9aa3ff);padding:6px 10px;border-radius:12px;font-size:12px}
+
+  .rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;scroll-snap-type:x mandatory;min-width:0}
+  .rail::-webkit-scrollbar{height:8px}
+  .rail::-webkit-scrollbar-thumb{background:rgba(0,0,0,.14);border-radius:999px}
+
+  .card{
+    flex:0 0 clamp(240px,28vw,300px);scroll-snap-align:start;background:var(--surface);border:1px solid var(--border);
+    border-radius:18px;padding:12px;box-shadow:var(--shadow);min-width:0
   }
-  .cat .icon{width:42px;height:42px;border-radius:12px;display:grid;place-items:center;font-size:24px;border:1px solid var(--border);
-    background:linear-gradient(135deg,#f4f6ff,#fff)}
-  .cat .title{font:800 14.5px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cat .desc{grid-column:1/3;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .thumb{height:110px;border-radius:12px;background:#eaf5ee;border:1px solid var(--border);display:grid;place-items:center;font-size:36px}
+  @media (prefers-color-scheme:dark){ .thumb{background:#0f1f18} }
+  .card .t{margin:10px 0 6px;font:800 16px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .card .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* Random Quiz tile styling */
-  .cat.random{background:linear-gradient(180deg,#ffe9f7,#fff);border-color:#ffd5ef}
-  @media (prefers-color-scheme:dark){
-    .mode,.search,.cat{background:#15132a;color:var(--ink)}
-    .cat.random{background:linear-gradient(180deg,#321d4a,#1a1430);border-color:#3b2a60}
-  }
+  /* Grid of categories */
+  .grid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
+  @media (min-width:620px){ .grid{grid-template-columns:repeat(3,1fr)} }
+  @media (min-width:920px){ .grid{grid-template-columns:repeat(4,1fr)} }
+  .cat{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:12px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px;align-items:center;min-width:0}
+  .cat .icon{width:44px;height:44px;border-radius:12px;border:1px solid var(--border);display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#f4f9f5,#fff)}
+  .cat .tt{font:800 14.5px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cat .dd{grid-column:1/3;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
-  /* Bottom purple nav (mobile) */
-  .nav{position:fixed;left:0;right:0;bottom:0;height:64px;background:linear-gradient(90deg,#7f5fff,#6238ff);display:grid;grid-template-columns:repeat(3,1fr);z-index:60}
-  .nav a{display:grid;place-items:center;color:#fff;text-decoration:none;font-size:12px;font-weight:800}
-  .nav a i{font-size:18px;display:block;margin-bottom:2px}
+  /* Search bar */
+  .search{display:flex;gap:10px;margin-top:8px}
+  .search input{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--surface);font-weight:600}
+  .search .btn{white-space:nowrap}
 
-  /* Cards never cause page overflow */
-  .grid, .modes { min-width:0 }
-  html, body { overflow-x:hidden }
+  /* Safety: prevent page overflow */
+  .grid,.rail{min-width:0}
+  .grid-2>*{min-width:0}
+  html,body{overflow-x:hidden}
 
-  /* Debug popup shows only on errors */
-  #debug{position:fixed;right:10px;bottom:10px;background:#fff;border:1px solid #f0c6c6;border-radius:10px;padding:8px 10px;
-    box-shadow:0 12px 30px rgba(0,0,0,.14);display:none;z-index:2000;color:#7a2f2f;font:12px/1.4 Inter}
+  /* Debug (only shows if there’s an error) */
+  #debug{position:fixed;right:10px;bottom:10px;max-width:92vw;background:#fff;border:1px solid #f0c6c6;border-radius:10px;padding:8px 10px;
+         color:#7a2f2f;box-shadow:0 12px 30px rgba(0,0,0,.12);font:12px/1.4 Inter;display:none;z-index:2000}
   #debug pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap}
 </style>
 </head>
 <body>
 
-<!-- App top bar -->
-<div class="topbar">
-  <div class="brand"><i>❓</i> Quizon</div>
-</div>
+<!-- Top bar -->
+<header class="topbar">
+  <div class="wrap">
+    <div class="brand"><i>🌿</i> PSC Guru</div>
+    <nav class="nav">
+      <a class="pill primary" href="quiz.html?mode=random&n=10">Quick Play</a>
+      <a class="pill" href="quiz.html">Quiz</a>
+      <a class="pill" href="resources.html">Study</a>
+      <a class="pill" href="notices.html">Notices</a>
+    </nav>
+  </div>
+</header>
 
-<div class="app">
-  <!-- Purple header (no points/rank) -->
+<div class="page">
+
+  <!-- HERO -->
   <section class="hero">
-    <div class="hero-head">
-      <div class="avatar">👩‍🎓</div>
+    <div class="hero-inner">
       <div>
-        <div class="hero-title">Hello, <span id="playerName">Player</span></div>
-        <div class="hero-sub">Let’s play quiz</div>
+        <h1 class="title">Kerala PSC Daily Practice</h1>
+        <p class="subtitle">Smart quizzes, Malayalam-friendly UI, and progress you can feel every day.</p>
+
+        <div class="quick">
+          <div style="font-weight:800">Quick Start — Random Quiz</div>
+          <div class="chips" id="chips">
+            <button class="chip" data-n="5">5</button>
+            <button class="chip active" data-n="10">10</button>
+            <button class="chip" data-n="20">20</button>
+            <button class="chip" data-n="30">30</button>
+          </div>
+          <div class="cta">
+            <button id="startRandom" class="btn primary">Start</button>
+            <span style="color:var(--muted);font-size:14px">No selection needed — we’ll pick a topic and questions for you.</span>
+          </div>
+        </div>
       </div>
-      <div class="bell">🔔</div>
-    </div>
 
-    <!-- Modes -->
-    <div class="modes" style="margin-top:12px">
-      <a class="mode pink" href="quiz.html?mode=random&n=10">
-        <div class="tag">START</div>
-        <div class="name">Solo<br/>Mode</div>
-        <div class="art">🧑‍💻</div>
-      </a>
-
-      <a class="mode blue" href="#">
-        <div class="tag">START</div>
-        <div class="name">Multiplayer<br/>Mode</div>
-        <div class="art">👨‍👩‍👧‍👦</div>
-      </a>
-
-      <a class="mode green" href="#">
-        <div class="tag">START</div>
-        <div class="name">1 Vs. 1<br/>Mode</div>
-        <div class="art">⚔️</div>
-      </a>
+      <div>
+        <div class="metrics">
+          <div class="metric"><small>Streak</small><span id="m-streak">0</span></div>
+          <div class="metric"><small>Quizzes</small><span id="m-quizzes">0</span></div>
+          <div class="metric"><small>Correct</small><span id="m-correct">0%</span></div>
+        </div>
+        <div class="art" aria-hidden="true">📚</div>
+      </div>
     </div>
   </section>
 
-  <!-- Search -->
+  <!-- SEARCH -->
   <div class="search">
-    <i>🔎</i>
-    <input id="q" placeholder="Search Quiz Categories" />
+    <input id="q" placeholder="Search categories…">
+    <button id="reload" class="btn">Reload</button>
   </div>
 
-  <!-- Explore -->
+  <!-- TRENDING -->
   <section class="section">
-    <h3>Explore Categories <a href="#" id="viewAll">VIEW ALL</a></h3>
-    <div class="grid" id="grid">
-      <!-- JS renders here -->
+    <h3>Trending now <a href="#" id="viewTrending">VIEW ALL</a></h3>
+    <div class="rail" id="trending">
+      <div class="card"><div class="thumb">⏳</div><div class="t">Loading…</div><div class="m"></div></div>
     </div>
+  </section>
+
+  <!-- RECENT -->
+  <section class="section">
+    <h3>Recently played</h3>
+    <div class="rail" id="recent">
+      <div class="card"><div class="thumb">🧠</div><div class="t">Nothing yet</div><div class="m">Play a quiz to see it here.</div></div>
+    </div>
+  </section>
+
+  <!-- BROWSE -->
+  <section class="section">
+    <h3>Explore categories</h3>
+    <div class="grid" id="grid"></div>
   </section>
 </div>
 
-<!-- Bottom purple nav -->
-<nav class="nav">
-  <a href="#"><i>🔎</i>Search</a>
-  <a href="#"><i>👥</i>Groups</a>
-  <a href="profile.html"><i>👤</i>Profile</a>
-</nav>
-
-<!-- Debug popup -->
+<!-- Debug (only if JS errors) -->
 <div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
 
 <script>
 (function(){
-  /* ============== CONFIG ============== */
-  // Put your Google Sheet ID here (or keep '' to use only the local list).
-  const SHEET_ID = ''; // e.g. '1dLIO...yourSheetId...'
-  const TRY_TABS = ['Categories','Category','Index'];
+  /* ================== CONFIG ================== */
+  const SHEET_ID = ''; // <-- put your Google Sheet ID here (or leave '' to use local list only)
+  const TRY_TABS = ['Categories','Category','Index']; // which tab lists categories
 
-  // Local fallback categories — make sure 'sheet' matches your quiz sheet tab.
+  // Local fallback categories (edit freely). `sheet` must match the tab name holding questions.
   const LOCAL = [
-    { title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic',   random:true },
-    { title:'Sports',            sheet:'Sports',      emoji:'⚽',   desc:'All about sports', date:'2025-01-23' },
-    { title:'Space',             sheet:'Space',       emoji:'🚀',   desc:'Planets & space',  date:'2025-01-18' },
-    { title:'Maths',             sheet:'Maths',       emoji:'🧮',   desc:'Numbers & logic',  date:'2025-01-15' },
-    { title:'History',           sheet:'History',     emoji:'🛡️',  desc:'Past & events',    date:'2024-12-09' },
+    { title:'Information Technology', sheet:'Information Technology', emoji:'💻', desc:'ഐ.ടി., കമ്പ്യൂട്ടർ, ഇന്റർനെറ്റ്', date:'2025-01-20' },
+    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതുജ്ഞാനം',       date:'2025-01-15' },
+    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം',         date:'2025-01-10' },
+    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം',       date:'2024-12-22' },
   ];
-  /* ==================================== */
+  /* ============================================ */
 
-  // Never-blank-screen error catcher
+  // Debug catcher (so you never see a blank page)
   const dbg = document.getElementById('debug'), dbgText = document.getElementById('dbgText');
   function showErr(e){ dbg.style.display='block'; dbgText.textContent = (e && (e.stack||e.message||e)) + ''; }
-  window.onerror = (m, s, l, c, e)=>{ showErr(e||m); };
+  window.onerror = (m,s,l,c,e)=>{ showErr(e||m); };
   window.onunhandledrejection = (ev)=>{ showErr(ev.reason||ev); };
 
-  const $  = (s,el=document)=>el.querySelector(s);
-  const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
+  const $ = (s,el=document)=>el.querySelector(s);
+  const $$= (s,el=document)=>[...el.querySelectorAll(s)];
+  const P = new URLSearchParams(location.search);
 
-  // Load name
-  const playerName = localStorage.getItem('psc_name') || 'Player';
-  $('#playerName').textContent = playerName;
+  // Stats mock from localStorage
+  function loadStats(){
+    const streak = parseInt(localStorage.getItem('psc_streak')||'0',10);
+    const played = parseInt(localStorage.getItem('psc_played')||'0',10);
+    const correct= parseInt(localStorage.getItem('psc_correct_pct')||'0',10);
+    $('#m-streak').textContent = streak;
+    $('#m-quizzes').textContent = played;
+    $('#m-correct').textContent = correct + '%';
+  }
 
-  // Helpers
+  // GViz helpers (Sheets)
   function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
   async function gviz(sheetId, tab){
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz '+res.status);
+    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent('select *')}`;
+    const res = await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('GViz '+res.status);
     const raw = await res.text(); const json = stripGVizJSON(raw);
-    const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
-    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+    const cols = json.table.cols.map(c => (c.label||'').trim().toLowerCase());
+    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ''));
     return {cols, rows};
   }
-  function pickIndex(cols, rx){ return cols.findIndex(c => rx.some(r=>r.test(c))); }
+  function pickIndex(cols, rxArr){ return cols.findIndex(c => rxArr.some(rx=>rx.test(c))); }
   function toTs(v){
     if(!v) return NaN; if(/^\d{13}$/.test(v)) return +v; if(/^\d{10}$/.test(v)) return +v*1000;
-    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t=+d; return Number.isFinite(t)?t:NaN;
+    const t = +new Date(String(v).replaceAll('.', '/').replaceAll('-', '/'));
+    return Number.isFinite(t) ? t : NaN;
   }
 
-  function renderCategories(list){
-    const grid = $('#grid'); grid.innerHTML = '';
-    // Always put the Random tile first
-    const random = list.find(x=>x.random) || { title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic', random:true };
-    const rest = list.filter(x=>x!==random);
-
-    // Random tile
-    const r = document.createElement('a');
-    r.className = 'cat random';
-    r.href = '#'; r.onclick = (e)=>{ e.preventDefault(); startRandom(); };
-    r.innerHTML = `<div class="icon">🤔</div><div class="title">${random.title}</div><div class="desc">${random.desc||''}</div>`;
-    grid.appendChild(r);
-
-    // The rest
-    rest.forEach(x=>{
-      const a = document.createElement('a');
-      a.className = 'cat';
-      a.href = x.sheet==='__RANDOM__' ? '#' : `quiz.html?sheet=${encodeURIComponent(x.sheet)}`;
-      if(x.sheet==='__RANDOM__'){ a.addEventListener('click', (e)=>{e.preventDefault(); startRandom();}); }
-      a.innerHTML = `<div class="icon">${x.emoji||'🎯'}</div><div class="title" title="${x.title}">${x.title}</div><div class="desc">${x.desc||''}</div>`;
-      grid.appendChild(a);
-    });
+  // Render helpers
+  function cardHTML(x){
+    const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
+    return `
+      <a class="card" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}">
+        <div class="thumb">${x.emoji||'🧠'}</div>
+        <div class="t" title="${x.title}">${x.title}</div>
+        <div class="m">${x.desc||''}</div>
+      </a>`;
+  }
+  function catHTML(x){
+    const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
+    return `
+      <a class="cat" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}">
+        <div class="icon">${x.emoji||'🎯'}</div>
+        <div class="tt" title="${x.title}">${x.title}</div>
+        <div class="dd">${x.desc||''}</div>
+      </a>`;
   }
 
-  function filterCategories(q){
-    q = q.toLowerCase();
-    $$('.cat').forEach(el=>{
-      const t = el.querySelector('.title')?.textContent.toLowerCase()||'';
-      const d = el.querySelector('.desc')?.textContent.toLowerCase()||'';
-      el.style.display = (t.includes(q) || d.includes(q)) ? '' : 'none';
-    });
+  function renderTrending(items){
+    const rail = $('#trending'); rail.innerHTML = items.slice(0,12).map(cardHTML).join('');
   }
-
-  function startRandom(){
-    // Choose a random category (excluding the random tile)
-    const cards = $$('.cat:not(.random)');
-    if(!cards.length){ alert('No categories found'); return; }
-    const pick = cards[Math.floor(Math.random()*cards.length)];
-    pick.click();
+  function renderGrid(items){
+    const g = $('#grid'); g.innerHTML = items.map(catHTML).join('');
+  }
+  function renderRecent(){
+    const rail = $('#recent'); rail.innerHTML='';
+    let data = [];
+    try{ data = JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){}
+    data = data.slice(0,12);
+    if(!data.length){
+      rail.innerHTML = `<div class="card"><div class="thumb">🧠</div><div class="t">Nothing yet</div><div class="m">Play a quiz to see it here.</div></div>`;
+      return;
+    }
+    rail.innerHTML = data.map(x => `
+      <a class="card" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${SHEET_ID?`&sheetId=${encodeURIComponent(SHEET_ID)}`:''}">
+        <div class="thumb">${x.emoji||'🧠'}</div>
+        <div class="t">${x.title}</div>
+        <div class="m">${Math.max(0,Math.min(100,x.progress||0))}% complete</div>
+      </a>`).join('');
   }
 
   async function loadCategories(){
@@ -283,7 +312,7 @@
           const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
           const iSheet = pickIndex(cols, [/sheet|tab|get/]);
           const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
-          const iDate  = pickIndex(cols, [/date|updated|created|modified|timestamp|release|added|time/]);
+          const iDate  = pickIndex(cols, [/date|updated|created|timestamp|modified|release|added|time/]);
 
           list = rows.map((r,idx)=>({
             title:(r[iName]||'').trim(),
@@ -294,31 +323,65 @@
           })).filter(x=>x.title && x.sheet);
 
           if(list.length) break;
-        }catch(_){ /* try next tab */ }
+        }catch(_){ /* try next */ }
       }
     }
-
     if(!list.length){
-      list = LOCAL.map((x,i)=>({...x, ts: x.date ? toTs(x.date) : (LOCAL.length - i) * 60_000}));
+      list = LOCAL.map((x,i)=>({...x, ts: x.date ? toTs(x.date) : (LOCAL.length-i)*60_000}));
     }
 
-    // Sort newest first for “Explore” order (after the Random tile)
     const sorted = list.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
-
-    // Ensure a random tile exists
-    const withRandom = [{ title:'Start Random Quiz', sheet:'__RANDOM__', emoji:'🧑‍🏫', desc:'Pick any topic', random:true }, ...sorted];
-
-    renderCategories(withRandom);
+    renderTrending(sorted);
+    renderGrid(sorted);
+    return sorted;
   }
 
-  // Search
-  $('#q').addEventListener('input', e=>filterCategories(e.target.value));
-  $('#viewAll').addEventListener('click', e=>{ e.preventDefault(); $('#q').value=''; filterCategories(''); });
+  // Search filter
+  function attachSearch(){
+    $('#q').addEventListener('input', e=>{
+      const q = e.target.value.toLowerCase();
+      $$('#grid .cat').forEach(card=>{
+        const t = card.querySelector('.tt').textContent.toLowerCase();
+        const d = (card.querySelector('.dd')?.textContent.toLowerCase()||'');
+        card.style.display = (t.includes(q) || d.includes(q)) ? '' : 'none';
+      });
+    });
+  }
+
+  // Quick start (Random quiz)
+  function attachQuickStart(categories){
+    const chips = $('#chips');
+    chips.addEventListener('click', e=>{
+      const b = e.target.closest('.chip'); if(!b) return;
+      $$('#chips .chip').forEach(c=>c.classList.remove('active'));
+      b.classList.add('active');
+    });
+
+    $('#startRandom').addEventListener('click', ()=>{
+      const active = $('#chips .chip.active');
+      const n = active ? active.dataset.n : '10';
+      const pick = categories[Math.floor(Math.random()*categories.length)];
+      const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
+      if(!pick){ alert('No categories available'); return; }
+      location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}${sid}&n=${encodeURIComponent(n)}`;
+    });
+  }
+
+  // Actions
+  $('#reload').addEventListener('click', ()=>loadCategories().then(attachQuickStart));
+  $('#viewTrending').addEventListener('click', e=>{ e.preventDefault(); document.getElementById('q').value=''; });
 
   // Boot
-  try{
-    loadCategories();
-  }catch(e){ showErr(e); }
+  (async function init(){
+    try{
+      loadStats();
+      renderRecent();
+      attachSearch();
+      const cats = await loadCategories();
+      attachQuickStart(cats);
+    }catch(e){ showErr(e); }
+  })();
+
 })();
 </script>
 </body>
