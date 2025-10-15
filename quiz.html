@@ -61,10 +61,7 @@
       <div id="pg" style="color:var(--muted);font-size:13px">0 / 0</div>
     </div>
 
-    <div class="panel" id="panel">
-      <div class="notice">Loading…</div>
-    </div>
-
+    <div class="panel" id="panel"><div class="notice">Loading…</div></div>
     <div class="controls" id="controls" hidden>
       <button id="quit" class="btn">Quit</button>
       <button id="reveal" class="btn">Show Answer</button>
@@ -75,16 +72,20 @@
   <div class="splash" id="splash"><div class="spinner"></div></div>
 
   <script>
-    // ==== CONFIG (same Sheet as index.html) ====
-    const GS_SHEET_ID   = 'YOUR_GOOGLE_SHEET_ID';
-    const CATEGORIES_TAB = 'Categories';
-    const AUTO_NEXT_MS = 2000; // auto-advance after selecting, in ms
+    // ====== CONFIG (URL overrides supported) ======
+    const P = new URLSearchParams(location.search);
+    const SHEET_FROM_URL = P.get('sheetId') || null; // optional override
+    const GS_SHEET_ID    = SHEET_FROM_URL || 'PUT_YOUR_SHEET_ID_HERE';
+    const TRY_CAT_TABS   = Array.from(new Set([
+      P.get('tab') || 'Categories',
+      'Category','Categories List','Categories_List','Index','Cat'
+    ]));
+    const AUTO_NEXT_MS = 2000; // auto-advance after 2s
 
-    // Params
-    const params = new URLSearchParams(location.search);
-    const sheetParam = params.get('sheet');   // target category tab
-    const modeParam  = params.get('mode');    // "random"
-    const N          = parseInt(params.get('n')||'0',10)||0;
+    // Params for quiz mode
+    const sheetParam = P.get('sheet');   // target category tab
+    const modeParam  = P.get('mode');    // "random"
+    const N          = parseInt(P.get('n')||'0',10)||0;
 
     // UI
     const splash = document.getElementById('splash');
@@ -107,31 +108,36 @@
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz failed");
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw new Error(`GViz HTTP ${res.status}`);
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-
-    function pickIndex(cols, regexArr){
-      return cols.findIndex(t => regexArr.some(rx => rx.test(t)));
+    async function gvizFirstAvailable(tabs){
+      const tried = [];
+      for(const tab of tabs){
+        try{const data = await gviz(tab); return {tab, ...data};}
+        catch(e){tried.push(`${tab}`);}
+      }
+      throw new Error(`No accessible Categories tab. Tried: ${tried.join(', ')}`);
     }
+    function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
 
     async function chooseRandomCategory(){
-      const {cols, rows} = await gviz(CATEGORIES_TAB);
-      const idxName  = pickIndex(cols, [/^name|title|category$/]);
+      const {tab, cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
+      const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
       const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
       const list = rows.map(r => ({
         title: (r[idxName]||"").trim(),
         sheet: (r[idxSheet]||"").trim()
       })).filter(x => x.title && x.sheet);
-      if(!list.length) throw new Error("No categories found");
+      if(!list.length) throw new Error("No categories in the sheet");
       return list[Math.floor(Math.random()*list.length)];
     }
 
     function normalizeQuestions(cols, rows){
-      // Detect likely columns
       const idxQ = pickIndex(cols, [/question|ques/]);
       const idxA = pickIndex(cols, [/^a$|opt.?1|option.?1/]);
       const idxB = pickIndex(cols, [/^b$|opt.?2|option.?2/]);
@@ -147,20 +153,17 @@
         const c = (idxC>-1 ? (r[idxC]||"").trim() : "");
         const d = (idxD>-1 ? (r[idxD]||"").trim() : "");
         let ans = (idxAns>-1 ? (r[idxAns]||"").trim() : "");
-
         if(!q || !a || !b) return;
-        const opts = [a,b,c,d].filter(Boolean);
 
-        // Allow "1/2/3/4" OR "A/B/C/D" OR the actual text
+        const opts = [a,b,c,d].filter(Boolean);
         let correct = -1;
         if (/^[1-4]$/.test(ans)) correct = parseInt(ans,10)-1;
         else if (/^[A-D]$/i.test(ans)) correct = ans.toUpperCase().charCodeAt(0)-65;
         else correct = Math.max(0, opts.findIndex(o => o && o.toLowerCase()===ans.toLowerCase()));
+        if (correct < 0 || correct >= opts.length) correct = 0;
 
-        if (correct < 0 || correct >= opts.length) correct = 0; // safe default
         entries.push({ q, opts, correct });
       });
-
       return entries;
     }
 
@@ -181,7 +184,7 @@
     }
 
     function render(){
-      const q = questions[i]; 
+      const q = questions[i];
       if(!q){ panel.innerHTML='<div class="notice">No questions.</div>'; return; }
 
       progressWrap.hidden = false;
@@ -217,7 +220,6 @@
         }, {once:true});
       });
 
-      // If user clicks "Next" manually before the timer fires, cancel it
       nextBtn.onclick = ()=>{
         if(autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
         if(i<questions.length-1){ i++; render(); }
@@ -231,11 +233,10 @@
       panel.innerHTML = `
         <div class="qtext">Summary</div>
         <p class="qhead">Score: <b>${score}</b> / ${questions.length}</p>
-        <p><a class="btn" href="/">Home</a> <a class="btn" href="quiz.html${pickedInfo ? `?sheet=${encodeURIComponent(pickedInfo.sheet)}` : ''}">Play again</a></p>
+        <p><a class="btn" href="/">Home</a> <a class="btn" href="quiz.html${pickedInfo ? `?sheet=${encodeURIComponent(pickedInfo.sheet)}&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : ''}">Play again</a></p>
       `;
     }
 
-    // Controls
     revealBtn.addEventListener('click', ()=>{
       if(revealed) return;
       const q = questions[i];
@@ -261,7 +262,6 @@
           return;
         }
 
-        // Show what was picked in random mode
         if(pickedInfo.title){
           pickedEl.style.display = 'block';
           pickedEl.textContent = `Random picked: ${pickedInfo.title}`;
@@ -282,7 +282,7 @@
         render();
       } catch(err){
         console.error(err);
-        panel.innerHTML = `<div class="notice">Failed to load questions. Check sheet access / names.</div>`;
+        panel.innerHTML = `<div class="notice">Failed to load questions. Check sharing (Anyone with link: Viewer), Sheet ID, and tab name.</div>`;
       } finally{
         showSplash(false);
       }
