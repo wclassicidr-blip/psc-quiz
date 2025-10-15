@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>PSC Guru — Quizo</title>
+  <meta name="theme-color" content="#f6c0b4" />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div id="app"></div>
+
+  <!-- Simple templates to keep HTML lean -->
+  <template id="home-tpl">
+    <div class="screen gradient-bg">
+      <header class="brand">
+        <div class="brand-dot">Quizo<span class="dot">.</span></div>
+      </header>
+
+      <main class="wrap home-wrap">
+        <h1 class="hero-title">Each Round will<br/>get harder.</h1>
+        <p class="hero-sub">Carefully select all those answers to win the game. So don't be late and jump into the game. Best of luck!</p>
+
+        <div class="round-grid">
+          <button class="round-card" data-round="1">
+            <div class="round-pill">easy</div>
+            <div class="round-title">Round -1</div>
+          </button>
+          <button class="round-card" data-round="2">
+            <div class="round-pill">medium</div>
+            <div class="round-title">Round -2</div>
+          </button>
+          <button class="round-card" data-round="3">
+            <div class="round-pill">semi-medium</div>
+            <div class="round-title">Round -3</div>
+          </button>
+          <button class="round-card" data-round="4">
+            <div class="round-pill">hard</div>
+            <div class="round-title">Round -4</div>
+          </button>
+          <button class="round-card" data-round="5">
+            <div class="round-pill">most-hard</div>
+            <div class="round-title">Round -5</div>
+          </button>
+        </div>
+
+        <div class="cta-row">
+          <button class="primary start-btn">Start the Quiz !</button>
+          <button class="ghost choose-cat-btn">Choose Category</button>
+        </div>
+
+        <section class="latest-sec">
+          <h3>New Release</h3>
+          <div class="chips" id="latest-cats"></div>
+        </section>
+      </main>
+    </div>
+  </template>
+
+  <template id="quiz-tpl">
+    <div class="screen">
+      <header class="topbar blur-bg">
+        <button class="icon-btn back-btn" aria-label="Back" title="Back">
+          <svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg>
+        </button>
+        <div class="round-name">Round - <span data-bind="round">1</span></div>
+        <button class="icon-btn bookmark-btn" aria-label="Bookmarks" title="Bookmarks">
+          <svg viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"/></svg>
+        </button>
+      </header>
+
+      <main class="wrap quiz-wrap">
+        <div class="meta-row">
+          <div class="meta">
+            <span>No of Question</span>
+            <span class="badge"><span data-bind="qindex">0</span>/<span data-bind="qtotal">0</span></span>
+          </div>
+        </div>
+
+        <div class="question-card gradient-soft">
+          <div class="question" id="question-text">—</div>
+
+          <div class="time-row">
+            <div class="time-label">
+              <span>Time</span>
+              <span class="time-val" id="time-val">00:00</span>
+            </div>
+            <div class="time-bar">
+              <div class="time-fill" id="time-fill" style="width:0%"></div>
+            </div>
+          </div>
+
+          <div class="options" id="options"></div>
+        </div>
+
+        <div class="action-row">
+          <button class="primary submit-btn" id="submit-btn">Submit Answer</button>
+        </div>
+      </main>
+
+      <div class="sheet explanation-sheet" id="explain-sheet" hidden>
+        <div class="sheet-grip"></div>
+        <div class="sheet-body">
+          <h3>Answer Explanation</h3>
+          <div id="explain-text">—</div>
+          <div class="sheet-actions">
+            <button class="ghost" id="bookmark-this">Bookmark This</button>
+            <button class="primary" id="next-btn">Next</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="result-tpl">
+    <div class="screen gradient-bg">
+      <header class="brand small">
+        <div class="brand-dot">Quizo<span class="dot">.</span></div>
+      </header>
+      <main class="wrap result-wrap">
+        <h2 class="hero-title">Great job!</h2>
+        <p class="hero-sub">Here’s how you did in <span data-bind="round">Round -?</span> on <span data-bind="category">Category</span>.</p>
+
+        <div class="score-cards">
+          <div class="score-card">
+            <div class="score-num" data-bind="correct">0</div>
+            <div class="score-label">Correct</div>
+          </div>
+          <div class="score-card">
+            <div class="score-num" data-bind="wrong">0</div>
+            <div class="score-label">Wrong</div>
+          </div>
+          <div class="score-card">
+            <div class="score-num" data-bind="skipped">0</div>
+            <div class="score-label">Skipped</div>
+          </div>
+        </div>
+
+        <div class="cta-row">
+          <button class="primary again-btn">Try Another Round</button>
+          <button class="ghost home-btn">Home</button>
+        </div>
+      </main>
+    </div>
+  </template>
+
+  <template id="category-modal-tpl">
+    <div class="modal-backdrop" data-close="1">
+      <div class="modal">
+        <div class="modal-head">
+          <h3>Select Category</h3>
+          <button class="icon-btn close-modal" data-close="1" aria-label="Close">
+            <svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+        <div class="modal-body">
+          <input type="search" class="search" id="cat-search" placeholder="Search category..." />
+          <div class="cat-grid" id="cat-grid"></div>
+        </div>
+      </div>
+    </div>
+  </template>
+
+  <template id="splash-tpl">
+    <div class="splash gradient-bg">
+      <div class="loader"></div>
+      <div class="splash-text" id="splash-text">Loading categories...</div>
+    </div>
+  </template>
+
+  <script>
+    window.SHEET_PUBLISH_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A/pubhtml";
+    // Optional CORS proxy fallback (used only if direct fetch fails). Leave empty for direct.
+    window.CORS_PROXY = "";
+  </script>
+  <script src="app.js"></script>
+</body>
+</html>
