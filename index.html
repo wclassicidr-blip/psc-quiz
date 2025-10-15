@@ -11,241 +11,336 @@
 
 <style>
   :root{
-    --bg:#f5fbf7; --card:#fff; --muted:#6c7b74; --text:#0e2b1d; --brand:#6f58ff;
-    --border:rgba(0,0,0,.08); --shadow:0 25px 60px rgba(20,50,35,.15);
-    --grad1:#7b66ff; --grad2:#a573ff;
+    --bg: #f6faf8;
+    --surface: #ffffff;
+    --ink: #0f241a;
+    --muted: #6c7b74;
+    --border: rgba(0,0,0,.08);
+    --shadow: 0 20px 60px rgba(15,35,25,.14);
+
+    --brand-1: #7b66ff;
+    --brand-2: #52d1a5;
+
+    --grad-1: linear-gradient(160deg, #7b66ff, #a573ff);
+    --grad-2: linear-gradient(160deg, #0f8346, #0b5f34);
+    --glass: rgba(255,255,255,.6);
   }
-  @media (prefers-color-scheme:dark){
+  @media (prefers-color-scheme: dark){
     :root{
-      --bg:#0b1411; --card:#0f1f18; --muted:#b9d7cb; --text:#e9fcf4; --border:rgba(255,255,255,.12);
-      --shadow:0 25px 60px rgba(0,0,0,.55);
-      --grad1:#5f55ff; --grad2:#9a63ff;
+      --bg:#0b1411; --surface:#0f1f18; --ink:#e9fcf4; --muted:#b9d7cb;
+      --border:rgba(255,255,255,.12); --shadow:0 20px 60px rgba(0,0,0,.55);
+      --glass: rgba(12, 31, 24, .55);
     }
   }
+
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--text);font:400 15.5px/1.55 Inter,system-ui}
+  html,body{height:100%; background:var(--bg); color:var(--ink); font:400 15.5px/1.55 Inter,system-ui; overflow-x:hidden}
 
-  /* simple in-file header (no external deps) */
-  .site-header{position:sticky;top:0;z-index:50;height:60px;background:#ffffffcf;backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-  @media (prefers-color-scheme:dark){ .site-header{background:#0c1b13cc} }
-  .site-header .wrap{max-width:1080px;margin:0 auto;height:60px;display:flex;align-items:center;gap:10px;padding:0 12px}
-  .brand{display:flex;align-items:center;gap:10px;font-weight:800}
-  .brand i{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;border:1px solid var(--border)}
-  .nav{margin-left:auto;display:flex;gap:8px}
-  .nav a{padding:8px 12px;border:1px solid var(--border);border-radius:12px;text-decoration:none;color:var(--text);font-weight:800}
-  .nav a.active{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+  /* Header */
+  .sitebar{
+    position:sticky; top:0; z-index:50; height:64px;
+    display:flex; align-items:center; gap:12px; padding:0 12px;
+    backdrop-filter: blur(10px); background:var(--glass); border-bottom:1px solid var(--border);
+  }
+  .sitebar .brand{
+    display:flex; align-items:center; gap:10px; font-weight:800;
+    padding:6px 10px; border-radius:12px;
+    background: linear-gradient(180deg, rgba(255,255,255,.6), rgba(255,255,255,.2));
+    border:1px solid var(--border);
+  }
+  .sitebar .brand i{
+    width:28px; height:28px; border-radius:8px; display:grid; place-items:center;
+    background: #ecf7f1; border:1px solid var(--border);
+  }
+  .nav{ margin-left:auto; display:flex; gap:8px }
+  .pill{
+    appearance:none; border:none; cursor:pointer;
+    padding:10px 14px; border-radius:12px; font-weight:800;
+    background:#fff; border:1px solid var(--border);
+  }
+  .pill.active{ background:var(--grad-2); color:#fff; border:none }
+  @media (prefers-color-scheme:dark){ .pill{ background:#0c1b13; color:var(--ink) } }
 
-  /* layout */
-  .container{max-width:1080px;margin:0 auto;padding:16px 12px 90px}
-  .hero{margin:12px 0 16px;border-radius:20px;color:#fff;padding:16px;background:linear-gradient(160deg,var(--grad1),var(--grad2));box-shadow:var(--shadow)}
-  .hero .top{display:flex;align-items:center;gap:10px}
-  .avatar{width:44px;height:44px;border-radius:12px;background:#fff1;display:grid;place-items:center;font-size:24px}
-  .hello{font-weight:800;font-size:18px}
-  .sub{opacity:.9;font-size:13px;margin-top:2px}
-  .icons{margin-left:auto;display:flex;gap:8px}
-  .ic{width:36px;height:36px;border-radius:10px;background:#fff2;display:grid;place-items:center}
+  /* Page container */
+  .container{ max-width:1080px; margin:0 auto; padding:16px 12px 96px }
 
-  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
-  .chip{background:#fff;border:1px solid var(--border);color:var(--text);border-radius:12px;padding:10px 12px;text-align:center;font-weight:800}
-  .chip small{display:block;color:var(--muted);font-weight:700}
+  /* Hero */
+  .hero{
+    position:relative; margin:14px 0 18px; border-radius:20px; color:#fff; padding:18px;
+    background: var(--grad-1); box-shadow: var(--shadow); overflow:hidden;
+  }
+  .hero .top{ display:flex; align-items:center; gap:12px }
+  .avatar{ width:48px; height:48px; border-radius:14px; background:#fff1; display:grid; place-items:center; font-size:26px }
+  .hello{ font:800 18px/1.2 Inter }
+  .sub{ opacity:.9; font-size:13px; margin-top:3px }
+  .hero .icons{ margin-left:auto; display:flex; gap:8px }
+  .ic{ width:38px; height:38px; border-radius:12px; background:#fff2; display:grid; place-items:center }
 
-  .section{margin-top:18px}
-  .section h3{margin:0 0 10px;font:800 18px/1.2 Inter}
-  .row{display:flex;gap:12px;overflow:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
-  .row::-webkit-scrollbar{height:8px}
-  .row::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:999px}
+  .stats{
+    display:grid; gap:12px; margin-top:14px; grid-template-columns:repeat(3, 1fr)
+  }
+  .stat{
+    background:#fff; color:var(--ink); border-radius:14px; padding:12px 10px; text-align:center;
+    border:1px solid var(--border);
+  }
+  .stat small{ display:block; color:var(--muted); font-weight:700 }
 
-  .card{flex:0 0 240px;scroll-snap-align:start;background:var(--card);border:1px solid var(--border);border-radius:16px;box-shadow:var(--shadow);padding:12px}
-  .thumb{height:100px;border-radius:12px;background:#dff3e6;display:grid;place-items:center;font-size:34px}
-  @media (prefers-color-scheme:dark){ .thumb{background:#10231c} }
-  .title{margin:10px 0 6px;font:800 16px/1.2 Inter}
-  .meta{font-size:12px;color:var(--muted);display:flex;gap:8px;align-items:center}
-  .badge{font-size:11px;font-weight:800;background:#0f83461a;border:1px solid #0f834633;color:#0e5732;padding:3px 8px;border-radius:999px}
+  /* Sections + cards */
+  .section{ margin-top:18px }
+  .section h3{ margin:0 0 10px; font:800 18px/1.2 Inter }
+  .row{
+    display:flex; gap:12px; overflow-x:auto; overflow-y:hidden; padding-bottom:4px;
+    scroll-snap-type:x mandatory; min-width:0;
+  }
+  .row::-webkit-scrollbar{ height:8px } .row::-webkit-scrollbar-thumb{ background:rgba(0,0,0,.14); border-radius:999px }
 
-  .cta{background:#ede7ff;border:1px solid #cfc6ff;border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:space-between;margin:10px 0}
-  @media (prefers-color-scheme:dark){ .cta{background:#1a1730;border-color:#2b2850} }
-  .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
-  .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
+  .card{
+    flex:0 0 clamp(200px, 28vw, 256px); scroll-snap-align:start;
+    background:var(--surface); border:1px solid var(--border); border-radius:16px;
+    box-shadow: var(--shadow); padding:12px; min-width:0;
+  }
+  .thumb{
+    height:104px; border-radius:12px;
+    background:linear-gradient(135deg, #eaf5ee, #f8fffb); display:grid; place-items:center;
+    font-size:36px; border:1px solid var(--border);
+  }
+  @media (prefers-color-scheme:dark){ .thumb{ background:linear-gradient(135deg, #11241b, #0f1f18) } }
 
-  /* bottom nav + FAB */
-  .nav-bottom{position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border);height:64px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;z-index:60}
-  .nav-bottom a{display:grid;place-items:center;font-size:12px;color:var(--muted);text-decoration:none}
-  .fab{position:fixed;left:50%;transform:translateX(-50%);bottom:36px;z-index:70;width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:17px;background:linear-gradient(180deg,var(--grad2),var(--grad1));color:#fff;border:3px solid var(--card);box-shadow:0 12px 30px rgba(123,102,255,.5);font-weight:800}
+  .title{ margin:10px 0 6px; font:800 16px/1.2 Inter; white-space:nowrap; overflow:hidden; text-overflow:ellipsis }
+  .meta{ font-size:12px; color:var(--muted); display:flex; gap:8px; align-items:center; min-width:0 }
+  .badge{ font-size:11px; font-weight:800; background:#0f83461a; border:1px solid #0f834633; color:#0e5732; padding:3px 8px; border-radius:999px }
 
-  @media (min-width:960px){
-    .stats{grid-template-columns:repeat(6,1fr)}
-    .nav-bottom,.fab{display:none}
-    .grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+  /* CTA */
+  .cta{
+    background:linear-gradient(180deg, rgba(123,102,255,.10), rgba(123,102,255,.05));
+    border:1px solid rgba(123,102,255,.25); border-radius:16px;
+    padding:14px; display:flex; align-items:center; justify-content:space-between; margin:10px 0
   }
 
-  /* tiny debug panel so you never get a blank screen */
-  #debug{position:fixed;right:10px;bottom:10px;max-width:90vw;background:#fff;border:1px solid #f0c6c6;color:#7a2f2f;border-radius:10px;padding:8px 10px;font:12px/1.4 Inter;box-shadow:0 12px 30px rgba(0,0,0,.1);display:none;z-index:2000}
-  #debug pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap}
+  /* Desktop layout */
+  .grid-2{ display:grid; grid-template-columns:1.25fr .75fr; gap:16px }
+  .grid-2 > *{ min-width:0 } /* ← prevents sidebar from causing page overflow */
+  @media (max-width:960px){ .grid-2{ display:block } }
+
+  /* Bottom nav + FAB (mobile) */
+  .nav-bottom{
+    position:fixed; left:0; right:0; bottom:0; background:var(--surface);
+    border-top:1px solid var(--border); height:64px; display:grid; grid-template-columns:repeat(4, 1fr); z-index:60
+  }
+  .nav-bottom a{ display:grid; place-items:center; font-size:12px; color:var(--muted); text-decoration:none }
+  .fab{
+    position:fixed; left:50%; transform:translateX(-50%); bottom:36px; z-index:70;
+    width:64px; height:64px; border-radius:50%; display:grid; place-items:center; font-weight:800;
+    background:linear-gradient(160deg, #a573ff, #7b66ff); color:#fff; border:3px solid var(--surface);
+    box-shadow:0 16px 36px rgba(123,102,255,.55)
+  }
+  @media (min-width:960px){ .nav-bottom, .fab{ display:none } }
+
+  /* Progress chip in Recent Plays */
+  .progress{ height:8px; border-radius:999px; background:#e9f5ef; overflow:hidden; margin-top:8px }
+  .progress > i{ display:block; height:100%; width:0%; background:var(--grad-2) }
+
+  /* Safety */
+  a{text-decoration:none; color:inherit}
+  .btn{ padding:10px 14px; border-radius:12px; border:1px solid var(--border); background:#fff; font-weight:800; cursor:pointer }
+  .btn.primary{ background:var(--grad-2); color:#fff; border:none }
+  @media (prefers-color-scheme:dark){ .btn{ background:#0c1b13; color:var(--ink) } }
+
+  /* Tiny debug popup (only shows on error) */
+  #debug{ position:fixed; right:10px; bottom:10px; max-width:92vw; display:none;
+          background:#fff; color:#7a2f2f; border:1px solid #f0c6c6; border-radius:10px;
+          padding:8px 10px; box-shadow:0 12px 30px rgba(0,0,0,.12); font:12px/1.4 Inter; z-index:2000 }
+  #debug pre{ margin:6px 0 0; max-height:180px; overflow:auto; white-space:pre-wrap }
 </style>
 </head>
 <body>
-  <!-- Header -->
-  <header class="site-header">
-    <div class="wrap">
-      <a class="brand" href="/"><i>🧠</i><span>PSC Guru</span></a>
-      <nav class="nav">
-        <a href="/" class="active">Home</a>
-        <a href="/quiz.html">Quiz</a>
-        <a href="/resources.html">Study</a>
-        <a href="/notices.html">Notices</a>
-      </nav>
-    </div>
-  </header>
 
-  <div class="container">
-    <!-- Hero -->
-    <section class="hero">
-      <div class="top">
-        <div class="avatar">🎓</div>
-        <div>
-          <div class="hello">Hello, <span id="playerName">Player</span> 👋</div>
-          <div class="sub">Let’s play quiz</div>
-        </div>
-        <div class="icons"><div class="ic">🔔</div><div class="ic">⚙️</div></div>
-      </div>
-      <div class="stats">
-        <div class="chip"><small>Rank</small><span id="stat-rank">892</span></div>
-        <div class="chip"><small>Level</small><span id="stat-level">7</span></div>
-        <div class="chip"><small>XP</small><span id="stat-xp">60</span></div>
-      </div>
-    </section>
-
-    <div class="grid-2">
-      <main>
-        <section class="section">
-          <h3>Recent Plays</h3>
-          <div class="row" id="recentRow">
-            <div class="card"><div class="title">Loading…</div><div class="meta"> </div></div>
-          </div>
-        </section>
-
-        <div class="cta">
-          <div><b>Create and join a room</b><br><span style="color:var(--muted);font-size:13px">Play quickly with friends.</span></div>
-          <a class="btn" href="#">Join</a>
-        </div>
-
-        <section class="section">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <h3 style="margin:0">New Release</h3>
-            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
-          </div>
-          <div class="row" id="newRow">
-            <div class="card"><div class="title">Loading…</div></div>
-          </div>
-        </section>
-
-        <section class="section">
-          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
-            <h3 style="margin:0">Update</h3>
-            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
-          </div>
-          <div class="row" id="updRow">
-            <div class="card"><div class="title">Loading…</div></div>
-          </div>
-        </section>
-      </main>
-
-      <aside>
-        <section class="section">
-          <h3>Start playing</h3>
-          <div class="row" id="startRow">
-            <div class="card"><div class="title">Loading…</div></div>
-          </div>
-        </section>
-      </aside>
-    </div>
-  </div>
-
-  <!-- Mobile FAB + bottom nav -->
-  <a class="fab" id="fabPlay">Play</a>
-  <nav class="nav-bottom">
-    <a href="/" style="font-weight:800;color:var(--text)">🏠 Home</a>
-    <a href="/resources.html">📚 Categories</a>
-    <a href="/notices.html">🏆 Leaderboard</a>
-    <a href="/profile.html">👤 Profile</a>
+<!-- Top bar (lightweight, no external JS) -->
+<header class="sitebar">
+  <div class="brand"><i>🧠</i> PSC Guru</div>
+  <nav class="nav">
+    <a class="pill active" href="/">Home</a>
+    <a class="pill" href="quiz.html">Quiz</a>
+    <a class="pill" href="resources.html">Study</a>
+    <a class="pill" href="notices.html">Notices</a>
   </nav>
+</header>
 
-  <!-- Tiny debug panel -->
-  <div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
+<div class="container">
+  <!-- Hero -->
+  <section class="hero">
+    <div class="top">
+      <div class="avatar">🎓</div>
+      <div>
+        <div class="hello">Hello, <span id="playerName">Player</span> 👋</div>
+        <div class="sub">Let’s play quiz</div>
+      </div>
+      <div class="icons"><div class="ic">🔔</div><div class="ic">⚙️</div></div>
+    </div>
 
-<script defer>
+    <div class="stats">
+      <div class="stat"><small>Rank</small><span id="stat-rank">892</span></div>
+      <div class="stat"><small>Level</small><span id="stat-level">7</span></div>
+      <div class="stat"><small>XP</small><span id="stat-xp">60</span></div>
+    </div>
+  </section>
+
+  <div class="grid-2">
+    <main>
+      <!-- Recent Plays -->
+      <section class="section">
+        <h3>Recent Plays</h3>
+        <div class="row" id="recentRow">
+          <div class="card" style="flex:1 0 300px">
+            <div class="title">Nothing yet</div>
+            <div class="meta">Play any quiz to see it here.</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- CTA -->
+      <div class="cta">
+        <div>
+          <b>Create and join a room</b><br>
+          <span style="color:var(--muted);font-size:13px">Play quickly with friends.</span>
+        </div>
+        <a class="btn" href="#">Join</a>
+      </div>
+
+      <!-- New Release -->
+      <section class="section">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <h3 style="margin:0">New Release</h3>
+          <a href="#" style="margin-left:auto;color:var(--brand-1);font-weight:800">View All</a>
+        </div>
+        <div class="row" id="newRow">
+          <div class="card"><div class="title">Loading…</div></div>
+        </div>
+      </section>
+
+      <!-- Update -->
+      <section class="section">
+        <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+          <h3 style="margin:0">Update</h3>
+          <a href="#" style="margin-left:auto;color:var(--brand-1);font-weight:800">View All</a>
+        </div>
+        <div class="row" id="updRow">
+          <div class="card"><div class="title">Loading…</div></div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Sidebar -->
+    <aside>
+      <section class="section">
+        <h3>Start playing</h3>
+        <div class="row" id="startRow">
+          <div class="card"><div class="title">Loading…</div></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+</div>
+
+<!-- Mobile FAB + bottom nav -->
+<a class="fab" id="fabPlay">Play</a>
+<nav class="nav-bottom">
+  <a href="/" style="font-weight:800;color:var(--ink)">🏠 Home</a>
+  <a href="resources.html">📚 Categories</a>
+  <a href="notices.html">🏆 Leaderboard</a>
+  <a href="profile.html">👤 Profile</a>
+</nav>
+
+<!-- Debug (only appears if an error occurs) -->
+<div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
+
+<script>
 (function(){
-  /* =================== CONFIG =================== */
-  // Put your Google Sheet ID here (or leave blank to use local categories only)
-  const SHEET_ID = ''; // e.g. '1dLIO...yourSheetId...'  ← leave '' to avoid any fetch
-  const TRY_TABS = ['Categories','Category','Index'];
+  /* ================= CONFIG ================= */
+  // Put your Sheet ID here (or leave '' to run only with local categories)
+  const SHEET_ID = ''; // e.g. '1dLIO...yourSheetId...'
+  const TRY_TABS = ['Categories', 'Category', 'Index']; // which tab holds the category list
 
-  // Local categories (edit to your real tabs + descriptions). Add optional `date` (YYYY-MM-DD).
+  // Local categories (used if sheet missing/unreachable). Add optional `date` for "latest" sort.
   const LOCAL = [
     { title:'Information Technology', sheet:'Information Technology', emoji:'💻', desc:'ഐ.ടി. അടിസ്ഥാനങ്ങൾ', date:'2025-01-20' },
-    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതുജ്ഞാനം', date:'2025-01-15' },
-    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം',     date:'2025-01-10' },
-    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം',  date:'2024-12-22' },
+    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതു ജ്ഞാനം', date:'2025-01-15' },
+    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം', date:'2025-01-10' },
+    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം', date:'2024-12-22' },
   ];
-  /* ============================================== */
+  /* ========================================== */
 
-  // Never-blank-screen debug catcher
+  // Never-blank-screen error catcher
   const dbg = document.getElementById('debug'), dbgText = document.getElementById('dbgText');
   function showErr(e){ dbg.style.display='block'; dbgText.textContent = (e && (e.stack||e.message||e)) + ''; }
   window.onerror = (m, s, l, c, e)=>{ showErr(e||m); };
   window.onunhandledrejection = (ev)=>{ showErr(ev.reason||ev); };
 
-  const $ = (s,el=document)=>el.querySelector(s);
-  const $$ = (s,el=document)=>[...el.querySelectorAll(s)];
-  const playerName = localStorage.getItem('psc_name') || 'Player';
-  $('#playerName').textContent = playerName;
+  const qs  = (s,el=document)=>el.querySelector(s);
+  const qsa = (s,el=document)=>[...el.querySelectorAll(s)];
 
-  function stripGVizJSON(txt){ const s = txt.indexOf('{'), e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
+  // Stats/name from localStorage
+  const playerName = localStorage.getItem('psc_name') || 'Player';
+  qs('#playerName').textContent = playerName;
+  qs('#stat-level').textContent = localStorage.getItem('psc_level') || '7';
+  qs('#stat-rank').textContent  = localStorage.getItem('psc_rank')  || '892';
+  qs('#stat-xp').textContent    = localStorage.getItem('psc_xp')    || '60';
+
+  // Helpers for GViz
+  function stripGVizJSON(txt){ const s = txt.indexOf('{'), e = txt.lastIndexOf('}'); return JSON.parse(txt.slice(s, e+1)); }
   async function gviz(tab){
-    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-    const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz HTTP '+res.status);
+    const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent('select *')}`;
+    const res = await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('GViz HTTP '+res.status);
     const raw = await res.text(); const json = stripGVizJSON(raw);
-    const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
-    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
+    const cols = json.table.cols.map(c => (c.label||'').trim().toLowerCase());
+    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c && c.v)!=null ? String(c.v) : ''));
     return {cols, rows};
   }
-  function pickIndex(cols, re){ return cols.findIndex(t => re.some(rx=>rx.test(t))); }
+  function pickIndex(cols, arr){ return cols.findIndex(t => arr.some(rx => rx.test(t))); }
   function toTs(v){
     if(!v) return NaN; if(/^\d{13}$/.test(v)) return +v; if(/^\d{10}$/.test(v)) return +v*1000;
-    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t=+d; return Number.isFinite(t)?t:NaN;
+    const d = new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); const t = +d; return Number.isFinite(t) ? t : NaN;
   }
 
+  // Renderers
   function renderRow(sel, items){
-    const row = $(sel); row.innerHTML='';
+    const row = qs(sel); row.innerHTML = '';
     items.forEach(x=>{
-      const a = document.createElement('a'); a.className='card';
-      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`; // keep your quiz link
+      const a = document.createElement('a');
+      a.className = 'card';
+      a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`; // your quiz route
       a.innerHTML = `
-        <div class="thumb">${x.emoji||'🧠'}</div>
-        <div class="title">${x.title}</div>
-        <div class="meta">${x.desc?`<span>${x.desc}</span>`:''}</div>
+        <div class="thumb">${x.emoji || '🧠'}</div>
+        <div class="title" title="${x.title}">${x.title}</div>
+        <div class="meta">${x.desc ? `<span>${x.desc}</span>` : ''}</div>
       `;
       row.appendChild(a);
     });
   }
 
   function renderRecent(){
-    const row = $('#recentRow'); row.innerHTML='';
-    const rec = JSON.parse(localStorage.getItem('psc_recent')||'[]').slice(0,10);
-    if(!rec.length){
+    const row = qs('#recentRow'); row.innerHTML='';
+    let data = [];
+    try{ data = JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){}
+    data = data.slice(0,10);
+    if(!data.length){
       row.innerHTML = `<div class="card" style="flex:1 0 300px"><div class="title">Nothing yet</div><div class="meta">Play any quiz to see it here.</div></div>`;
       return;
     }
-    rec.forEach(r=>{
-      const a=document.createElement('a'); a.className='card';
-      a.href=`quiz.html?sheet=${encodeURIComponent(r.sheet)}`;
-      const p = Math.max(0,Math.min(100, r.progress||0));
-      a.innerHTML = `<div class="thumb">${r.emoji||'🧠'}</div><div class="title">${r.title}</div>
-        <div class="meta"><span>${p}%</span></div>`;
+    data.forEach(x=>{
+      const p = Math.max(0, Math.min(100, x.progress||0));
+      const a = document.createElement('a'); a.className='card'; a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}`;
+      a.innerHTML = `
+        <div class="thumb">${x.emoji||'🧠'}</div>
+        <div class="title">${x.title}</div>
+        <div class="progress"><i style="width:${p}%"></i></div>
+        <div class="meta"><span>${p}%</span></div>
+      `;
       row.appendChild(a);
     });
   }
 
+  // Load categories: Sheet ➜ fallback. Sort newest for "New Release".
   async function loadCategories(){
     let list = [];
     if(SHEET_ID){
@@ -255,34 +350,37 @@
           const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
           const iSheet = pickIndex(cols, [/sheet|tab|get/]);
           const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
-          const iDate  = pickIndex(cols, [/date|updated|created|timestamp|time|modified|release|added/]);
+          const iDate  = pickIndex(cols, [/date|updated|created|modified|timestamp|release|added|time/]);
+
           list = rows.map((r,idx)=>({
-            title:(r[iName]||'').trim(),
-            sheet:(r[iSheet]||'').trim(),
-            desc: iDesc>-1 ? (r[iDesc]||'').trim() : '',
-            emoji:'🧠',
-            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length-idx)*60_000
-          })).filter(x=>x.title&&x.sheet);
+            title: (r[iName]||'').trim(),
+            sheet: (r[iSheet]||'').trim(),
+            desc:  iDesc>-1 ? (r[iDesc]||'').trim() : '',
+            emoji: '🧠',
+            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length - idx) * 60_000
+          })).filter(x=>x.title && x.sheet);
+
           if(list.length) break;
         }catch(_){ /* try next tab */ }
       }
     }
     if(!list.length){
-      list = LOCAL.map((x,i)=>({...x, ts: x.date?toTs(x.date):(LOCAL.length-i)*60_000}));
+      list = LOCAL.map((x,i)=>({...x, ts: x.date ? toTs(x.date) : (LOCAL.length - i) * 60_000}));
     }
 
-    // newest first for "New Release"
-    const sorted = list.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
-    renderRow('#newRow', sorted.slice(0,12));
-    renderRow('#updRow', sorted.slice(12,24).length ? sorted.slice(12,24) : sorted.slice(0,12));
-    renderRow('#startRow', sorted.slice(0,8));
+    const sorted = list.slice().sort((a,b)=> (b.ts||0) - (a.ts||0));
+    renderRow('#newRow', sorted.slice(0,12));                      // New Release
+    renderRow('#updRow', sorted.slice(12,24).length ? sorted.slice(12,24) : sorted.slice(0,12)); // Update
+    renderRow('#startRow', sorted.slice(0,8));                     // Sidebar tiles
 
-    // FAB random
-    const pick = ()=> sorted[Math.floor(Math.random()*sorted.length)];
-    $('#fabPlay').onclick = ()=>{ const c = pick(); if(c) location.href=`quiz.html?sheet=${encodeURIComponent(c.sheet)}`; };
+    // FAB: random pick from available list
+    qs('#fabPlay').onclick = ()=>{
+      const pick = sorted[Math.floor(Math.random()*sorted.length)];
+      if(pick) location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}`;
+    };
   }
 
-  // safe boot (never blank)
+  // Boot (safe)
   try{
     renderRecent();
     loadCategories();
