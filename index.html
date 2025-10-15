@@ -1,387 +1,308 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>PSC Guru — Kerala PSC Exam Prep</title>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PSC Guru — Kerala PSC Prep</title>
 
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
 
 <style>
   :root{
-    --bg:#f6faf8;
-    --surface:#ffffff;
-    --ink:#10261b;
-    --muted:#6c7b74;
-    --border:rgba(0,0,0,.08);
-    --shadow:0 22px 60px rgba(20,50,35,.14);
-
-    --brand:#0f8346;
-    --brand-2:#0b5f34;
-    --accent:#6b7cff;
-
-    --hero-from:#f2fff7;
-    --hero-to:#dff6ea;
+    --bg:#fafcfb; --surface:#ffffff; --ink:#0d1f16; --muted:#6b7a72; --line:#e6efe9;
+    --accent:#12a66c; --accent-2:#0d8a5a; --pill:#eef6f2; --radius:14px;
   }
   @media (prefers-color-scheme:dark){
     :root{
-      --bg:#0b1411; --surface:#0f1f18; --ink:#e9fcf4; --muted:#b9d7cb;
-      --border:rgba(255,255,255,.12); --shadow:0 22px 60px rgba(0,0,0,.55);
-      --hero-from:#0e2019; --hero-to:#0a1712;
+      --bg:#0c1411; --surface:#101d17; --ink:#ecfff6; --muted:#b9d7cb; --line:#1f3028;
+      --pill:#0f271d; --accent:#16c980; --accent-2:#0faa6d;
     }
   }
-
   *{box-sizing:border-box}
-  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.55 Inter,system-ui;overflow-x:hidden}
+  html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:400 15.5px/1.6 Inter,system-ui}
   a{color:inherit;text-decoration:none}
-
-  /* Top app bar */
-  .topbar{position:sticky;top:0;z-index:50;height:62px;display:flex;align-items:center;gap:10px;
-    background:rgba(255,255,255,.65);backdrop-filter:blur(8px);border-bottom:1px solid var(--border)}
-  @media (prefers-color-scheme:dark){ .topbar{background:rgba(12,27,20,.65)} }
-  .topbar .wrap{max-width:1120px;margin:0 auto;height:62px;display:flex;align-items:center;padding:0 12px;width:100%}
-  .brand{display:flex;gap:10px;align-items:center;font:800 18px/1 Inter}
-  .brand i{width:30px;height:30px;border-radius:9px;display:grid;place-items:center;background:#ecf7f1;border:1px solid var(--border)}
-  @media (prefers-color-scheme:dark){ .brand i{background:#10231b} }
+  .topbar{position:sticky;top:0;z-index:40;background:rgba(255,255,255,.65);backdrop-filter:saturate(180%) blur(10px);border-bottom:1px solid var(--line)}
+  @media (prefers-color-scheme:dark){ .topbar{background:rgba(16,29,23,.7)} }
+  .wrap{max-width:1060px;margin:0 auto;padding:12px 14px;display:flex;gap:10px;align-items:center}
+  .brand{display:flex;gap:10px;align-items:center;font-weight:700}
+  .brand i{width:28px;height:28px;border-radius:8px;background:var(--pill);display:grid;place-items:center}
   .nav{margin-left:auto;display:flex;gap:8px}
-  .pill{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:var(--surface);font-weight:800}
-  .pill.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));border:none;color:#fff}
-
-  /* Page container */
-  .page{max-width:1120px;margin:0 auto;padding:16px 12px 100px}
-
-  /* Hero */
-  .hero{
-    margin:16px 0;border-radius:22px;overflow:hidden;box-shadow:var(--shadow);position:relative;
-    background:linear-gradient(160deg,var(--hero-from),var(--hero-to));
-    border:1px solid var(--border)
-  }
-  .hero-inner{display:grid;grid-template-columns:1.2fr .8fr;gap:18px;padding:18px}
-  @media (max-width:900px){ .hero-inner{grid-template-columns:1fr} }
-
-  .title{font:800 26px/1.15 Inter;margin:0 0 6px}
-  .subtitle{color:var(--muted);margin:0}
-
-  .quick{
-    margin-top:12px;background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;display:grid;gap:8px
-  }
-  .chips{display:flex;gap:8px;flex-wrap:wrap}
-  .chip{border:1px solid var(--border);background:#fff;border-radius:999px;padding:8px 12px;font-weight:800;cursor:pointer}
-  .chip.active{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;border:none}
-  @media (prefers-color-scheme:dark){ .chip{background:#0c1b13;color:var(--ink)} }
-
-  .cta{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
-  .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
-  .btn.primary{background:linear-gradient(180deg,var(--brand),var(--brand-2));color:#fff;border:none}
-
-  .metrics{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-  .metric{background:var(--surface);border:1px solid var(--border);border-radius:16px;padding:12px;text-align:center}
-  .metric small{color:var(--muted);display:block;font-weight:700}
-
-  .art{border-radius:16px;background:linear-gradient(135deg,#eaf5ee,#f8fffb);border:1px solid var(--border);height:180px;display:grid;place-items:center;font-size:80px}
-  @media (prefers-color-scheme:dark){ .art{background:linear-gradient(135deg,#0e2019,#0f1f18)} }
-
-  /* Section */
-  .section{margin-top:18px}
-  .section h3{margin:0 0 10px;font:800 18px/1.2 Inter;display:flex;gap:10px;align-items:center}
-  .section h3 a{margin-left:auto;color:#fff;background:linear-gradient(90deg,var(--accent),#9aa3ff);padding:6px 10px;border-radius:12px;font-size:12px}
-
-  .rail{display:flex;gap:12px;overflow-x:auto;overflow-y:hidden;padding-bottom:4px;scroll-snap-type:x mandatory;min-width:0}
+  .btn{padding:10px 14px;border-radius:var(--radius);border:1px solid var(--line);background:var(--surface);font-weight:600}
+  .btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent-2));border:none;color:#fff}
+  .page{max-width:1060px;margin:0 auto;padding:16px 14px 100px}
+  .hero{border:1px solid var(--line);border-radius:20px;background:linear-gradient(180deg,#f6fbf8,#f0faf4);padding:18px}
+  @media (prefers-color-scheme:dark){ .hero{background:linear-gradient(180deg,#0e1914,#0b1511)} }
+  .hero-grid{display:grid;gap:18px;grid-template-columns:1.2fr .8fr}
+  @media (max-width:920px){ .hero-grid{grid-template-columns:1fr} }
+  .h-title{margin:0 0 6px;font:700 24px/1.2 Inter}
+  .h-sub{margin:0;color:var(--muted)}
+  .quick{margin-top:12px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);padding:12px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:8px 0}
+  .chip{background:var(--pill);border:1px solid var(--line);border-radius:999px;padding:7px 12px;font-weight:600;cursor:pointer}
+  .chip.active{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#fff;border:none}
+  .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+  .stat{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:12px;text-align:center}
+  .stat small{display:block;color:var(--muted);font-weight:600}
+  .art{height:160px;border-radius:16px;border:1px solid var(--line);display:grid;place-items:center;font-size:48px;background:var(--surface)}
+  .section{margin-top:20px}
+  .section h3{margin:0 0 10px;font-weight:700;font-size:16px}
+  .rail{display:flex;gap:12px;overflow:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
   .rail::-webkit-scrollbar{height:8px}
-  .rail::-webkit-scrollbar-thumb{background:rgba(0,0,0,.14);border-radius:999px}
-
-  .card{
-    flex:0 0 clamp(240px,28vw,300px);scroll-snap-align:start;background:var(--surface);border:1px solid var(--border);
-    border-radius:18px;padding:12px;box-shadow:var(--shadow);min-width:0
-  }
-  .thumb{height:110px;border-radius:12px;background:#eaf5ee;border:1px solid var(--border);display:grid;place-items:center;font-size:36px}
-  @media (prefers-color-scheme:dark){ .thumb{background:#0f1f18} }
-  .card .t{margin:10px 0 6px;font:800 16px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .card .m{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-  /* Grid of categories */
+  .rail::-webkit-scrollbar-thumb{background:#cfe1d8;border-radius:999px}
+  @media (prefers-color-scheme:dark){ .rail::-webkit-scrollbar-thumb{background:#1e2c26} }
+  .card{scroll-snap-align:start;flex:0 0 clamp(220px,30vw,280px);border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:12px}
+  .thumb{height:96px;border-radius:12px;background:var(--pill);display:grid;place-items:center;font-size:30px;border:1px solid var(--line)}
+  .ct{margin:10px 0 6px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cd{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
   .grid{display:grid;gap:12px;grid-template-columns:repeat(2,1fr)}
-  @media (min-width:620px){ .grid{grid-template-columns:repeat(3,1fr)} }
-  @media (min-width:920px){ .grid{grid-template-columns:repeat(4,1fr)} }
-  .cat{background:var(--surface);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:12px;display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px;align-items:center;min-width:0}
-  .cat .icon{width:44px;height:44px;border-radius:12px;border:1px solid var(--border);display:grid;place-items:center;font-size:24px;background:linear-gradient(135deg,#f4f9f5,#fff)}
-  .cat .tt{font:800 14.5px/1.2 Inter;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .cat .dd{grid-column:1/3;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-
-  /* Search bar */
-  .search{display:flex;gap:10px;margin-top:8px}
-  .search input{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:var(--surface);font-weight:600}
-  .search .btn{white-space:nowrap}
-
-  /* Safety: prevent page overflow */
-  .grid,.rail{min-width:0}
-  .grid-2>*{min-width:0}
-  html,body{overflow-x:hidden}
-
-  /* Debug (only shows if there’s an error) */
-  #debug{position:fixed;right:10px;bottom:10px;max-width:92vw;background:#fff;border:1px solid #f0c6c6;border-radius:10px;padding:8px 10px;
-         color:#7a2f2f;box-shadow:0 12px 30px rgba(0,0,0,.12);font:12px/1.4 Inter;display:none;z-index:2000}
-  #debug pre{margin:6px 0 0;max-height:180px;overflow:auto;white-space:pre-wrap}
+  @media (min-width:580px){ .grid{grid-template-columns:repeat(3,1fr)} }
+  @media (min-width:880px){ .grid{grid-template-columns:repeat(4,1fr)} }
+  .cat{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;align-items:center;gap:8px;border:1px solid var(--line);border-radius:16px;background:var(--surface);padding:12px}
+  .ico{width:40px;height:40px;border-radius:10px;background:var(--pill);display:grid;place-items:center;border:1px solid var(--line)}
+  .ctt{font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .cdd{grid-column:1/3;color:var(--muted);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .search{display:flex;gap:10px;margin-top:10px}
+  .search input{flex:1;border:1px solid var(--line);border-radius:12px;padding:10px 12px;background:var(--surface);font-weight:600}
+  html,body,.grid,.rail{min-width:0}
 </style>
 </head>
 <body>
 
-<!-- Top bar -->
 <header class="topbar">
   <div class="wrap">
-    <div class="brand"><i>🌿</i> PSC Guru</div>
+    <div class="brand"><i>🌿</i>PSC Guru</div>
     <nav class="nav">
-      <a class="pill primary" href="quiz.html?mode=random&n=10">Quick Play</a>
-      <a class="pill" href="quiz.html">Quiz</a>
-      <a class="pill" href="resources.html">Study</a>
-      <a class="pill" href="notices.html">Notices</a>
+      <a class="btn primary" href="quiz.html?mode=random&n=10">Quick Play</a>
+      <a class="btn" href="quiz.html">Quiz</a>
+      <a class="btn" href="resources.html">Study</a>
+      <a class="btn" href="notices.html">Notices</a>
     </nav>
   </div>
 </header>
 
-<div class="page">
-
-  <!-- HERO -->
+<main class="page">
   <section class="hero">
-    <div class="hero-inner">
+    <div class="hero-grid">
       <div>
-        <h1 class="title">Kerala PSC Daily Practice</h1>
-        <p class="subtitle">Smart quizzes, Malayalam-friendly UI, and progress you can feel every day.</p>
-
+        <h1 class="h-title">Kerala PSC. One calm place to practice.</h1>
+        <p class="h-sub">Daily random drills, Malayalam-friendly questions, and simple progress that sticks.</p>
         <div class="quick">
-          <div style="font-weight:800">Quick Start — Random Quiz</div>
+          <div style="font-weight:700">Quick Start</div>
           <div class="chips" id="chips">
             <button class="chip" data-n="5">5</button>
             <button class="chip active" data-n="10">10</button>
             <button class="chip" data-n="20">20</button>
             <button class="chip" data-n="30">30</button>
           </div>
-          <div class="cta">
-            <button id="startRandom" class="btn primary">Start</button>
-            <span style="color:var(--muted);font-size:14px">No selection needed — we’ll pick a topic and questions for you.</span>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <button id="startRandom" class="btn primary">Start Random Quiz</button>
+            <span style="color:var(--muted);font-size:14px">No category required — we’ll pick one.</span>
           </div>
         </div>
       </div>
-
       <div>
-        <div class="metrics">
-          <div class="metric"><small>Streak</small><span id="m-streak">0</span></div>
-          <div class="metric"><small>Quizzes</small><span id="m-quizzes">0</span></div>
-          <div class="metric"><small>Correct</small><span id="m-correct">0%</span></div>
+        <div class="stats" style="margin-bottom:10px">
+          <div class="stat"><small>Streak</small><span id="streak">0</span></div>
+          <div class="stat"><small>Quizzes</small><span id="played">0</span></div>
+          <div class="stat"><small>Accuracy</small><span id="acc">0%</span></div>
         </div>
-        <div class="art" aria-hidden="true">📚</div>
+        <div class="art">📗</div>
       </div>
     </div>
   </section>
 
-  <!-- SEARCH -->
   <div class="search">
     <input id="q" placeholder="Search categories…">
     <button id="reload" class="btn">Reload</button>
   </div>
 
-  <!-- TRENDING -->
   <section class="section">
-    <h3>Trending now <a href="#" id="viewTrending">VIEW ALL</a></h3>
-    <div class="rail" id="trending">
-      <div class="card"><div class="thumb">⏳</div><div class="t">Loading…</div><div class="m"></div></div>
-    </div>
+    <h3>Trending</h3>
+    <div class="rail" id="trend"></div>
   </section>
 
-  <!-- RECENT -->
   <section class="section">
     <h3>Recently played</h3>
-    <div class="rail" id="recent">
-      <div class="card"><div class="thumb">🧠</div><div class="t">Nothing yet</div><div class="m">Play a quiz to see it here.</div></div>
-    </div>
+    <div class="rail" id="recent"></div>
   </section>
 
-  <!-- BROWSE -->
   <section class="section">
-    <h3>Explore categories</h3>
+    <h3>All categories</h3>
     <div class="grid" id="grid"></div>
   </section>
-</div>
-
-<!-- Debug (only if JS errors) -->
-<div id="debug"><b>Page error</b><pre id="dbgText"></pre></div>
+</main>
 
 <script>
 (function(){
-  /* ================== CONFIG ================== */
-  const SHEET_ID = ''; // <-- put your Google Sheet ID here (or leave '' to use local list only)
-  const TRY_TABS = ['Categories','Category','Index']; // which tab lists categories
-
-  // Local fallback categories (edit freely). `sheet` must match the tab name holding questions.
+  /* ===== CONFIG =====
+     You can pass ?sheetId=... or ?pub=2PACX-... in the URL.
+     If neither is passed, these defaults are used: */
+  const P = new URLSearchParams(location.search);
+  const SHEET_ID = P.get('sheetId') || ''; // normal GViz id (optional)
+  const PUB_ID   = normalizePubId(P.get('pub') || '2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A'); // <-- your published id
+  const TRY_TABS = ['Categories','Category','Index']; // categories sheet names
   const LOCAL = [
     { title:'Information Technology', sheet:'Information Technology', emoji:'💻', desc:'ഐ.ടി., കമ്പ്യൂട്ടർ, ഇന്റർനെറ്റ്', date:'2025-01-20' },
-    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതുജ്ഞാനം',       date:'2025-01-15' },
-    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം',         date:'2025-01-10' },
-    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം',       date:'2024-12-22' },
+    { title:'Malayalam GK',           sheet:'Malayalam GK',           emoji:'📝', desc:'മലയാളം പൊതുജ്ഞാനം',         date:'2025-01-15' },
+    { title:'Kerala Renaissance',     sheet:'Kerala Renaissance',     emoji:'🌅', desc:'കേരള നവോത്ഥാനം',           date:'2025-01-10' },
+    { title:'India GK',               sheet:'India GK',               emoji:'🇮🇳', desc:'ഇന്ത്യ — പൊതുജ്ഞാനം',         date:'2024-12-22' },
   ];
-  /* ============================================ */
-
-  // Debug catcher (so you never see a blank page)
-  const dbg = document.getElementById('debug'), dbgText = document.getElementById('dbgText');
-  function showErr(e){ dbg.style.display='block'; dbgText.textContent = (e && (e.stack||e.message||e)) + ''; }
-  window.onerror = (m,s,l,c,e)=>{ showErr(e||m); };
-  window.onunhandledrejection = (ev)=>{ showErr(ev.reason||ev); };
+  /* ================== */
 
   const $ = (s,el=document)=>el.querySelector(s);
   const $$= (s,el=document)=>[...el.querySelectorAll(s)];
-  const P = new URLSearchParams(location.search);
 
-  // Stats mock from localStorage
+  // ---------- Stats ----------
   function loadStats(){
-    const streak = parseInt(localStorage.getItem('psc_streak')||'0',10);
-    const played = parseInt(localStorage.getItem('psc_played')||'0',10);
-    const correct= parseInt(localStorage.getItem('psc_correct_pct')||'0',10);
-    $('#m-streak').textContent = streak;
-    $('#m-quizzes').textContent = played;
-    $('#m-correct').textContent = correct + '%';
+    $('#streak').textContent = localStorage.getItem('psc_streak') || '0';
+    $('#played').textContent = localStorage.getItem('psc_played') || '0';
+    $('#acc').textContent    = (localStorage.getItem('psc_correct_pct') || '0') + '%';
   }
 
-  // GViz helpers (Sheets)
+  // ---------- Fetchers ----------
+  function normalizePubId(val){
+    if(!val) return '';
+    const m = String(val).match(/\/d\/e\/([^/]+)\/pub/);
+    return m ? m[1] : val;
+  }
   function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-  async function gviz(sheetId, tab){
-    const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent('select *')}`;
-    const res = await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('GViz '+res.status);
-    const raw = await res.text(); const json = stripGVizJSON(raw);
-    const cols = json.table.cols.map(c => (c.label||'').trim().toLowerCase());
-    const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ''));
+  async function gvizBySheet(sheetId, tab){
+    const url=`https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent('select *')}`;
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('GViz '+res.status);
+    const raw=await res.text(); const json=stripGVizJSON(raw);
+    const cols=json.table.cols.map(c=>(c.label||'').trim().toLowerCase());
+    const rows=json.table.rows.map(r=>(r.c||[]).map(c=>(c&&c.v)!=null?String(c.v):''));
     return {cols, rows};
   }
-  function pickIndex(cols, rxArr){ return cols.findIndex(c => rxArr.some(rx=>rx.test(c))); }
+  function parseCSV(text){
+    const rows=[]; let row=[], field=''; let i=0; const s=text.replace(/\r\n/g,'\n').replace(/\r/g,'\n'); let inQ=false;
+    while(i<s.length){
+      const c=s[i];
+      if(inQ){
+        if(c==='"' && s[i+1]==='"'){ field+='"'; i+=2; continue; }
+        if(c==='\"'){ inQ=false; i++; continue; }
+        field+=c; i++; continue;
+      }else{
+        if(c==='\"'){ inQ=true; i++; continue; }
+        if(c===','){ row.push(field); field=''; i++; continue; }
+        if(c==='\n'){ row.push(field); rows.push(row); row=[]; field=''; i++; continue; }
+        field+=c; i++;
+      }
+    }
+    if(field.length || row.length){ row.push(field); rows.push(row); }
+    const header = rows.shift() || [];
+    const cols = header.map(h => (h||'').trim().toLowerCase());
+    return {cols, rows};
+  }
+  async function pubCSVBySheet(pubId, tab){
+    const url=`https://docs.google.com/spreadsheets/d/e/${pubId}/pub?output=csv&sheet=${encodeURIComponent(tab)}`;
+    const res=await fetch(url,{cache:'no-store'}); if(!res.ok) throw new Error('PUB '+res.status);
+    const csv=await res.text(); return parseCSV(csv);
+  }
+  function pickIndex(cols, rxArr){ return cols.findIndex(t => rxArr.some(rx => rx.test(t))); }
   function toTs(v){
     if(!v) return NaN; if(/^\d{13}$/.test(v)) return +v; if(/^\d{10}$/.test(v)) return +v*1000;
-    const t = +new Date(String(v).replaceAll('.', '/').replaceAll('-', '/'));
-    return Number.isFinite(t) ? t : NaN;
+    const t=+new Date(String(v).replaceAll('.', '/').replaceAll('-', '/')); return Number.isFinite(t)?t:NaN;
   }
 
-  // Render helpers
-  function cardHTML(x){
-    const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
-    return `
-      <a class="card" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}">
-        <div class="thumb">${x.emoji||'🧠'}</div>
-        <div class="t" title="${x.title}">${x.title}</div>
-        <div class="m">${x.desc||''}</div>
-      </a>`;
+  // ---------- Render helpers ----------
+  function trendCard(x){
+    const srcParam = SHEET_ID ? `sheetId=${encodeURIComponent(SHEET_ID)}` : (PUB_ID ? `pub=${encodeURIComponent(PUB_ID)}` : '');
+    return `<a class="card" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}&${srcParam}">
+      <div class="thumb">${x.emoji||'🧠'}</div>
+      <div class="ct" title="${x.title}">${x.title}</div>
+      <div class="cd">${x.desc||''}</div>
+    </a>`;
   }
-  function catHTML(x){
-    const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
-    return `
-      <a class="cat" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}">
-        <div class="icon">${x.emoji||'🎯'}</div>
-        <div class="tt" title="${x.title}">${x.title}</div>
-        <div class="dd">${x.desc||''}</div>
-      </a>`;
-  }
-
-  function renderTrending(items){
-    const rail = $('#trending'); rail.innerHTML = items.slice(0,12).map(cardHTML).join('');
-  }
-  function renderGrid(items){
-    const g = $('#grid'); g.innerHTML = items.map(catHTML).join('');
+  function catTile(x){
+    const srcParam = SHEET_ID ? `sheetId=${encodeURIComponent(SHEET_ID)}` : (PUB_ID ? `pub=${encodeURIComponent(PUB_ID)}` : '');
+    return `<a class="cat" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}&${srcParam}">
+      <div class="ico">${x.emoji||'📘'}</div>
+      <div class="ctt">${x.title}</div>
+      <div class="cdd">${x.desc||''}</div>
+    </a>`;
   }
   function renderRecent(){
-    const rail = $('#recent'); rail.innerHTML='';
-    let data = [];
-    try{ data = JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){}
-    data = data.slice(0,12);
-    if(!data.length){
-      rail.innerHTML = `<div class="card"><div class="thumb">🧠</div><div class="t">Nothing yet</div><div class="m">Play a quiz to see it here.</div></div>`;
-      return;
-    }
-    rail.innerHTML = data.map(x => `
-      <a class="card" href="quiz.html?sheet=${encodeURIComponent(x.sheet)}${SHEET_ID?`&sheetId=${encodeURIComponent(SHEET_ID)}`:''}">
-        <div class="thumb">${x.emoji||'🧠'}</div>
-        <div class="t">${x.title}</div>
-        <div class="m">${Math.max(0,Math.min(100,x.progress||0))}% complete</div>
-      </a>`).join('');
+    const rail=$('#recent'); let list=[]; try{ list=JSON.parse(localStorage.getItem('psc_recent')||'[]').slice(0,10);}catch(_){}
+    rail.innerHTML = list.length
+      ? list.map(trendCard).join('')
+      : `<div class="card"><div class="thumb">🧠</div><div class="ct">Nothing yet</div><div class="cd">Play a quiz to see it here.</div></div>`;
   }
 
+  // ---------- Categories loader ----------
   async function loadCategories(){
-    let list = [];
+    let list=[];
+    // Prefer query param source, else fallbacks
     if(SHEET_ID){
       for(const tab of TRY_TABS){
         try{
-          const {cols, rows} = await gviz(SHEET_ID, tab);
-          const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
-          const iSheet = pickIndex(cols, [/sheet|tab|get/]);
-          const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
-          const iDate  = pickIndex(cols, [/date|updated|created|timestamp|modified|release|added|time/]);
-
-          list = rows.map((r,idx)=>({
-            title:(r[iName]||'').trim(),
-            sheet:(r[iSheet]||'').trim(),
-            desc: iDesc>-1 ? (r[iDesc]||'').trim() : '',
-            emoji:'🧠',
-            ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length-idx)*60_000
-          })).filter(x=>x.title && x.sheet);
-
+          const {cols, rows} = await gvizBySheet(SHEET_ID, tab);
+          list = mapCategoryRows(cols, rows);
           if(list.length) break;
-        }catch(_){ /* try next */ }
+        }catch(_){}
+      }
+    } else if (PUB_ID){
+      for(const tab of TRY_TABS){
+        try{
+          const {cols, rows} = await pubCSVBySheet(PUB_ID, tab);
+          list = mapCategoryRows(cols, rows);
+          if(list.length) break;
+        }catch(_){}
       }
     }
     if(!list.length){
-      list = LOCAL.map((x,i)=>({...x, ts: x.date ? toTs(x.date) : (LOCAL.length-i)*60_000}));
+      list = LOCAL.map((x,i)=>({...x, ts: x.date?toTs(x.date):(LOCAL.length-i)*60_000}));
     }
-
-    const sorted = list.slice().sort((a,b)=> (b.ts||0)-(a.ts||0));
-    renderTrending(sorted);
-    renderGrid(sorted);
+    const sorted = list.slice().sort((a,b)=>(b.ts||0)-(a.ts||0));
+    $('#trend').innerHTML = sorted.slice(0,10).map(trendCard).join('');
+    $('#grid').innerHTML  = sorted.map(catTile).join('');
     return sorted;
   }
-
-  // Search filter
-  function attachSearch(){
-    $('#q').addEventListener('input', e=>{
-      const q = e.target.value.toLowerCase();
-      $$('#grid .cat').forEach(card=>{
-        const t = card.querySelector('.tt').textContent.toLowerCase();
-        const d = (card.querySelector('.dd')?.textContent.toLowerCase()||'');
-        card.style.display = (t.includes(q) || d.includes(q)) ? '' : 'none';
-      });
-    });
+  function mapCategoryRows(cols, rows){
+    const iName  = pickIndex(cols, [/^name$|^title$|^category$/]);
+    const iSheet = pickIndex(cols, [/sheet|tab|get/]);
+    const iDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
+    const iDate  = pickIndex(cols, [/date|updated|created|timestamp|modified|release|added|time/]);
+    return rows.map((r,idx)=>({
+      title:(r[iName]||'').trim(),
+      sheet:(r[iSheet]||'').trim(),
+      desc: iDesc>-1 ? (r[iDesc]||'').trim() : '',
+      emoji:'🧠',
+      ts: Number.isFinite(toTs(r[iDate])) ? toTs(r[iDate]) : (rows.length-idx)*60_000
+    })).filter(x=>x.title && x.sheet);
   }
 
-  // Quick start (Random quiz)
-  function attachQuickStart(categories){
-    const chips = $('#chips');
-    chips.addEventListener('click', e=>{
-      const b = e.target.closest('.chip'); if(!b) return;
-      $$('#chips .chip').forEach(c=>c.classList.remove('active'));
-      b.classList.add('active');
+  // ---------- UX wiring ----------
+  $('#q').addEventListener('input', e=>{
+    const q=e.target.value.toLowerCase();
+    $$('#grid .cat').forEach(el=>{
+      const t=el.querySelector('.ctt').textContent.toLowerCase();
+      const d=(el.querySelector('.cdd')?.textContent.toLowerCase()||'');
+      el.style.display = (t.includes(q)||d.includes(q)) ? '' : 'none';
     });
+  });
+  $('#chips').addEventListener('click', e=>{
+    const c=e.target.closest('.chip'); if(!c) return;
+    $$('#chips .chip').forEach(x=>x.classList.remove('active')); c.classList.add('active');
+  });
+  $('#startRandom').addEventListener('click', ()=>{
+    const n = ($('#chips .chip.active')?.dataset.n) || '10';
+    if(!window.__cats || !__cats.length){ alert('No categories available'); return; }
+    const pick = __cats[Math.floor(Math.random()*__cats.length)];
+    const srcParam = SHEET_ID ? `sheetId=${encodeURIComponent(SHEET_ID)}` : (PUB_ID ? `pub=${encodeURIComponent(PUB_ID)}` : '');
+    location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}&${srcParam}&n=${n}`;
+  });
+  $('#reload').addEventListener('click', async ()=>{ __cats = await loadCategories(); });
 
-    $('#startRandom').addEventListener('click', ()=>{
-      const active = $('#chips .chip.active');
-      const n = active ? active.dataset.n : '10';
-      const pick = categories[Math.floor(Math.random()*categories.length)];
-      const sid = SHEET_ID ? `&sheetId=${encodeURIComponent(SHEET_ID)}` : '';
-      if(!pick){ alert('No categories available'); return; }
-      location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}${sid}&n=${encodeURIComponent(n)}`;
-    });
-  }
-
-  // Actions
-  $('#reload').addEventListener('click', ()=>loadCategories().then(attachQuickStart));
-  $('#viewTrending').addEventListener('click', e=>{ e.preventDefault(); document.getElementById('q').value=''; });
-
-  // Boot
-  (async function init(){
-    try{
-      loadStats();
-      renderRecent();
-      attachSearch();
-      const cats = await loadCategories();
-      attachQuickStart(cats);
-    }catch(e){ showErr(e); }
+  // ---------- boot ----------
+  let __cats=[];
+  (async function(){
+    loadStats();
+    renderRecent();
+    __cats = await loadCategories();
   })();
-
 })();
 </script>
 </body>
