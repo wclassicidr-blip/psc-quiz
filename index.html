@@ -8,67 +8,39 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="header.css"/>
-
   <style>
-    :root{
-      --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346;
-      --border:rgba(0,0,0,.08); --card:#fff;
-      --shadow:0 30px 60px rgba(30,70,50,.12);
-    }
+    :root{ --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --border:rgba(0,0,0,.08); --card:#fff; --shadow:0 30px 60px rgba(30,70,50,.12) }
     @media (prefers-color-scheme: dark){
-      :root{
-        --text:#ecfdf5; --muted:#b8d8cc; --border:rgba(255,255,255,.12);
-        --card:#0c1b13; --shadow:0 30px 60px rgba(0,0,0,.5);
-      }
+      :root{ --text:#ecfdf5; --muted:#b8d8cc; --border:rgba(255,255,255,.12); --card:#0c1b13; --shadow:0 30px 60px rgba(0,0,0,.5) }
     }
     body{margin:0;font:400 16px/1.55 Inter,system-ui;background:#f5fbf7;color:var(--text)}
     .wrap{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
-
-    .hero{
-      margin:10px 0 18px; display:grid; gap:14px;
-      grid-template-columns: 1fr; align-items:center;
-      background:var(--card); border:1px solid var(--border); border-radius:18px;
-      box-shadow:var(--shadow); padding:14px;
-    }
+    .hero{margin:10px 0 18px;display:grid;gap:14px;grid-template-columns:1fr;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
     @media (min-width:860px){ .hero{ grid-template-columns: 1.2fr .8fr } }
-
     .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{
-      border:1px solid var(--border); background:#fff; color:#0f2d1f;
-      padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:800
-    }
+    .chip{border:1px solid var(--border);background:#fff;color:#0f2d1f;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:800}
     @media (prefers-color-scheme:dark){ .chip{ background:#0f1f18; color:#ecfdf5} }
-    .chip.active{ background:linear-gradient(180deg,#0f8346,#0b5f34); color:#fff; border-color:#0b5f34 }
-
+    .chip.active{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border-color:#0b5f34}
     .cta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
     .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
     .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
-
     .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:16px}
-    .cat{
-      background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow);
-      text-decoration:none;color:inherit;display:block
-    }
+    .cat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow);text-decoration:none;color:inherit;display:block}
     .cat h3{margin:6px 0 6px;font:800 18px/1.2 Inter}
     .cat p{margin:0;color:var(--muted);font-size:14px}
     .search{display:flex;gap:8px;margin-top:8px}
     .search input{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff}
     @media (prefers-color-scheme:dark){ .search input{ background:#0c1b13; color:#ecfdf5 } }
-
-    .splash{position:fixed;inset:0;display:none;place-items:center;
-      background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
+    .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
     @media (prefers-color-scheme:dark){ .splash{ background:rgba(5,10,8,.6) } }
     .splash.on{display:grid}
     .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #e2f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-
     .notice{padding:12px;border-radius:10px;border:1px solid #f7d6b5;background:#fff7ed;color:#7a4c22}
   </style>
 </head>
 <body>
-  <!-- shared header -->
   <script defer src="site-header.js"></script>
 
   <div class="wrap">
@@ -103,21 +75,25 @@
     </section>
   </div>
 
-  <!-- Splash while loading categories -->
   <div class="splash" id="splash"><div class="spinner"></div></div>
 
   <script>
-    // ====== CONFIG (now supports URL overrides) ======
+    /* ================== CONFIG ================== */
     const P = new URLSearchParams(location.search);
-    // Put your Sheet ID here (string between /d/ and /edit in the URL)
-    const GS_SHEET_ID   = P.get('sheetId') || 'PUT_YOUR_SHEET_ID_HERE';
-    // Tab names to try for the categories list
-    const TRY_CAT_TABS  = Array.from(new Set([
-      P.get('tab') || 'Categories',
-      'Category','Categories List','Categories_List','Index','Cat'
+    // 1) Put your Google Sheet ID here OR pass ?sheetId=... in the URL
+    const GS_SHEET_ID = P.get('sheetId') || 'PUT_YOUR_SHEET_ID_HERE';
+    // 2) Categories tab names to try. You can also pass ?tab=YourTab
+    const TRY_CAT_TABS = Array.from(new Set([
+      P.get('tab') || 'Categories', 'Category','Categories List','Categories_List','Index','Cat'
     ]));
+    // 3) Fallback categories (works even if the sheet fails). Fill with your sheet tab names + descriptions.
+    const FALLBACK_SHEETS = [
+      // Example:
+      // { title:'Information Technology', sheet:'Information Technology', desc:'ഐ.റ്റി. അടിസ്ഥാനങ്ങൾ' },
+      // { title:'Malayalam GK', sheet:'Malayalam GK', desc:'മലയാളം പൊതുജ്ഞാനം' },
+    ];
+    /* ============================================ */
 
-    // UI
     const chips = document.getElementById('chips');
     const startRandom = document.getElementById('startRandom');
     const splash = document.getElementById('splash');
@@ -130,48 +106,46 @@
       chips.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
       b.classList.add('active');
     });
+
     startRandom.addEventListener('click', ()=>{
       const active = chips.querySelector('.chip.active');
       const n = active ? active.dataset.n : '10';
-      // pass sheetId/tab so quiz can fetch even if categories grid failed
       const extra = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}&tab=${encodeURIComponent(TRY_CAT_TABS[0])}` : '';
-      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}${extra}`;
+      // Also pass local fallback sheets list in URL (so quiz can run even if sheet fails)
+      const fb = encodeURIComponent(JSON.stringify(FALLBACK_SHEETS));
+      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}${extra}&fallback=${fb}`;
     });
 
     function showSplash(on){ splash.classList.toggle('on', !!on); }
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"});
-      if(!res.ok) throw new Error(`GViz HTTP ${res.status}`);
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz');
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
     async function gvizFirstAvailable(tabs){
-      const tried = [];
       for(const tab of tabs){
-        try{const data = await gviz(tab); return {tab, ...data};}
-        catch(e){tried.push(`${tab}`);}
+        try{ const data = await gviz(tab); return {tab, ...data}; }
+        catch(_){ /* try next */ }
       }
-      throw new Error(`No accessible Categories tab. Tried: ${tried.join(', ')}`);
+      throw new Error('no-cat-tab');
     }
 
-    function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
+    function pickIndex(cols, rxArr){ return cols.findIndex(t => rxArr.some(rx => rx.test(t))); }
 
-    function renderCategories(cols, rows){
+    function renderCategoriesFromRows(cols, rows){
       const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
       const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
       const idxDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
-
       cats.innerHTML = "";
       rows.forEach(r=>{
         const title = (r[idxName]||"").trim();
         const sheet = (r[idxSheet]||"").trim();
         const desc  = (idxDesc>-1 ? (r[idxDesc]||"").trim() : "");
         if(!title || !sheet) return;
-
         const el = document.createElement('a');
         el.className = 'cat';
         el.href = `quiz.html?sheet=${encodeURIComponent(sheet)}&sheetId=${encodeURIComponent(GS_SHEET_ID)}`;
@@ -180,27 +154,42 @@
       });
     }
 
+    function renderCategoriesFallback(list){
+      cats.innerHTML = "";
+      list.forEach(({title,sheet,desc})=>{
+        if(!title || !sheet) return;
+        const el = document.createElement('a');
+        el.className = 'cat';
+        el.href = `quiz.html?sheet=${encodeURIComponent(sheet)}${GS_SHEET_ID?'&sheetId='+encodeURIComponent(GS_SHEET_ID):''}`;
+        el.innerHTML = `<h3>${title}</h3>${desc?`<p>${desc}</p>`:''}`;
+        cats.appendChild(el);
+      });
+    }
+
     async function loadCategories(){
       if(!GS_SHEET_ID || GS_SHEET_ID.includes('PUT_YOUR_SHEET_ID_HERE')){
-        notice.textContent = "Add your Google Sheet ID. Tip: use ?sheetId=YOUR_ID in the URL to test.";
+        notice.textContent = "Add your Google Sheet ID (or use ?sheetId=YOUR_ID). Showing local categories if set below.";
         notice.style.display = "block";
+        if(FALLBACK_SHEETS.length) renderCategoriesFallback(FALLBACK_SHEETS);
         return;
       }
       try{
-        notice.style.display = "none";
-        showSplash(true);
-        const {tab, cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
-        renderCategories(cols, rows);
-      } catch(err){
-        console.error(err);
-        notice.textContent = "Failed to load categories. Make the sheet public (Anyone with the link → Viewer), and check the tab name.";
-        notice.style.display = "block";
-      } finally{
-        showSplash(false);
-      }
+        notice.style.display = "none"; showSplash(true);
+        const {cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
+        renderCategoriesFromRows(cols, rows);
+      } catch(e){
+        // Sheet failed — use local fallback if provided
+        if(FALLBACK_SHEETS.length){
+          notice.textContent = "Failed to load categories from Google Sheet. Showing local categories.";
+          notice.style.display = "block";
+          renderCategoriesFallback(FALLBACK_SHEETS);
+        } else {
+          notice.textContent = "Failed to load categories. Make the sheet public and check the tab name.";
+          notice.style.display = "block";
+        }
+      } finally { showSplash(false); }
     }
 
-    // Search
     find.addEventListener('input', e=>{
       const q = e.target.value.toLowerCase();
       [...document.querySelectorAll('.cat')].forEach(card=>{
