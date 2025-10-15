@@ -3,230 +3,326 @@
 <head>
   <meta charset="utf-8"/>
   <meta name="viewport" content="width=device-width,initial-scale=1"/>
-  <title>PSC Guru — Kerala PSC Exam Prep</title>
+  <title>PSC Guru — Home</title>
 
+  <!-- Fonts -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-  <!-- shared header styles -->
+  <!-- Keep your shared header (hidden on small screens here) -->
   <link rel="stylesheet" href="header.css"/>
 
   <style>
-    :root{ --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --border:rgba(0,0,0,.08); --card:#fff; --shadow:0 30px 60px rgba(30,70,50,.12) }
-    @media (prefers-color-scheme: dark){
-      :root{ --text:#ecfdf5; --muted:#b8d8cc; --border:rgba(255,255,255,.12); --card:#0c1b13; --shadow:0 30px 60px rgba(0,0,0,.5) }
+    :root{
+      --bg:#f5fbf7; --card:#fff; --muted:#6c7b74; --text:#0e2b1d; --brand:#6f58ff;
+      --border:rgba(0,0,0,.08); --shadow:0 25px 60px rgba(20,50,35,.15);
+      --grad1:#7b66ff; --grad2:#a573ff;
+      --success:#0f8346;
     }
-    body{margin:0;font:400 16px/1.55 Inter,system-ui;background:#f5fbf7;color:var(--text)}
-    .wrap{max-width:1100px;margin:0 auto;padding:18px 14px 60px}
-    .hero{margin:10px 0 18px;display:grid;gap:14px;grid-template-columns:1fr;align-items:center;background:var(--card);border:1px solid var(--border);border-radius:18px;box-shadow:var(--shadow);padding:14px}
-    @media (min-width:860px){ .hero{ grid-template-columns: 1.2fr .8fr } }
+    @media (prefers-color-scheme:dark){
+      :root{
+        --bg:#0b1411; --card:#0f1f18; --muted:#b9d7cb; --text:#e9fcf4; --border:rgba(255,255,255,.12);
+        --shadow:0 25px 60px rgba(0,0,0,.55);
+        --grad1:#5f55ff; --grad2:#9a63ff;
+      }
+    }
 
-    .chips{display:flex;gap:8px;flex-wrap:wrap}
-    .chip{border:1px solid var(--border);background:#fff;color:#0f2d1f;padding:8px 12px;border-radius:999px;cursor:pointer;font-weight:800}
-    @media (prefers-color-scheme:dark){ .chip{ background:#0f1f18; color:#ecfdf5} }
-    .chip.active{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border-color:#0b5f34}
+    *{box-sizing:border-box}
+    body{margin:0;background:var(--bg);color:var(--text);font:400 15.5px/1.55 Inter,system-ui}
+    a{color:inherit;text-decoration:none}
 
-    .cta{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    /* Hide site header on phones so it doesn’t clash with app header */
+    @media (max-width:760px){ .site-header{display:none!important} }
+
+    .wrap{max-width:1080px;margin:0 auto;padding:16px 12px 90px}
+
+    /* --- App header card (purple gradient) --- */
+    .hero{position:relative;margin:10px 0 16px;border-radius:20px;color:#fff;padding:16px;
+      background:linear-gradient(160deg,var(--grad1),var(--grad2));
+      box-shadow:var(--shadow);
+    }
+    .hero .top{display:flex;align-items:center;gap:10px}
+    .avatar{width:44px;height:44px;border-radius:12px;background:#fff1;display:grid;place-items:center;font-size:24px}
+    .hello{font-weight:800;font-size:18px}
+    .sub{opacity:.9;font-size:13px;margin-top:2px}
+    .hero .icons{margin-left:auto;display:flex;gap:8px}
+    .ic{width:36px;height:36px;border-radius:10px;background:#fff2;display:grid;place-items:center}
+
+    .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    .chip{background:#fff;border:1px solid var(--border);color:var(--text);border-radius:12px;padding:10px 12px;text-align:center;font-weight:800}
+    .chip small{display:block;color:var(--muted);font-weight:700}
+
+    /* --- sections --- */
+    .section{margin-top:18px}
+    .section h3{margin:0 0 10px;font:800 18px/1.2 Inter}
+    .row{display:flex;gap:12px;overflow:auto;padding-bottom:4px;scroll-snap-type:x mandatory}
+    .row::-webkit-scrollbar{height:8px}
+    .row::-webkit-scrollbar-thumb{background:rgba(0,0,0,.12);border-radius:999px}
+
+    .card{
+      flex:0 0 240px;scroll-snap-align:start;background:var(--card);border:1px solid var(--border);
+      border-radius:16px;box-shadow:var(--shadow);padding:12px
+    }
+    .thumb{height:100px;border-radius:12px;background:#dff3e6;display:grid;place-items:center;font-size:34px}
+    @media (prefers-color-scheme:dark){ .thumb{background:#10231c} }
+    .title{margin:10px 0 6px;font:800 16px/1.2 Inter}
+    .meta{font-size:12px;color:var(--muted);display:flex;align-items:center;gap:8px}
+    .progress{height:8px;border-radius:999px;background:#eaf5ee;margin-top:8px;overflow:hidden}
+    .progress>i{display:block;height:100%;width:0%;background:linear-gradient(90deg,#4cd080,#0f8346)}
+    .badge{font-size:11px;font-weight:800;background:#0f83461a;border:1px solid #0f834633;color:#0e5732;padding:3px 8px;border-radius:999px}
+
+    .cta{background:#ede7ff;border:1px solid #cfc6ff;border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:space-between;margin:10px 0}
+    @media (prefers-color-scheme:dark){ .cta{background:#1a1730;border-color:#2b2850} }
+    .cta b{font-size:16px}
     .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
     .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
 
-    .search{display:flex;gap:8px;margin-top:8px}
-    .search input{flex:1;border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fff}
-    @media (prefers-color-scheme:dark){ .search input{ background:#0c1b13; color:#ecfdf5 } }
+    /* bottom nav */
+    .nav-bottom{
+      position:fixed;left:0;right:0;bottom:0;background:var(--card);border-top:1px solid var(--border);
+      height:64px;display:grid;grid-template-columns:1fr 1fr 1fr 1fr;z-index:60
+    }
+    .nav-bottom a{display:grid;place-items:center;font-size:12px;color:var(--muted)}
+    .fab{
+      position:fixed;left:50%;transform:translateX(-50%);bottom:36px;z-index:70;
+      width:64px;height:64px;border-radius:50%;display:grid;place-items:center;font-size:17px;
+      background:linear-gradient(180deg,var(--grad2),var(--grad1));color:#fff;border:3px solid var(--card);box-shadow:0 12px 30px rgba(123,102,255,.5);font-weight:800
+    }
 
-    .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;margin-top:16px}
-    .cat{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:14px;box-shadow:var(--shadow);text-decoration:none;color:inherit;display:block}
-    .cat h3{margin:6px 0 6px;font:800 18px/1.2 Inter}
-    .cat p{margin:0;color:var(--muted);font-size:14px}
-
-    .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
-    @media (prefers-color-scheme:dark){ .splash{ background:rgba(5,10,8,.6) } }
-    .splash.on{display:grid}
-    .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #e2f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-
-    .hint{margin-top:8px;color:var(--muted);font-size:13px}
+    /* desktop tweaks */
+    @media (min-width:960px){
+      .stats{grid-template-columns:repeat(6,1fr)}
+      .nav-bottom,.fab{display:none}
+      .grid-2{display:grid;grid-template-columns:1.25fr .75fr;gap:16px}
+    }
   </style>
 </head>
 <body>
-  <!-- shared header (keeps header consistent across pages) -->
+  <!-- Shared site header stays for desktop -->
   <script defer src="site-header.js"></script>
 
   <div class="wrap">
+    <!-- Hero header -->
     <section class="hero">
-      <div>
-        <h1 style="margin:6px 0 8px;font:800 28px/1.15 Inter">Crack Kerala PSC with Daily Practice</h1>
-        <p style="margin:0;color:var(--muted)">Choose a category or jump into a randomized quiz. Track progress, reveal answers, and see a full summary.</p>
-
-        <div style="margin-top:14px">
-          <h3 style="margin:0 0 8px;font:800 16px/1 Inter">🎲 Random Quiz</h3>
-          <div class="chips" id="chips">
-            <button class="chip" data-n="5">5</button>
-            <button class="chip active" data-n="10">10</button>
-            <button class="chip" data-n="20">20</button>
-            <button class="chip" data-n="30">30</button>
-          </div>
-          <div class="cta" style="margin-top:10px">
-            <button id="startRandom" class="btn primary">Start</button>
-            <span style="color:var(--muted);font-size:14px">Picks a random category & questions. No selection needed.</span>
-          </div>
-          <div class="hint" id="hint" style="display:none"></div>
+      <div class="top">
+        <div class="avatar">🎓</div>
+        <div>
+          <div class="hello">Hello, <span id="playerName">Player</span> 👋</div>
+          <div class="sub">Let’s play quiz</div>
+        </div>
+        <div class="icons">
+          <div class="ic">🔔</div>
+          <div class="ic">⚙️</div>
         </div>
       </div>
 
-      <div>
-        <div class="search">
-          <input id="q" type="text" placeholder="Search categories…">
-          <button id="refresh" class="btn">Reload</button>
-        </div>
-        <div class="grid" id="cats" style="margin-top:10px"></div>
+      <div class="stats">
+        <div class="chip"><small>Rank</small><span id="stat-rank">892</span></div>
+        <div class="chip"><small>Level</small><span id="stat-level">7</span></div>
+        <div class="chip"><small>XP</small><span id="stat-xp">60</span></div>
+        <div class="chip" style="display:none" id="chip-streak"><small>Streak</small><span id="stat-streak">3</span></div>
+        <div class="chip" style="display:none" id="chip-correct"><small>Correct</small><span id="stat-correct">0</span></div>
+        <div class="chip" style="display:none" id="chip-played"><small>Played</small><span id="stat-played">0</span></div>
       </div>
     </section>
+
+    <div class="grid-2">
+      <main>
+        <!-- Recent plays -->
+        <section class="section">
+          <h3>Recent Plays</h3>
+          <div class="row" id="recentRow"></div>
+        </section>
+
+        <!-- CTA -->
+        <div class="cta">
+          <div>
+            <b>Create and join a room</b><br>
+            <span style="color:var(--muted);font-size:13px">Play quickly with friends.</span>
+          </div>
+          <a class="btn" href="#">Join</a>
+        </div>
+
+        <!-- New Release -->
+        <section class="section">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <h3 style="margin:0">New Release</h3>
+            <span class="badge">24</span>
+            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
+          </div>
+          <div class="row" id="newRow"></div>
+        </section>
+
+        <!-- Updated -->
+        <section class="section">
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px">
+            <h3 style="margin:0">Update</h3>
+            <span class="badge">24</span>
+            <a href="#" style="margin-left:auto;color:var(--brand);font-weight:800">View All</a>
+          </div>
+          <div class="row" id="updRow"></div>
+        </section>
+      </main>
+
+      <aside>
+        <!-- Start playing quick tiles (desktop only visual) -->
+        <section class="section">
+          <h3>Start playing</h3>
+          <div class="row" id="startRow"></div>
+        </section>
+      </aside>
+    </div>
   </div>
 
-  <!-- subtle splash during fetch -->
-  <div class="splash" id="splash"><div class="spinner"></div></div>
+  <!-- Bottom nav + central play FAB (mobile) -->
+  <a class="fab" id="fabPlay">Play</a>
+  <nav class="nav-bottom">
+    <a href="/" style="font-weight:800;color:var(--text)">🏠 Home</a>
+    <a href="/resources.html">📚 Categories</a>
+    <a href="/notices.html">🏆 Leaderboard</a>
+    <a href="/profile.html">👤 Profile</a>
+  </nav>
 
   <script>
-    /* ======================= CONFIG (EDIT HERE) ======================= */
+    /* ===================== CONFIG (EDIT) ===================== */
+    // If you use Google Sheets, put your Sheet ID here or add ?sheetId=... to the URL.
     const P = new URLSearchParams(location.search);
+    const GS_SHEET_ID = P.get('sheetId') || '';  // keep empty to run only with local categories
 
-    // 1) If you use Google Sheets, put your Sheet ID here, or pass ?sheetId=... in URL.
-    const GS_SHEET_ID = P.get('sheetId') || ''; // leave empty to always use local categories
+    // Categories tab names to try in your sheet:
+    const TRY_CAT_TABS = ['Categories','Category','Index'];
 
-    // 2) Categories tab names to try in your sheet (change if yours is different).
-    const TRY_CAT_TABS = Array.from(new Set([
-      P.get('tab') || 'Categories', 'Category', 'Index'
-    ]));
-
-    // 3) Local categories (work 100% offline; edit titles, sheet tab names, and descriptions).
-    //    These are shown if the sheet isn’t set or isn’t reachable.
+    // Local categories (used if sheet fails or is not set). Replace with your own.
     const LOCAL_CATEGORIES = [
-      // EXAMPLES — replace with your real tabs & descriptions
-      { title: 'Information Technology', sheet: 'Information Technology', desc: 'ഐ.ടി. അടിസ്ഥാനങ്ങൾ, കമ്പ്യൂട്ടർ, ഇന്റർനെറ്റ്' },
-      { title: 'Malayalam GK',           sheet: 'Malayalam GK',           desc: 'മലയാളം പൊതുജ്ഞാനം' },
-      { title: 'Kerala Renaissance',     sheet: 'Kerala Renaissance',     desc: 'കേരള നവോത്ഥാനം — നേതാക്കളും പ്രസ്ഥാനങ്ങളും' },
+      { title:'Disney',                sheet:'Disney',                emoji:'🅳', tag:'NEW',     desc:'Cartoon' },
+      { title:'Shrek',                 sheet:'Shrek',                 emoji:'🟢', tag:'NEW',     desc:'Movie'  },
+      { title:'Breaking Bad',          sheet:'Breaking Bad',          emoji:'☣️', tag:'NEW',     desc:'Movie'  },
+      { title:'Harry Potter',          sheet:'Harry Potter',          emoji:'🪄', tag:'NEW',     desc:'Movie'  },
+      { title:'Logo Guest',            sheet:'Logo Guest',            emoji:'🔤', tag:'UPDATED', desc:'General Knowledge' },
+      { title:'The Office',            sheet:'The Office',            emoji:'📺', tag:'UPDATED', desc:'TV'     },
+      { title:'Ozark',                 sheet:'Ozark',                 emoji:'🌉', tag:'UPDATED', desc:'Movie'  },
+      { title:'Formula 1',             sheet:'Formula 1',             emoji:'🏎️', tag:'UPDATED', desc:'Sport'  },
     ];
-    /* ================================================================== */
+    /* ========================================================= */
 
-    const chips = document.getElementById('chips');
-    const startRandom = document.getElementById('startRandom');
-    const splash = document.getElementById('splash');
-    const cats = document.getElementById('cats');
-    const find = document.getElementById('q');
-    const hint = document.getElementById('hint');
-
-    function showSplash(on){ splash.classList.toggle('on', !!on); }
+    // Utilities
+    const qs=(s,el=document)=>el.querySelector(s);
+    const qsa=(s,el=document)=>[...el.querySelectorAll(s)];
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
-    async function gviz(tab){
-      const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"});
-      if(!res.ok) throw new Error(`GViz ${res.status}`);
-      const raw = await res.text();
-      const json = stripGVizJSON(raw);
+    async function gviz(sheetId, tab){
+      const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz');
+      const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-
     function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
 
-    function renderFromRows(cols, rows){
-      const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
-      const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
-      const idxDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
+    // Stats & name
+    const playerName = localStorage.getItem('psc_name') || 'Player';
+    qs('#playerName').textContent = playerName;
+    qs('#stat-level').textContent = localStorage.getItem('psc_level')||'7';
+    qs('#stat-rank').textContent  = localStorage.getItem('psc_rank')||'892';
+    qs('#stat-xp').textContent    = localStorage.getItem('psc_xp')||'60';
 
-      cats.innerHTML = "";
-      rows.forEach(r=>{
-        const title = (r[idxName]||"").trim();
-        const sheet = (r[idxSheet]||"").trim();
-        const desc  = (idxDesc>-1 ? (r[idxDesc]||"").trim() : "");
-        if(!title || !sheet) return;
-
-        const a = document.createElement('a');
-        a.className = 'cat';
-        // pass sheetId only if we actually have one
-        const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
-        a.href = `quiz.html?sheet=${encodeURIComponent(sheet)}${sid}`;
-        a.innerHTML = `<h3>${title}</h3>${desc ? `<p>${desc}</p>` : ""}`;
-        cats.appendChild(a);
-      });
+    // Recent plays (from localStorage)
+    function getRecent(){
+      try{ return JSON.parse(localStorage.getItem('psc_recent')||'[]'); }catch(_){ return []; }
     }
-
-    function renderFromLocal(list){
-      cats.innerHTML = "";
-      list.forEach(({title, sheet, desc})=>{
-        if(!title || !sheet) return;
-        const a = document.createElement('a');
-        a.className = 'cat';
-        const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
-        a.href = `quiz.html?sheet=${encodeURIComponent(sheet)}${sid}`;
-        a.innerHTML = `<h3>${title}</h3>${desc ? `<p>${desc}</p>` : ""}`;
-        cats.appendChild(a);
-      });
-    }
-
-    async function loadCategories(){
-      // Prefer Google Sheet if ID provided; otherwise always show local list.
-      if(!GS_SHEET_ID){
-        hint.style.display = 'block';
-        hint.textContent = 'Using local categories (set a Google Sheet ID later if you want).';
-        renderFromLocal(LOCAL_CATEGORIES);
+    function renderRecent(){
+      const row = qs('#recentRow'); row.innerHTML='';
+      const data = getRecent().slice(0,10);
+      if(!data.length){
+        row.innerHTML = `<div class="card" style="flex:1 0 300px"><div class="title">Nothing yet</div><div class="meta">Play any quiz to see it here.</div></div>`;
         return;
       }
-
-      try{
-        hint.style.display = 'none';
-        showSplash(true);
-        let loaded = false;
-        for(const tab of TRY_CAT_TABS){
-          try{
-            const {cols, rows} = await gviz(tab);
-            renderFromRows(cols, rows);
-            loaded = true;
-            break;
-          }catch(_){/* try next tab */}
-        }
-        if(!loaded){
-          hint.style.display = 'block';
-          hint.textContent = 'Could not read categories from your Google Sheet — showing local categories instead.';
-          renderFromLocal(LOCAL_CATEGORIES);
-        }
-      } finally {
-        showSplash(false);
-      }
+      data.forEach(x=>{
+        const p = Math.max(0, Math.min(100, x.progress||0));
+        const a = document.createElement('a');
+        a.className='card';
+        const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
+        a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}`;
+        a.innerHTML = `
+          <div class="thumb">${x.emoji||'🧠'}</div>
+          <div class="title">${x.title}</div>
+          <div class="progress"><i style="width:${p}%"></i></div>
+          <div class="meta"><span>${p}%</span></div>
+        `;
+        row.appendChild(a);
+      });
     }
 
-    // Random quiz
-    chips.addEventListener('click', e=>{
-      const b = e.target.closest('.chip'); if(!b) return;
-      chips.querySelectorAll('.chip').forEach(c=>c.classList.remove('active'));
-      b.classList.add('active');
-    });
+    // Categories (Sheet → fallback)
+    async function loadCategories(){
+      let list = [];
+      if(GS_SHEET_ID){
+        for(const tab of TRY_CAT_TABS){
+          try{
+            const {cols, rows} = await gviz(GS_SHEET_ID, tab);
+            const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
+            const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
+            const idxDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
+            list = rows.map(r => ({
+              title:(r[idxName]||'').trim(),
+              sheet:(r[idxSheet]||'').trim(),
+              desc: idxDesc>-1 ? (r[idxDesc]||'').trim() : '',
+              emoji:'🧠', tag:'NEW'
+            })).filter(x=>x.title&&x.sheet);
+            if(list.length) break;
+          }catch(_){/* try next */}
+        }
+      }
+      if(!list.length) list = LOCAL_CATEGORIES;
 
-    startRandom.addEventListener('click', ()=>{
-      const active = chips.querySelector('.chip.active');
-      const n = active ? active.dataset.n : '10';
+      // New / Updated splits (just by tag if provided)
+      const newList = list.filter(x=>x.tag==='NEW' ).slice(0,12);
+      const updList = list.filter(x=>x.tag!=='NEW').slice(0,12);
+      renderRow('#newRow', newList);
+      renderRow('#updRow', updList.length?updList:newList);
+      renderRow('#startRow', list.slice(0,8));
+      return list;
+    }
 
-      // Pass sheetId only if set; also pass local list so quiz can choose randomly even without Google Sheet.
-      const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}&tab=${encodeURIComponent(TRY_CAT_TABS[0])}` : '';
-      const fb  = encodeURIComponent(JSON.stringify(LOCAL_CATEGORIES));
-      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}${sid}&fallback=${fb}`;
-    });
-
-    // Search filter
-    document.getElementById('q').addEventListener('input', e=>{
-      const q = e.target.value.toLowerCase();
-      [...document.querySelectorAll('.cat')].forEach(card=>{
-        const t = card.querySelector('h3').textContent.toLowerCase();
-        const d = (card.querySelector('p')?.textContent.toLowerCase() || "");
-        card.style.display = (t.includes(q) || d.includes(q)) ? "" : "none";
+    function renderRow(sel, items){
+      const row = qs(sel); row.innerHTML='';
+      items.forEach(x=>{
+        const a=document.createElement('a');
+        a.className='card';
+        const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
+        a.href = `quiz.html?sheet=${encodeURIComponent(x.sheet)}${sid}`;
+        a.innerHTML = `
+          <div class="thumb">${x.emoji || '🎯'}</div>
+          <div class="title">${x.title}</div>
+          <div class="meta">
+            ${x.tag?`<span class="badge">${x.tag}</span>`:''}
+            <span>${x.desc||''}</span>
+          </div>
+        `;
+        row.appendChild(a);
       });
-    });
-    document.getElementById('refresh').addEventListener('click', loadCategories);
+    }
 
-    loadCategories();
+    // FAB Play → random category (uses loaded list or local)
+    let loadedCategories = [];
+    qs('#fabPlay').addEventListener('click', ()=>{
+      const n = 10;
+      if(!loadedCategories.length) loadedCategories = LOCAL_CATEGORIES;
+      const pick = loadedCategories[Math.floor(Math.random()*loadedCategories.length)];
+      if(!pick){ alert('No categories available'); return; }
+      const sid = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : '';
+      location.href = `quiz.html?sheet=${encodeURIComponent(pick.sheet)}${sid}&n=${n}`;
+    });
+
+    // Chip selector (not shown here but keep behaviour consistent if you add a Start button elsewhere)
+    qsa('.chip').forEach(c=>c.addEventListener('click',()=>{
+      qsa('.chip').forEach(x=>x.classList.remove('active')); c.classList.add('active');
+    }));
+
+    // Boot
+    renderRecent();
+    loadCategories().then(list=>{ loadedCategories = list; });
   </script>
 </body>
 </html>
