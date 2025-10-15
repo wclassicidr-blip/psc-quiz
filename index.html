@@ -107,9 +107,15 @@
   <div class="splash" id="splash"><div class="spinner"></div></div>
 
   <script>
-    // ==== CONFIG — set these to your Sheet ====
-    const GS_SHEET_ID   = 'YOUR_GOOGLE_SHEET_ID';
-    const CATEGORIES_TAB = 'Categories';
+    // ====== CONFIG (now supports URL overrides) ======
+    const P = new URLSearchParams(location.search);
+    // Put your Sheet ID here (string between /d/ and /edit in the URL)
+    const GS_SHEET_ID   = P.get('sheetId') || 'PUT_YOUR_SHEET_ID_HERE';
+    // Tab names to try for the categories list
+    const TRY_CAT_TABS  = Array.from(new Set([
+      P.get('tab') || 'Categories',
+      'Category','Categories List','Categories_List','Index','Cat'
+    ]));
 
     // UI
     const chips = document.getElementById('chips');
@@ -127,28 +133,37 @@
     startRandom.addEventListener('click', ()=>{
       const active = chips.querySelector('.chip.active');
       const n = active ? active.dataset.n : '10';
-      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}`;
+      // pass sheetId/tab so quiz can fetch even if categories grid failed
+      const extra = GS_SHEET_ID ? `&sheetId=${encodeURIComponent(GS_SHEET_ID)}&tab=${encodeURIComponent(TRY_CAT_TABS[0])}` : '';
+      location.href = `quiz.html?mode=random&n=${encodeURIComponent(n)}${extra}`;
     });
 
     function showSplash(on){ splash.classList.toggle('on', !!on); }
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error("GViz failed");
+      const res = await fetch(url,{cache:"no-store"});
+      if(!res.ok) throw new Error(`GViz HTTP ${res.status}`);
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
-
-    function pickIndex(cols, regexArr){
-      return cols.findIndex(t => regexArr.some(rx => rx.test(t)));
+    async function gvizFirstAvailable(tabs){
+      const tried = [];
+      for(const tab of tabs){
+        try{const data = await gviz(tab); return {tab, ...data};}
+        catch(e){tried.push(`${tab}`);}
+      }
+      throw new Error(`No accessible Categories tab. Tried: ${tried.join(', ')}`);
     }
 
+    function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
+
     function renderCategories(cols, rows){
-      const idxName  = pickIndex(cols, [/^name|title|category$/]);
+      const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
       const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
-      const idxDesc  = pickIndex(cols, [/^desc|description|about|note/]);
+      const idxDesc  = pickIndex(cols, [/^desc$|^description$|about|note/]);
 
       cats.innerHTML = "";
       rows.forEach(r=>{
@@ -159,21 +174,26 @@
 
         const el = document.createElement('a');
         el.className = 'cat';
-        el.href = `quiz.html?sheet=${encodeURIComponent(sheet)}`;
+        el.href = `quiz.html?sheet=${encodeURIComponent(sheet)}&sheetId=${encodeURIComponent(GS_SHEET_ID)}`;
         el.innerHTML = `<h3>${title}</h3>${desc ? `<p>${desc}</p>` : ""}`;
         cats.appendChild(el);
       });
     }
 
     async function loadCategories(){
+      if(!GS_SHEET_ID || GS_SHEET_ID.includes('PUT_YOUR_SHEET_ID_HERE')){
+        notice.textContent = "Add your Google Sheet ID. Tip: use ?sheetId=YOUR_ID in the URL to test.";
+        notice.style.display = "block";
+        return;
+      }
       try{
         notice.style.display = "none";
         showSplash(true);
-        const {cols, rows} = await gviz(CATEGORIES_TAB);
+        const {tab, cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
         renderCategories(cols, rows);
       } catch(err){
         console.error(err);
-        notice.textContent = "Failed to load categories. Make the sheet public and check the tab name.";
+        notice.textContent = "Failed to load categories. Make the sheet public (Anyone with the link → Viewer), and check the tab name.";
         notice.style.display = "block";
       } finally{
         showSplash(false);
