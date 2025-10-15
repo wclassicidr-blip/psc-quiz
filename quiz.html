@@ -8,9 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
-
   <link rel="stylesheet" href="header.css"/>
-
   <style>
     :root{ --text:#0f2d1f; --muted:#5f726a; --brand:#0f8346; --error:#d24747; --border:rgba(0,0,0,.08); --card:#fff; --shadow:0 30px 60px rgba(30,70,50,.12) }
     @media (prefers-color-scheme: dark){
@@ -19,11 +17,9 @@
     body{margin:0;font:400 16px/1.55 Inter,system-ui;background:#f5fbf7;color:var(--text)}
     .wrap{max-width:840px;margin:0 auto;padding:18px 14px 70px}
     .panel{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)}
-
     .progress{display:flex;align-items:center;gap:8px;margin:0 0 12px}
     .bar{height:8px;border-radius:8px;background:rgba(15,131,70,.12);overflow:hidden;flex:1}
     .bar>i{display:block;height:100%;width:0%;background:linear-gradient(180deg,#0f8346,#0b5f34);transition:width .25s}
-
     .qhead{color:var(--muted);font-size:14px;margin:0 0 8px}
     .qtext{font:800 18px/1.3 Inter;margin:0 0 12px}
     .opts{display:grid;gap:10px}
@@ -31,21 +27,16 @@
     .opt:hover{box-shadow:0 6px 16px rgba(30,70,50,.10)}
     .opt.correct{border-color:#8bd2a8;background:#ecfff4}
     .opt.wrong{border-color:#f1b6b6;background:#fff4f4}
-
     .controls{display:flex;gap:10px;justify-content:flex-end;margin-top:12px}
     .btn{padding:10px 14px;border-radius:12px;border:1px solid var(--border);background:#fff;cursor:pointer;font-weight:800}
     .btn.primary{background:linear-gradient(180deg,#0f8346,#0b5f34);color:#fff;border:none}
     .btn:disabled{opacity:.5;cursor:not-allowed}
-
     .splash{position:fixed;inset:0;display:none;place-items:center;background:rgba(255,255,255,.6);backdrop-filter:blur(6px);z-index:2000}
     @media (prefers-color-scheme:dark){ .splash{ background:rgba(5,10,8,.6) } }
     .splash.on{display:grid}
     .spinner{width:64px;height:64px;border-radius:50%;border:6px solid #e2f2e6;border-top-color:#0f8346;animation:spin 1s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
-
     .notice{padding:12px;border-radius:10px;border:1px solid #f7d6b5;background:#fff7ed;color:#7a4c22}
-    table.sum{width:100%;border-collapse:collapse;margin-top:10px}
-    table.sum th,table.sum td{border:1px solid var(--border);padding:8px;vertical-align:top}
   </style>
 </head>
 <body>
@@ -72,22 +63,23 @@
   <div class="splash" id="splash"><div class="spinner"></div></div>
 
   <script>
-    // ====== CONFIG (URL overrides supported) ======
+    /* ============== CONFIG + PARAMS ============== */
     const P = new URLSearchParams(location.search);
-    const SHEET_FROM_URL = P.get('sheetId') || null; // optional override
-    const GS_SHEET_ID    = SHEET_FROM_URL || 'PUT_YOUR_SHEET_ID_HERE';
-    const TRY_CAT_TABS   = Array.from(new Set([
-      P.get('tab') || 'Categories',
-      'Category','Categories List','Categories_List','Index','Cat'
+    const GS_SHEET_ID = P.get('sheetId') || 'PUT_YOUR_SHEET_ID_HERE';
+    const TRY_CAT_TABS = Array.from(new Set([
+      P.get('tab') || 'Categories', 'Category','Categories List','Categories_List','Index','Cat'
     ]));
-    const AUTO_NEXT_MS = 2000; // auto-advance after 2s
+    const AUTO_NEXT_MS = 2000;
+    // Fallback categories (same as index). If index passes &fallback=..., use that first.
+    const FALLBACK_SHEETS = (() => {
+      try{ return JSON.parse(P.get('fallback')||'[]'); }catch(_){ return []; }
+    })();
+    /* ============================================= */
 
-    // Params for quiz mode
-    const sheetParam = P.get('sheet');   // target category tab
+    const sheetParam = P.get('sheet');   // explicit category tab
     const modeParam  = P.get('mode');    // "random"
     const N          = parseInt(P.get('n')||'0',10)||0;
 
-    // UI
     const splash = document.getElementById('splash');
     const panel  = document.getElementById('panel');
     const controls = document.getElementById('controls');
@@ -104,37 +96,53 @@
     let questions = [];
     let pickedInfo = null; // {title, sheet}
 
+    // ---- DEMO fallback questions (used only if everything else fails) ----
+    const DEMO = {
+      title: 'DEMO',
+      questions: [
+        {q:'കേരളത്തിന്റെ തലസ്ഥാനം?', opts:['തിരുവനന്തപുരം','കൊച്ചി','കോഴിക്കോട്','കണ്ണൂർ'], correct:0},
+        {q:'ഇന്ത്യയുടെ നാണയം?', opts:['രൂപ', 'ഡോളർ', 'ദിർഹം', 'യൂറോ'], correct:0},
+        {q:'കേരളത്തിലെ ഭാഷ?', opts:['തമിഴ്','ഹിന്ദി','മലയാളം','കന്നഡ'], correct:2}
+      ]
+    };
+
     function showSplash(on){ splash.classList.toggle('on', !!on); }
     function stripGVizJSON(txt){ const s=txt.indexOf('{'), e=txt.lastIndexOf('}'); return JSON.parse(txt.slice(s,e+1)); }
     async function gviz(tab){
       const url = `https://docs.google.com/spreadsheets/d/${GS_SHEET_ID}/gviz/tq?sheet=${encodeURIComponent(tab)}&tq=${encodeURIComponent("select *")}`;
-      const res = await fetch(url,{cache:"no-store"});
-      if(!res.ok) throw new Error(`GViz HTTP ${res.status}`);
+      const res = await fetch(url,{cache:"no-store"}); if(!res.ok) throw new Error('GViz');
       const raw = await res.text(); const json = stripGVizJSON(raw);
       const cols = json.table.cols.map(c => (c.label||"").trim().toLowerCase());
       const rows = json.table.rows.map(r => (r.c||[]).map(c => (c&&c.v)!=null ? String(c.v) : ""));
       return {cols, rows};
     }
     async function gvizFirstAvailable(tabs){
-      const tried = [];
       for(const tab of tabs){
-        try{const data = await gviz(tab); return {tab, ...data};}
-        catch(e){tried.push(`${tab}`);}
+        try{ const data = await gviz(tab); return {tab, ...data}; }
+        catch(_){ /* try next */ }
       }
-      throw new Error(`No accessible Categories tab. Tried: ${tried.join(', ')}`);
+      throw new Error('no-cat-tab');
     }
-    function pickIndex(cols, regexArr){ return cols.findIndex(t => regexArr.some(rx => rx.test(t))); }
+    function pickIndex(cols, rxArr){ return cols.findIndex(t => rxArr.some(rx => rx.test(t))); }
 
     async function chooseRandomCategory(){
-      const {tab, cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
-      const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
-      const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
-      const list = rows.map(r => ({
-        title: (r[idxName]||"").trim(),
-        sheet: (r[idxSheet]||"").trim()
-      })).filter(x => x.title && x.sheet);
-      if(!list.length) throw new Error("No categories in the sheet");
-      return list[Math.floor(Math.random()*list.length)];
+      // 1) try from Google Sheet
+      try{
+        const {cols, rows} = await gvizFirstAvailable(TRY_CAT_TABS);
+        const idxName  = pickIndex(cols, [/^name$|^title$|^category$/]);
+        const idxSheet = pickIndex(cols, [/sheet|tab|get/]);
+        const list = rows.map(r => ({
+          title: (r[idxName]||"").trim(),
+          sheet: (r[idxSheet]||"").trim()
+        })).filter(x => x.title && x.sheet);
+        if(list.length) return list[Math.floor(Math.random()*list.length)];
+      }catch(_){}
+      // 2) fallback from local config passed from index
+      if(FALLBACK_SHEETS.length){
+        return FALLBACK_SHEETS[Math.floor(Math.random()*FALLBACK_SHEETS.length)];
+      }
+      // 3) final demo
+      return { title: DEMO.title, sheet: '__DEMO__' };
     }
 
     function normalizeQuestions(cols, rows){
@@ -169,7 +177,7 @@
 
     function sliceN(arr, n){
       if(!n || n>=arr.length) return arr;
-      const copy = [...arr], out=[];
+      const copy=[...arr], out=[];
       while(out.length<n && copy.length){
         out.push(copy.splice(Math.floor(Math.random()*copy.length),1)[0]);
       }
@@ -202,7 +210,6 @@
       `;
 
       let autoTimer = null;
-
       panel.querySelectorAll('.opt').forEach(el=>{
         el.addEventListener('click', ()=>{
           if(revealed) return;
@@ -211,8 +218,6 @@
           else{ el.classList.add('wrong'); panel.querySelector(`.opt[data-idx="${q.correct}"]`)?.classList.add('correct'); }
           revealed = true;
           nextBtn.disabled = false;
-
-          // Auto-advance after 2s
           autoTimer = setTimeout(()=>{
             if(i<questions.length-1){ i++; render(); }
             else summary();
@@ -221,9 +226,8 @@
       });
 
       nextBtn.onclick = ()=>{
-        if(autoTimer) { clearTimeout(autoTimer); autoTimer = null; }
-        if(i<questions.length-1){ i++; render(); }
-        else summary();
+        if(autoTimer){ clearTimeout(autoTimer); autoTimer=null; }
+        if(i<questions.length-1){ i++; render(); } else summary();
       };
     }
 
@@ -233,7 +237,7 @@
       panel.innerHTML = `
         <div class="qtext">Summary</div>
         <p class="qhead">Score: <b>${score}</b> / ${questions.length}</p>
-        <p><a class="btn" href="/">Home</a> <a class="btn" href="quiz.html${pickedInfo ? `?sheet=${encodeURIComponent(pickedInfo.sheet)}&sheetId=${encodeURIComponent(GS_SHEET_ID)}` : ''}">Play again</a></p>
+        <p><a class="btn" href="/">Home</a> <a class="btn" href="quiz.html${pickedInfo ? `?sheet=${encodeURIComponent(pickedInfo.sheet)}${GS_SHEET_ID?'&sheetId='+encodeURIComponent(GS_SHEET_ID):''}` : ''}">Play again</a></p>
       `;
     }
 
@@ -248,8 +252,7 @@
 
     async function boot(){
       try{
-        showSplash(true);
-        controls.hidden = true;
+        showSplash(true); controls.hidden = true;
 
         if(sheetParam){
           pickedInfo = { title: '', sheet: sheetParam };
@@ -262,11 +265,19 @@
           return;
         }
 
+        // Show picked title for random mode
         if(pickedInfo.title){
           pickedEl.style.display = 'block';
           pickedEl.textContent = `Random picked: ${pickedInfo.title}`;
         }
 
+        // DEMO path (final fallback)
+        if(pickedInfo.sheet === '__DEMO__'){
+          questions = DEMO.questions.slice(0, N || DEMO.questions.length);
+          i=0; score=0; controls.hidden=false; render(); return;
+        }
+
+        // Normal path from Google Sheet
         const {cols, rows} = await gviz(pickedInfo.sheet);
         let data = normalizeQuestions(cols, rows);
         data = N ? sliceN(data, N) : data;
@@ -276,18 +287,12 @@
           return;
         }
 
-        questions = data;
-        i = 0; score = 0;
-        controls.hidden = false;
-        render();
+        questions = data; i=0; score=0; controls.hidden=false; render();
       } catch(err){
         console.error(err);
-        panel.innerHTML = `<div class="notice">Failed to load questions. Check sharing (Anyone with link: Viewer), Sheet ID, and tab name.</div>`;
-      } finally{
-        showSplash(false);
-      }
+        panel.innerHTML = `<div class="notice">Failed to load questions. Ensure sharing (Anyone with link: Viewer), Sheet ID, and tab name.</div>`;
+      } finally { showSplash(false); }
     }
-
     boot();
   </script>
 </body>
