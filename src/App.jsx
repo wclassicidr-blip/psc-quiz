@@ -1,7 +1,8 @@
 // === src/App.jsx ===
 // Quiz UI that loads Categories + per-category questions from your public Google Sheet.
-// Auto-advances to the next question after selecting an option.
-// Robust GViz → CSV fallback with sheet name → gid resolver (for /d/e/2PACX... publish links).
+// Home shows 6 categories. "See all" opens an All Categories page with a search bar.
+// Auto-advance to next question when an option is selected.
+// Robust GViz → CSV fallback with sheet name → gid resolver (for /d/e/2PACX publishes).
 
 import { useEffect, useState } from "react";
 
@@ -69,7 +70,7 @@ const gvizUrl = (sheet, tq = "") => {
 
 export function parseGVizTextToJSON(text) {
   const t = String(text || "");
-  // Top-case: google.visualization.Query.setResponse(...)
+  // google.visualization.Query.setResponse(...)
   const m = t.match(/setResponse\(([\s\S]*?)\)\s*;?\s*$/);
   if (m) {
     try { return JSON.parse(m[1]); } catch {}
@@ -140,8 +141,7 @@ async function getGidMap() {
       const res = await fetch(`${BASE_E}/pubhtml`, { mode: "cors" });
       const html = await res.text();
       const map = {};
-      // ✅ FIXED regex (no escaped quotes inside regex literal)
-      const re = /<a[^>]*href="[^"]*gid=(\d+)[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
+      const re = /<a[^>]*href="[^"]*gid=(\d+)[^"]*"[^>]*>([\s\S]*?)<\/a>/g; // ✅ valid regex literal
       let m;
       while ((m = re.exec(html))) {
         const gid = m[1];
@@ -343,11 +343,16 @@ function Splash({ label = "Loading…" }) {
 }
 
 // ── Views ───────────────────────────────────────────────────────────────────────
-function Home({ bank, onStartCategory }) {
+
+// Home: only 6 categories + “See all”
+function Home({ bank, onStartCategory, onSeeAll }) {
   const categories = Object.keys(bank);
+  const preview = categories.slice(0, 6);
+
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
       <div className="w-full max-w-sm px-4 pb-24 pt-6">
+        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <div className="w-10 h-10 rounded-full bg-violet-200 grid place-items-center"><span className="text-violet-700 text-sm font-semibold">K</span></div>
@@ -359,34 +364,33 @@ function Home({ bank, onStartCategory }) {
           <div className="flex items-center gap-1 text-violet-700 font-semibold"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.3L12 17l-5.5 2.6 1-6.3L3 8.9 9 8z"/></svg>200</div>
         </div>
 
+        {/* Search (visual only here) */}
         <div className="mb-5">
           <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-            <input className="w-full text-[14px] outline-none placeholder:text-slate-400" placeholder="Search for a quiz"/>
+            <input className="w-full text-[14px] outline-none placeholder:text-slate-400" placeholder="Search for a quiz" readOnly />
           </div>
         </div>
 
+        {/* Play & Win */}
         <Card className="p-4 mb-6 bg-gradient-to-br from-fuchsia-500 to-indigo-600 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm/5 opacity-90">Play and Win</p>
               <p className="text-xs/5 opacity-80">Start a quiz now and enjoy</p>
             </div>
-            <button onClick={() => onStartCategory(categories[0] || "Math")} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
+            <button onClick={() => onStartCategory(preview[0] || categories[0] || "Math")} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
           </div>
         </Card>
 
+        {/* Categories (preview 6) */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-semibold text-slate-900">Categories</h3>
-          <button className="text-[13px] text-violet-700">See all</button>
+          <button onClick={onSeeAll} className="text-[13px] text-violet-700">See all</button>
         </div>
         <div className="grid grid-cols-3 gap-3 mb-7">
-          {categories.map((c) => (
-            <button
-              key={c}
-              onClick={() => onStartCategory(c)}
-              className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition"
-            >
+          {preview.map((c) => (
+            <button key={c} onClick={() => onStartCategory(c)} className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition">
               <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
                 <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
               </div>
@@ -396,40 +400,57 @@ function Home({ bank, onStartCategory }) {
           ))}
         </div>
 
-        <div className="mb-3">
-          <h3 className="text-[15px] font-semibold text-slate-900 mb-2">Recent</h3>
-          <Card className="p-3 mb-2 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20V10"/><path d="M6 20V14"/><path d="M18 20V4"/></svg>
-              </div>
-              <div>
-                <div className="text-[14px] font-medium text-slate-900">Biology</div>
-                <div className="text-[12px] text-slate-500">12 questions</div>
-              </div>
-            </div>
-            <Pill intent="success">Completed</Pill>
-          </Card>
-          <Card className="p-3 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 4h18M3 10h18M3 16h18"/></svg>
-              </div>
-              <div>
-                <div className="text-[14px] font-medium text-slate-900">Geography</div>
-                <div className="text-[12px] text-slate-500">20 questions</div>
-              </div>
-            </div>
-            <Pill intent="warning">Incomplete</Pill>
-          </Card>
-        </div>
-
+        {/* Bottom nav (static) */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
-            <div className="rounded-2xl bg-white border border-violet-100 py-2 px-6 flex items-center justify-between text-slate-600">
-              <span className="text-violet-700">●</span><span>▤</span><span>♡</span><span>⚙︎</span>
-            </div>
+            <div className="rounded-2xl bg-white border border-violet-100 py-2 px-6 flex items-center justify-between text-slate-600"><span className="text-violet-700">●</span><span>▤</span><span>♡</span><span>⚙︎</span></div>
           </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// All Categories page with search
+function AllCategories({ bank, onStartCategory, onBack }) {
+  const [query, setQuery] = useState("");
+  const names = Object.keys(bank);
+  const filtered = names.filter(n => n.toLowerCase().includes(query.trim().toLowerCase()));
+
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="w-full max-w-sm px-4 pb-20 pt-4">
+        {/* Top bar */}
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-slate-600">←</button>
+          <div className="text-[15px] font-semibold">All Categories</div>
+          <span />
+        </div>
+
+        {/* Search */}
+        <div className="mb-4">
+          <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="w-full text-[14px] outline-none placeholder:text-slate-400"
+              placeholder="Search categories"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-3 gap-3">
+          {filtered.map((c) => (
+            <button key={c} onClick={() => onStartCategory(c)} className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition">
+              <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+              </div>
+              <div className="text-[12px] font-medium text-slate-800 line-clamp-2 text-left">{c}</div>
+              <div className="text-[11px] text-slate-500 text-left">{bank[c]?.length || 0} questions</div>
+            </button>
+          ))}
         </div>
       </div>
     </div>
@@ -470,6 +491,7 @@ function Quiz({ category, bank, onFinish }) {
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
       <div className="w-full max-w-sm px-4 pb-8 pt-4">
+        {/* Top bar */}
         <div className="flex items-center justify-between mb-2">
           <button onClick={() => onFinish({ score, total: TOTAL, aborted: true })} className="text-slate-600">←</button>
           <div className="text-[15px] font-semibold">{category}</div>
@@ -554,7 +576,7 @@ function Result({ score, total, onBack }) {
 
 // ── App Shell ───────────────────────────────────────────────────────────────────
 export default function App() {
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("home"); // "home" | "categories" | "quiz" | "result"
   const [category, setCategory] = useState("Math");
   const [result, setResult] = useState({ score: 0, total: 0 });
   const [bank, setBank] = useState(FALLBACK_BANK);
@@ -576,6 +598,8 @@ export default function App() {
     })();
     return () => { alive = false; };
   }, []);
+
+  const startCategory = (c) => { setCategory(c); setView("quiz"); };
 
   if (loading) return <Splash label="Loading quizzes from Google Sheets…" />;
 
@@ -599,13 +623,32 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       {view === "home" && (
-        <Home bank={bank} onStartCategory={(c) => { setCategory(c); setView("quiz"); }} />
+        <Home
+          bank={bank}
+          onStartCategory={startCategory}
+          onSeeAll={() => setView("categories")}
+        />
+      )}
+      {view === "categories" && (
+        <AllCategories
+          bank={bank}
+          onStartCategory={startCategory}
+          onBack={() => setView("home")}
+        />
       )}
       {view === "quiz" && (
-        <Quiz category={category} bank={bank} onFinish={(r) => { setResult(r); setView("result"); }} />
+        <Quiz
+          category={category}
+          bank={bank}
+          onFinish={(r) => { setResult(r); setView("result"); }}
+        />
       )}
       {view === "result" && (
-        <Result score={result.score} total={result.total} onBack={() => setView("home")} />
+        <Result
+          score={result.score}
+          total={result.total}
+          onBack={() => setView("home")}
+        />
       )}
     </div>
   );
