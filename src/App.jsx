@@ -1,10 +1,10 @@
 // === src/App.jsx ===
 // Quiz UI that loads categories + questions from Google Sheets via GViz.
-// - Uses Spreadsheet FILE ID (not 2PACX link)
-// - Robust header detection (works even when GViz labels are A,B,C)
-// - Home: cartoon profile + “PSC Guru, No1 PSC Learning App.” (no points)
-// - “See all” page with sticky header + search
-// - Auto-advance on option click
+// - Robust loader using Spreadsheet FILE ID (not 2PACX link)
+// - Home: cartoon avatar + “PSC Guru, No1 PSC Learning App” (no points)
+// - All Categories: sticky header + search
+// - Quiz: feedback colors (green=correct, red=wrong) + 2s auto-advance
+// - Result: Score + Summary tabs
 
 import { useEffect, useState } from "react";
 
@@ -46,13 +46,13 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const raw = await res.text();
   const json = parseGViz(raw);
 
+  // Promote first row to headers if GViz returns generic A/B/C…
   let cols = (json.table?.cols || []).map((c, i) =>
     lower(c?.label || c?.id || `col${i + 1}`)
   );
   let rows = (json.table?.rows || []).map((r) =>
     (r.c || []).map((c) => ((c && c.v) != null ? String(c.v) : ""))
   );
-
   const looksGeneric = cols.every(
     (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
   );
@@ -146,7 +146,9 @@ function toBank(items) {
   return bank;
 }
 
+/* ───────────────────────── Data loader ───────────────────────── */
 async function loadQuestionBank() {
+  // Try single-sheet schema first
   try {
     const { cols, rows } = await gvizFetch({ sheetName: TAB_QUESTIONS });
     if (rows.length) {
@@ -156,6 +158,7 @@ async function loadQuestionBank() {
     }
   } catch {}
 
+  // Fallback: Categories + each tab
   const { cols: cCols0, rows: cRows0 } = await gvizFetch({
     sheetName: TAB_CATEGORIES,
   });
@@ -264,21 +267,57 @@ function TimerRing({ secondsLeft, totalSeconds = 25 }) {
   );
 }
 
-function OptionButton({ label, isSelected, onClick, letter, disabled }) {
+function OptionButton({
+  label,
+  letter,
+  disabled,
+  isSelected,
+  showFeedback,
+  isCorrect,
+  isWrong,
+}) {
+  const feedbackClass = showFeedback
+    ? isCorrect
+      ? "border-green-500 bg-green-50"
+      : isWrong
+      ? "border-red-500 bg-red-50"
+      : "border-transparent"
+    : isSelected
+    ? "border-violet-600 ring-2 ring-violet-200"
+    : "border-transparent hover:border-violet-200";
+
+  const textColor = showFeedback
+    ? isCorrect
+      ? "text-green-800"
+      : isWrong
+      ? "text-red-700"
+      : "text-slate-800"
+    : "text-slate-800";
+
   return (
     <button
       disabled={disabled}
-      onClick={onClick}
       className={cx(
         "w-full text-left rounded-xl border-2 px-4 py-3 mb-3 transition-all bg-white/80",
-        isSelected ? "border-violet-600 ring-2 ring-violet-200" : "border-transparent hover:border-violet-200"
+        feedbackClass
       )}
     >
       <span className="inline-flex items-center gap-3">
-        <span className="grid place-items-center w-6 h-6 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+        <span
+          className={cx(
+            "grid place-items-center w-6 h-6 rounded-full text-xs font-semibold",
+            showFeedback
+              ? isCorrect
+                ? "bg-green-100 text-green-700"
+                : isWrong
+                ? "bg-red-100 text-red-700"
+                : "bg-violet-100 text-violet-700"
+              : "bg-violet-100 text-violet-700"
+          )}
+        >
           {letter}
         </span>
-        <span className="text-[15px] text-slate-800">{label}</span>
+        <span className={cx("text-[15px]", textColor)}>{label}</span>
       </span>
     </button>
   );
@@ -295,7 +334,7 @@ function Splash({ label = "Loading…" }) {
   );
 }
 
-/* ───────── Cartoon avatar used on the Home header ───────── */
+/* Cartoon avatar for the Home header */
 function CartoonAvatar() {
   return (
     <div className="w-12 h-12 rounded-full bg-violet-200 grid place-items-center overflow-hidden">
@@ -317,7 +356,7 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
       <div className="w-full max-w-sm px-4 pb-24 pt-6">
-        {/* Header: avatar + PSC Guru tagline, no points */}
+        {/* Header: avatar + tagline, no points */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <CartoonAvatar />
@@ -326,7 +365,6 @@ function Home({ bank, onStartCategory, onSeeAll }) {
               <p className="text-[13px] text-slate-500">No1 PSC Learning App</p>
             </div>
           </div>
-          {/* points removed */}
         </div>
 
         <div className="mb-5">
@@ -376,7 +414,6 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   );
 }
 
-// Sticky header + search on “All Categories”
 function AllCategories({ bank, onStartCategory, onBack }) {
   const [q, setQ] = useState("");
   const cats = Object.keys(bank).filter((n) =>
@@ -386,6 +423,7 @@ function AllCategories({ bank, onStartCategory, onBack }) {
   return (
     <div className="min-h-dvh bg-[#f6f3ff]">
       <div className="w-full max-w-sm mx-auto pb-20">
+        {/* Sticky top bar */}
         <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#f6f3ff]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f6f3ff]/80 border-b border-violet-100">
           <div className="flex items-center justify-between mb-3">
             <button onClick={onBack} className="text-slate-600">←</button>
@@ -443,37 +481,72 @@ function Quiz({ category, bank, onFinish }) {
   const [sel, setSel] = useState(null);
   const [score, setScore] = useState(0);
   const [secondsLeft, setSecondsLeft] = useState(25);
+  const [showFeedback, setShowFeedback] = useState(false);
   const [advancing, setAdvancing] = useState(false);
+  const [history, setHistory] = useState([]);
 
   const q = qs[i];
 
+  // Per-question timer
   useEffect(() => {
     setSecondsLeft(25);
     const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearInterval(id);
   }, [i]);
 
+  // Time out reveals correct and auto-advances
   useEffect(() => {
-    if (secondsLeft <= 0 && !advancing) handleNext();
-  }, [secondsLeft, advancing]);
+    if (secondsLeft <= 0 && q && !showFeedback && !advancing) {
+      revealAndQueueNext(null); // no selection
+    }
+  }, [secondsLeft, showFeedback, advancing, q]);
 
-  function handleNext(chosen = sel) {
-    if (!q) return onFinish({ score, total: qs.length });
-    const newScore = score + (chosen === q.answerIndex ? 1 : 0);
-    if (i + 1 >= qs.length) return onFinish({ score: newScore, total: qs.length });
-    setScore(newScore);
-    setI(i + 1);
+  function nextQuestion() {
+    if (i + 1 >= qs.length) {
+      return onFinish({ score, total: qs.length, history });
+    }
+    setI((x) => x + 1);
     setSel(null);
+    setShowFeedback(false);
+    setAdvancing(false);
+  }
+
+  function revealAndQueueNext(chosenIndex) {
+    if (!q || advancing) return;
+    setSel(chosenIndex);
+    setShowFeedback(true);
+    setAdvancing(true);
+
+    const isCorrect = chosenIndex === q.answerIndex;
+    if (chosenIndex != null) {
+      setScore((s) => s + (isCorrect ? 1 : 0));
+    }
+    // store history entry
+    setHistory((h) => [
+      ...h,
+      {
+        id: q.id,
+        text: q.text,
+        options: q.options,
+        correctIndex: q.answerIndex,
+        chosenIndex: chosenIndex,
+        isCorrect: chosenIndex === q.answerIndex,
+      },
+    ]);
+
+    setTimeout(() => {
+      nextQuestion();
+    }, 2000); // wait 2 seconds
   }
 
   const letters = ["a", "b", "c", "d", "e", "f"];
 
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
-      <div className="w-full max-w-sm px-4 pb-8 pt-4">
+      <div className="w-full max-w-sm px-4 pb-20 pt-4">
         <div className="flex items-center justify-between mb-2">
           <button
-            onClick={() => onFinish({ score, total: qs.length, aborted: true })}
+            onClick={() => onFinish({ score, total: qs.length, history, aborted: true })}
             className="text-slate-600"
           >
             ←
@@ -497,38 +570,37 @@ function Quiz({ category, bank, onFinish }) {
             </Card>
             <div className="mt-2">
               {q.options.map((opt, idx) => (
-                <OptionButton
+                <div
                   key={idx}
-                  letter={letters[idx]}
-                  label={opt}
-                  isSelected={sel === idx}
-                  disabled={secondsLeft <= 0}
                   onClick={() => {
-                    if (advancing) return;
-                    setSel(idx);
-                    setAdvancing(true);
-                    setTimeout(() => {
-                      handleNext(idx);
-                      setAdvancing(false);
-                    }, 350);
+                    if (showFeedback || advancing) return;
+                    revealAndQueueNext(idx);
                   }}
-                />
+                >
+                  <OptionButton
+                    letter={letters[idx]}
+                    label={opt}
+                    disabled={showFeedback || advancing}
+                    isSelected={sel === idx}
+                    showFeedback={showFeedback}
+                    isCorrect={showFeedback && idx === q.answerIndex}
+                    isWrong={showFeedback && sel === idx && idx !== q.answerIndex}
+                  />
+                </div>
               ))}
             </div>
           </>
         )}
 
+        {/* Next button remains but is disabled because of auto-advance */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
             <button
-              onClick={() => handleNext()}
-              disabled={(sel == null && secondsLeft > 0) || advancing}
               className={cx(
                 "w-full py-3 rounded-xl text-white font-semibold",
-                sel == null && secondsLeft > 0
-                  ? "bg-violet-300"
-                  : "bg-violet-600 hover:bg-violet-700"
+                "bg-violet-300 cursor-not-allowed"
               )}
+              disabled
             >
               Next
             </button>
@@ -539,22 +611,101 @@ function Quiz({ category, bank, onFinish }) {
   );
 }
 
-function Result({ score, total, onBack }) {
+function Result({ score, total, history, onBack }) {
+  const [tab, setTab] = useState("score"); // 'score' | 'summary'
+  const correctCount = history.filter((h) => h.isCorrect).length;
+
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
-      <div className="w-full max-w-sm px-4 pb-16 pt-10 text-center">
-        <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100">
-          <div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div>
+      <div className="w-full max-w-sm px-4 pb-16 pt-8">
+        {/* Tabs */}
+        <div className="flex gap-2 mb-4">
+          <button
+            onClick={() => setTab("score")}
+            className={cx(
+              "flex-1 py-2 rounded-lg text-sm font-semibold",
+              tab === "score"
+                ? "bg-violet-600 text-white"
+                : "bg-white border border-violet-200 text-violet-700"
+            )}
+          >
+            Score
+          </button>
+          <button
+            onClick={() => setTab("summary")}
+            className={cx(
+              "flex-1 py-2 rounded-lg text-sm font-semibold",
+              tab === "summary"
+                ? "bg-violet-600 text-white"
+                : "bg-white border border-violet-200 text-violet-700"
+            )}
+          >
+            Summary
+          </button>
         </div>
-        <div className="text-slate-500 text-sm">Your Score</div>
-        <div className="text-4xl font-extrabold text-slate-900 mt-1">{score}/{total}</div>
-        <div className="text-xl font-semibold text-slate-900 mt-4">Congratulations!</div>
-        <p className="text-slate-500 text-sm mt-1">Great job, Kenzy! You have done well</p>
-        <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold">★ 200 Points</div>
+
+        {tab === "score" ? (
+          <div className="text-center">
+            <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100">
+              <div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div>
+            </div>
+            <div className="text-slate-500 text-sm">Your Score</div>
+            <div className="text-4xl font-extrabold text-slate-900 mt-1">
+              {score}/{total}
+            </div>
+            <div className="text-sm text-slate-600 mt-1">
+              Correct: {correctCount} • Wrong: {history.length - correctCount}
+            </div>
+            <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold">
+              Keep practicing!
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {history.map((h, idx) => (
+              <Card key={idx} className="p-3">
+                <div className="text-[13px] text-slate-500 mb-1">Q{idx + 1}</div>
+                <div className="text-[14px] font-semibold text-slate-800 mb-2">{h.text}</div>
+                <div className="space-y-1">
+                  {h.options.map((o, i) => {
+                    const isCorrect = i === h.correctIndex;
+                    const isChosen = i === h.chosenIndex;
+                    const cls = isCorrect
+                      ? "bg-green-50 border-green-500"
+                      : isChosen && !isCorrect
+                      ? "bg-red-50 border-red-500"
+                      : "bg-white border-transparent";
+                    return (
+                      <div
+                        key={i}
+                        className={cx(
+                          "text-[13px] rounded-lg border px-3 py-2",
+                          cls
+                        )}
+                      >
+                        {o}
+                      </div>
+                    );
+                  })}
+                </div>
+              </Card>
+            ))}
+            {history.length === 0 && (
+              <Card className="p-4 text-center text-sm text-slate-600">
+                No answers to summarize.
+              </Card>
+            )}
+          </div>
+        )}
+
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4 grid gap-3">
-            <button onClick={onBack} className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700">Back to Home</button>
-            <button onClick={onBack} className="w-full py-3 rounded-xl font-semibold border border-violet-200 bg-white text-violet-700">Try another quiz</button>
+            <button
+              onClick={onBack}
+              className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700"
+            >
+              Back to Home
+            </button>
           </div>
         </div>
       </div>
@@ -564,10 +715,10 @@ function Result({ score, total, onBack }) {
 
 /* ───────────────────────── App ───────────────────────── */
 export default function App() {
-  const [view, setView] = useState("home");
+  const [view, setView] = useState("home"); // home | categories | quiz | result
   const [category, setCategory] = useState("");
   const [bank, setBank] = useState({});
-  const [result, setResult] = useState({ score: 0, total: 0 });
+  const [result, setResult] = useState({ score: 0, total: 0, history: [] });
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
@@ -618,10 +769,22 @@ export default function App() {
         <AllCategories bank={bank} onStartCategory={startCategory} onBack={() => setView("home")} />
       )}
       {view === "quiz" && (
-        <Quiz category={category} bank={bank} onFinish={(r) => { setResult(r); setView("result"); }} />
+        <Quiz
+          category={category}
+          bank={bank}
+          onFinish={(r) => {
+            setResult(r);
+            setView("result");
+          }}
+        />
       )}
       {view === "result" && (
-        <Result score={result.score} total={result.total} onBack={() => setView("home")} />
+        <Result
+          score={result.score}
+          total={result.total}
+          history={result.history || []}
+          onBack={() => setView("home")}
+        />
       )}
     </div>
   );
