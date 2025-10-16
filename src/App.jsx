@@ -1,10 +1,7 @@
 // === src/App.jsx ===
-// Quiz UI that loads categories + questions from Google Sheets via GViz.
-// - Robust loader using Spreadsheet FILE ID (not 2PACX link)
-// - Home: cartoon avatar + “PSC Guru, No1 PSC Learning App” (no points)
-// - All Categories: sticky header + search
-// - Quiz: feedback colors (green=correct, red=wrong) + 2s auto-advance
-// - Result: Score + Summary tabs
+// Loads questions from Google Sheets (GViz), shows quiz with feedback,
+// shuffles options, auto-advances after 2s, and shows a Score screen
+// with a "View Summary" button below "Keep practicing!".
 
 import { useEffect, useState } from "react";
 
@@ -132,15 +129,32 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   return items;
 }
 
+/* Shuffle utility that keeps track of the correct index */
+function shuffleWithIndex(arr, correctIdx) {
+  const idxs = arr.map((_, i) => i);
+  for (let i = idxs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [idxs[i], idxs[j]] = [idxs[j], idxs[i]];
+  }
+  const newOptions = idxs.map((i) => arr[i]);
+  const newCorrect = idxs.indexOf(correctIdx);
+  return { newOptions, newCorrect };
+}
+
 function toBank(items) {
   const bank = {};
   for (const it of items) {
+    // SHUFFLE OPTIONS per question here
+    const { newOptions, newCorrect } = shuffleWithIndex(
+      it.options,
+      it.answerIndex
+    );
     bank[it.cat] ??= [];
     bank[it.cat].push({
       id: bank[it.cat].length + 1,
       text: it.text,
-      options: it.options,
-      answerIndex: it.answerIndex,
+      options: newOptions,
+      answerIndex: newCorrect,
     });
   }
   return bank;
@@ -211,12 +225,7 @@ async function loadQuestionBank() {
         gid: isGid ? m.tab : undefined,
       });
       const items = mapQuestionRows(cols, rows, m.display);
-      bank[m.display] = items.map((q, i) => ({
-        id: i + 1,
-        text: q.text,
-        options: q.options,
-        answerIndex: q.answerIndex,
-      }));
+      bank[m.display] = toBank(items)[m.display] || [];
     } catch (e) {
       console.warn("Failed loading tab", m.tab, e);
       bank[m.display] = [];
@@ -518,10 +527,8 @@ function Quiz({ category, bank, onFinish }) {
     setAdvancing(true);
 
     const isCorrect = chosenIndex === q.answerIndex;
-    if (chosenIndex != null) {
-      setScore((s) => s + (isCorrect ? 1 : 0));
-    }
-    // store history entry
+    if (chosenIndex != null) setScore((s) => s + (isCorrect ? 1 : 0));
+
     setHistory((h) => [
       ...h,
       {
@@ -534,9 +541,7 @@ function Quiz({ category, bank, onFinish }) {
       },
     ]);
 
-    setTimeout(() => {
-      nextQuestion();
-    }, 2000); // wait 2 seconds
+    setTimeout(() => nextQuestion(), 2000);
   }
 
   const letters = ["a", "b", "c", "d", "e", "f"];
@@ -592,7 +597,7 @@ function Quiz({ category, bank, onFinish }) {
           </>
         )}
 
-        {/* Next button remains but is disabled because of auto-advance */}
+        {/* Next button disabled (auto-advance in 2s) */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
             <button
@@ -612,55 +617,19 @@ function Quiz({ category, bank, onFinish }) {
 }
 
 function Result({ score, total, history, onBack }) {
-  const [tab, setTab] = useState("score"); // 'score' | 'summary'
+  const [showSummary, setShowSummary] = useState(false);
   const correctCount = history.filter((h) => h.isCorrect).length;
 
-  return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
-      <div className="w-full max-w-sm px-4 pb-16 pt-8">
-        {/* Tabs */}
-        <div className="flex gap-2 mb-4">
-          <button
-            onClick={() => setTab("score")}
-            className={cx(
-              "flex-1 py-2 rounded-lg text-sm font-semibold",
-              tab === "score"
-                ? "bg-violet-600 text-white"
-                : "bg-white border border-violet-200 text-violet-700"
-            )}
-          >
-            Score
-          </button>
-          <button
-            onClick={() => setTab("summary")}
-            className={cx(
-              "flex-1 py-2 rounded-lg text-sm font-semibold",
-              tab === "summary"
-                ? "bg-violet-600 text-white"
-                : "bg-white border border-violet-200 text-violet-700"
-            )}
-          >
-            Summary
-          </button>
-        </div>
-
-        {tab === "score" ? (
-          <div className="text-center">
-            <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100">
-              <div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div>
-            </div>
-            <div className="text-slate-500 text-sm">Your Score</div>
-            <div className="text-4xl font-extrabold text-slate-900 mt-1">
-              {score}/{total}
-            </div>
-            <div className="text-sm text-slate-600 mt-1">
-              Correct: {correctCount} • Wrong: {history.length - correctCount}
-            </div>
-            <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold">
-              Keep practicing!
-            </div>
+  if (showSummary) {
+    return (
+      <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+        <div className="w-full max-w-sm px-4 pb-16 pt-6">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={() => setShowSummary(false)} className="text-slate-600">←</button>
+            <div className="text-[15px] font-semibold">Summary</div>
+            <span className="w-4" />
           </div>
-        ) : (
+
           <div className="space-y-3">
             {history.map((h, idx) => (
               <Card key={idx} className="p-3">
@@ -678,10 +647,7 @@ function Result({ score, total, history, onBack }) {
                     return (
                       <div
                         key={i}
-                        className={cx(
-                          "text-[13px] rounded-lg border px-3 py-2",
-                          cls
-                        )}
+                        className={cx("text-[13px] rounded-lg border px-3 py-2", cls)}
                       >
                         {o}
                       </div>
@@ -696,7 +662,50 @@ function Result({ score, total, history, onBack }) {
               </Card>
             )}
           </div>
-        )}
+
+          <div className="fixed bottom-4 left-0 right-0">
+            <div className="mx-auto max-w-sm px-4 grid gap-3">
+              <button
+                onClick={onBack}
+                className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700"
+              >
+                Back to Home
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Score screen with "View Summary" button BELOW Keep practicing!
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="w-full max-w-sm px-4 pb-16 pt-8 text-center">
+        <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100">
+          <div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div>
+        </div>
+        <div className="text-slate-500 text-sm">Your Score</div>
+        <div className="text-4xl font-extrabold text-slate-900 mt-1">
+          {score}/{total}
+        </div>
+        <div className="text-sm text-slate-600 mt-1">
+          Correct: {correctCount} • Wrong: {history.length - correctCount}
+        </div>
+
+        <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold">
+          Keep practicing!
+        </div>
+
+        {/* Move Summary button here ↓ */}
+        <div className="mt-3">
+          <button
+            onClick={() => setShowSummary(true)}
+            className="px-4 py-2 rounded-lg font-semibold border border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+          >
+            View Summary
+          </button>
+        </div>
 
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4 grid gap-3">
