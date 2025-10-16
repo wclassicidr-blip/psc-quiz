@@ -1,11 +1,11 @@
 // === src/App.jsx ===
-// Tea Green theme + Online Battle mode
+// Tea Green theme + Online Battle mode + Battle Result comparison
 // - Loads quiz data from Google Sheets (GViz)
 // - Shuffled options, red/green feedback, 2s auto-advance
 // - Playful rotating loading screen
 // - Home: "Online Battle" card -> 3s matching animation -> battle quiz
 // - Battle quiz shows opponent avatar + random Malayali name & Kerala place
-// - Score screen with "View Summary" button below "Keep practicing!"
+// - Result shows both user & opponent scores (battle mode only)
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -27,7 +27,6 @@ const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, "");
 const normalizeSheetName = (s) =>
   norm(s).replace(/[\u2012\u2013\u2014\u2015\u2212]/g, "-").replace(/\s+/g, " ");
 
-/* random helpers */
 const rand = (n) => Math.floor(Math.random() * n);
 const sampleOne = (arr) => (arr.length ? arr[rand(arr.length)] : undefined);
 function sampleMany(arr, n) {
@@ -98,23 +97,13 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const idxB = findHeaderIndex(cols, ["optB", "b", "option b", "2"]);
   const idxC = findHeaderIndex(cols, ["optC", "c", "option c", "3"]);
   const idxD = findHeaderIndex(cols, ["optD", "d", "option d", "4"]);
-  const idxCor = findHeaderIndex(
-    cols,
-    ["correct", "answerindex", "correct option"],
-    -1
-  );
-  const idxCat = findHeaderIndex(
-    cols,
-    ["category", "subject", "topic", "cat"],
-    -1
-  );
+  const idxCor = findHeaderIndex(cols, ["correct", "answerindex", "correct option"], -1);
+  const idxCat = findHeaderIndex(cols, ["category", "subject", "topic", "cat"], -1);
 
   const items = [];
   for (const r of rows) {
     const text = norm(r[idxQ]);
-    const options = [r[idxA], r[idxB], r[idxC], r[idxD]]
-      .map(norm)
-      .filter(Boolean);
+    const options = [r[idxA], r[idxB], r[idxC], r[idxD]].map(norm).filter(Boolean);
     if (!text || options.length < 2) continue;
 
     const answerText = norm(r[idxAns]);
@@ -126,8 +115,7 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
       if ("ABCD".includes(v)) answerIndex = v.charCodeAt(0) - 65;
       else {
         const n = Number(v);
-        if (Number.isFinite(n) && n >= 1 && n <= options.length)
-          answerIndex = n - 1;
+        if (Number.isFinite(n) && n >= 1 && n <= options.length) answerIndex = n - 1;
       }
     }
     if (answerIndex < 0 && answerText) {
@@ -146,7 +134,7 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   return items;
 }
 
-/* Shuffle utility that keeps track of the correct index */
+/* Shuffle utility (keeps track of the correct index) */
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i);
   for (let i = idxs.length - 1; i > 0; i--) {
@@ -161,11 +149,7 @@ function shuffleWithIndex(arr, correctIdx) {
 function toBank(items) {
   const bank = {};
   for (const it of items) {
-    // SHUFFLE each question's options here
-    const { newOptions, newCorrect } = shuffleWithIndex(
-      it.options,
-      it.answerIndex
-    );
+    const { newOptions, newCorrect } = shuffleWithIndex(it.options, it.answerIndex);
     bank[it.cat] ??= [];
     bank[it.cat].push({
       id: bank[it.cat].length + 1,
@@ -177,7 +161,6 @@ function toBank(items) {
   return bank;
 }
 
-/* Flatten bank for battle selection */
 function flattenBank(bank) {
   const out = [];
   for (const [cat, list] of Object.entries(bank)) {
@@ -188,7 +171,7 @@ function flattenBank(bank) {
 
 /* ───────────────────────── Data loader ───────────────────────── */
 async function loadQuestionBank() {
-  // Try single-sheet schema first
+  // Try single "Questions" sheet first
   try {
     const { cols, rows } = await gvizFetch({ sheetName: TAB_QUESTIONS });
     if (rows.length) {
@@ -199,15 +182,10 @@ async function loadQuestionBank() {
   } catch {}
 
   // Fallback: Categories + each tab
-  const { cols: cCols0, rows: cRows0 } = await gvizFetch({
-    sheetName: TAB_CATEGORIES,
-  });
+  const { cols: cCols0, rows: cRows0 } = await gvizFetch({ sheetName: TAB_CATEGORIES });
 
-  let cCols = cCols0,
-    cRows = cRows0;
-  const generic = cCols.every(
-    (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
-  );
+  let cCols = cCols0, cRows = cRows0;
+  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
   const firstLooksHeader = (cRows[0] || []).some((v) =>
     /(name|display|tab|sheet|actual)/i.test(String(v || ""))
   );
@@ -216,11 +194,7 @@ async function loadQuestionBank() {
     cRows = cRows.slice(1);
   }
 
-  let idxDisplay = findHeaderIndex(
-    cCols,
-    ["name (display)", "display", "title", "name"],
-    -1
-  );
+  let idxDisplay = findHeaderIndex(cCols, ["name (display)", "display", "title", "name"], -1);
   let idxTab = findHeaderIndex(
     cCols,
     ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheetname"],
@@ -278,17 +252,13 @@ function LinearProgress({ value, max }) {
 }
 
 function TimerRing({ secondsLeft, totalSeconds = 25 }) {
-  const R = 18,
-    C = 2 * Math.PI * R,
-    p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
+  const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
   return (
     <div className="relative w-10 h-10">
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
         <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100" strokeWidth="6" />
         <circle
-          cx="22"
-          cy="22"
-          r={R}
+          cx="22" cy="22" r={R}
           className="fill-none stroke-emerald-600 transition-[stroke-dasharray] duration-200"
           strokeLinecap="round"
           strokeWidth="6"
@@ -391,7 +361,7 @@ function Splash({ label = "Loading from Google Sheets…" }) {
   );
 }
 
-/* Cartoon avatar */
+/* Cartoon avatar for user on Home */
 function CartoonAvatar() {
   return (
     <div className="w-12 h-12 rounded-full bg-emerald-200 grid place-items-center overflow-hidden">
@@ -417,11 +387,8 @@ function OppAvatar({ name }) {
         .join(""),
     [name]
   );
-  const hue = useMemo(() => {
-    let h = 0;
-    for (const ch of name) h = (h * 31 + ch.charCodeAt(0)) % 360;
-    return h;
-  }, [name]);
+  let hue = 0;
+  for (const ch of name) hue = (hue * 31 + ch.charCodeAt(0)) % 360;
   return (
     <div
       className="w-10 h-10 rounded-full grid place-items-center text-sm font-bold text-white"
@@ -435,11 +402,10 @@ function OppAvatar({ name }) {
 
 /* ───────────────────────── Battle assets ───────────────────────── */
 const MALAYALI_NAMES = [
-  "Anand", "Akhil", "Ajith", "Anu", "Amala", "Hari", "Gopika", "Sreenath", "Nimisha",
-  "Midhun", "Varun", "Fahad", "Mamta", "Dulquer", "Nazriya", "Tovino", "Keerthi",
-  "Surya", "Meera", "Aswin", "Neha", "Anjana", "Athul", "Devika", "Mohan",
-  "Sreejith", "Athira", "Jishnu", "Remya", "Arjun", "Anoop", "Sarath",
-  "Abhiram", "Nikhil", "Sneha", "Gayathri", "Adithya", "Aparna"
+  "Anand","Akhil","Ajith","Anu","Amala","Hari","Gopika","Sreenath","Nimisha","Midhun","Varun",
+  "Fahad","Mamta","Dulquer","Nazriya","Tovino","Keerthi","Surya","Meera","Aswin","Neha","Anjana",
+  "Athul","Devika","Mohan","Sreejith","Athira","Jishnu","Remya","Arjun","Anoop","Sarath",
+  "Abhiram","Nikhil","Sneha","Gayathri","Adithya","Aparna"
 ];
 const KERALA_PLACES = [
   "Thiruvananthapuram","Kollam","Pathanamthitta","Alappuzha","Kottayam","Idukki","Ernakulam",
@@ -463,7 +429,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
   return (
     <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="w-full max-w-sm px-4 pb-28 pt-6">
-        {/* Header: avatar + tagline */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <CartoonAvatar />
@@ -498,7 +464,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
           </div>
         </Card>
 
-        {/* NEW: Online Battle card */}
+        {/* Online Battle card */}
         <Card className="p-4 mb-6 bg-gradient-to-r from-emerald-500 via-emerald-600 to-teal-600 text-white">
           <div className="flex items-center justify-between">
             <div>
@@ -541,9 +507,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
 
 function AllCategories({ bank, onStartCategory, onBack }) {
   const [q, setQ] = useState("");
-  const cats = Object.keys(bank).filter((n) =>
-    n.toLowerCase().includes(q.toLowerCase())
-  );
+  const cats = Object.keys(bank).filter((n) => n.toLowerCase().includes(q.toLowerCase()));
 
   return (
     <div className="min-h-dvh bg-[#eefbe7]">
@@ -679,7 +643,6 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
     if (chosenIndex != null) {
       setScore((s) => s + (isCorrect ? 1 : 0));
     }
-    // store history entry
     setHistory((h) => [
       ...h,
       {
@@ -694,7 +657,7 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
 
     setTimeout(() => {
       nextQuestion();
-    }, 2000); // wait 2 seconds
+    }, 2000);
   }
 
   const letters = ["a", "b", "c", "d", "e", "f"];
@@ -765,16 +728,10 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
           </>
         )}
 
-        {/* Next button remains disabled because of auto-advance */}
+        {/* Next button disabled (auto-advance) */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
-            <button
-              className={cx(
-                "w-full py-3 rounded-xl text-white font-semibold",
-                "bg-emerald-300 cursor-not-allowed"
-              )}
-              disabled
-            >
+            <button className="w-full py-3 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed" disabled>
               Next
             </button>
           </div>
@@ -784,9 +741,19 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
   );
 }
 
-function Result({ score, total, history, onBack }) {
+function Result({ score, total, history, opponent, battleMode, onBack }) {
   const [showSummary, setShowSummary] = useState(false);
   const correctCount = history.filter((h) => h.isCorrect).length;
+
+  // Opponent score is randomized once for each result render (battle only)
+  const opponentScore = useMemo(() => {
+    if (!battleMode) return null;
+    // random near your score, but clamped to [0, total]
+    const delta = Math.floor(Math.random() * 7) - 3; // -3..+3
+    const raw = score + delta;
+    const clamped = Math.max(0, Math.min(total, raw));
+    return clamped;
+  }, [battleMode, score, total]);
 
   if (showSummary) {
     return (
@@ -813,13 +780,7 @@ function Result({ score, total, history, onBack }) {
                       ? "bg-red-50 border-red-500"
                       : "bg-white border-transparent";
                     return (
-                      <div
-                        key={i}
-                        className={cx(
-                          "text-[13px] rounded-lg border px-3 py-2",
-                          cls
-                        )}
-                      >
+                      <div key={i} className={cx("text-[13px] rounded-lg border px-3 py-2", cls)}>
                         {o}
                       </div>
                     );
@@ -849,23 +810,23 @@ function Result({ score, total, history, onBack }) {
     );
   }
 
-  // Score screen with "View Summary" button BELOW Keep practicing!
+  // Score screen with battle comparison section (if battle)
   return (
     <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
-      <div className="w-full max-w-sm px-4 pb-16 pt-8 text-center">
+      <div className="w-full max-w-sm px-4 pb-20 pt-8 text-center">
         <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-lime-100 to-emerald-100 border border-emerald-100">
           <div className="w-16 h-16 rounded-full bg-emerald-200 text-emerald-700 font-bold grid place-items-center">★</div>
         </div>
         <div className="text-slate-500 text-sm">Your Score</div>
-        <div className="text-4xl font-extrabold text-slate-900 mt-1">
-          {score}/{total}
-        </div>
+        <div className="text-4xl font-extrabold text-slate-900 mt-1">{score}/{total}</div>
         <div className="text-sm text-slate-600 mt-1">
           Correct: {correctCount} • Wrong: {history.length - correctCount}
         </div>
+
         <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold">
           Keep practicing!
         </div>
+
         <div className="mt-3">
           <button
             onClick={() => setShowSummary(true)}
@@ -874,6 +835,48 @@ function Result({ score, total, history, onBack }) {
             View Summary
           </button>
         </div>
+
+        {/* BATTLE COMPARISON */}
+        {battleMode && (
+          <Card className="mt-6 p-3 text-left">
+            <div className="text-[13px] text-slate-500 mb-2">Battle Result</div>
+            <div className="grid grid-cols-2 gap-3">
+              {/* You */}
+              <div className="rounded-xl border border-emerald-100 p-3 bg-emerald-50/40">
+                <div className="flex items-center gap-3 mb-1">
+                  <div className="w-10 h-10 rounded-full grid place-items-center bg-emerald-500 text-white font-bold">
+                    U
+                  </div>
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-800">User</div>
+                    <div className="text-[12px] text-slate-500">Kerala</div>
+                  </div>
+                </div>
+                <div className="text-[13px] text-slate-600">Score</div>
+                <div className="text-xl font-extrabold text-slate-900">{score}</div>
+              </div>
+
+              {/* Opponent */}
+              <div className="rounded-xl border border-emerald-100 p-3 bg-white">
+                <div className="flex items-center gap-3 mb-1">
+                  <OppAvatar name={opponent?.name || "Opponent"} />
+                  <div>
+                    <div className="text-[13px] font-semibold text-slate-800">
+                      {opponent?.name || "Opponent"}
+                    </div>
+                    <div className="text-[12px] text-slate-500">
+                      {opponent?.place || "Kerala"}
+                    </div>
+                  </div>
+                </div>
+                <div className="text-[13px] text-slate-600">Score</div>
+                <div className="text-xl font-extrabold text-slate-900">
+                  {opponentScore}/{total}
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
 
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4 grid gap-3">
@@ -899,7 +902,7 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  /* battle-specific state */
+  // battle state
   const [battleQuestions, setBattleQuestions] = useState(null);
   const [opponent, setOpponent] = useState(null);
   const [battleMode, setBattleMode] = useState(false);
@@ -926,11 +929,11 @@ export default function App() {
     setCategory(c);
     setBattleMode(false);
     setBattleQuestions(null);
+    setOpponent(null);
     setView("quiz");
   };
 
   const handleStartBattle = () => {
-    // move to search screen; when matched, we create opponent + random questions
     setBattleMode(true);
     setBattleQuestions(null);
     setOpponent(null);
@@ -985,9 +988,7 @@ export default function App() {
           onBack={() => setView("home")}
         />
       )}
-      {view === "battle_search" && (
-        <BattleSearch onMatched={handleMatched} />
-      )}
+      {view === "battle_search" && <BattleSearch onMatched={handleMatched} />}
       {view === "quiz" && (
         <Quiz
           category={category}
@@ -1006,6 +1007,8 @@ export default function App() {
           score={result.score}
           total={result.total}
           history={result.history || []}
+          opponent={result.opponent}
+          battleMode={result.battleMode}
           onBack={() => {
             setView("home");
             setBattleMode(false);
