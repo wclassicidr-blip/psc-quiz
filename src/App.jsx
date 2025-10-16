@@ -1,11 +1,9 @@
 // === src/App.jsx ===
-// Tea Green theme + Online Battle mode + Battle Result comparison
-// - Loads quiz data from Google Sheets (GViz)
-// - Shuffled options, red/green feedback, 2s auto-advance
-// - Playful rotating loading screen
-// - Home: "Online Battle" card -> 3s matching animation -> battle quiz
-// - Battle quiz shows opponent avatar + random Malayali name & Kerala place
-// - Result shows both user & opponent scores (battle mode only)
+// Tea Green theme + Online Battle + Study Material / Exam Notifications lists
+// - Loads quiz data and two extra tabs from Google Sheets (GViz)
+// - Shuffled options, 2s auto-advance with feedback
+// - Home: "Online Battle", Categories, and new "Study Material" + "Exam Notifications" cards
+// - List pages with sticky header + search for both tabs
 
 import { useEffect, useMemo, useState } from "react";
 
@@ -16,6 +14,10 @@ const GS_FILE_ID =
 
 const TAB_CATEGORIES = "Categories";
 const TAB_QUESTIONS = "Questions";
+
+// NEW: names of extra tabs
+const TAB_STUDY = "Study Material";
+const TAB_EXAMS = "Exam Notifications";
 
 const BATTLE_QUESTION_COUNT = 20;
 
@@ -71,7 +73,9 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
     (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
   );
   const firstRowHeaderish = (rows[0] || []).some((v) =>
-    /(name|display|tab|sheet|actual|question|opt|correct)/i.test(String(v || ""))
+    /(name|display|tab|sheet|actual|question|opt|correct|title|url|desc|date)/i.test(
+      String(v || "")
+    )
   );
   if (looksGeneric && firstRowHeaderish) {
     cols = (rows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
@@ -90,6 +94,7 @@ function findHeaderIndex(cols, candidates, fallbackIndex) {
   return typeof fallbackIndex === "number" ? fallbackIndex : -1;
 }
 
+/* Questions mapping */
 function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const idxQ = findHeaderIndex(cols, ["question", "q", "title"]);
   const idxAns = findHeaderIndex(cols, ["answer", "ans", "correcttext"]);
@@ -134,7 +139,35 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   return items;
 }
 
-/* Shuffle utility (keeps track of the correct index) */
+/* NEW: map generic list rows (title/url/desc/date) */
+function mapListRows(cols, rows) {
+  const idxTitle = findHeaderIndex(cols, ["title", "name", "heading"], 0);
+  const idxUrl = findHeaderIndex(cols, ["url", "link", "href"], 1);
+  const idxDesc = findHeaderIndex(cols, ["desc", "description", "about"], 2);
+  const idxDate = findHeaderIndex(cols, ["date", "when"], 3);
+
+  const items = [];
+  for (const r of rows) {
+    const title = norm(r[idxTitle]);
+    const url = norm(r[idxUrl]);
+    const desc = norm(r[idxDesc]);
+    const date = norm(r[idxDate]);
+    if (!title) continue;
+    items.push({ title, url, desc, date });
+  }
+
+  // Try a simple sort by date (desc)
+  items.sort((a, b) => {
+    const da = Date.parse(a.date || "");
+    const db = Date.parse(b.date || "");
+    if (Number.isFinite(db) && Number.isFinite(da)) return db - da;
+    return (b.date || "").localeCompare(a.date || "");
+  });
+
+  return items;
+}
+
+/* Shuffle utility that keeps track of the correct index */
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i);
   for (let i = idxs.length - 1; i > 0; i--) {
@@ -169,7 +202,7 @@ function flattenBank(bank) {
   return out;
 }
 
-/* ───────────────────────── Data loader ───────────────────────── */
+/* ───────────────────────── Data loaders ───────────────────────── */
 async function loadQuestionBank() {
   // Try single "Questions" sheet first
   try {
@@ -235,6 +268,16 @@ async function loadQuestionBank() {
   return bank;
 }
 
+async function loadList(tabName) {
+  try {
+    const { cols, rows } = await gvizFetch({ sheetName: tabName });
+    return mapListRows(cols, rows);
+  } catch (e) {
+    console.warn("List load failed for", tabName, e);
+    return [];
+  }
+}
+
 /* ───────────────────────── UI bits ───────────────────────── */
 const Card = ({ children, className = "" }) => (
   <div className={cx("rounded-2xl bg-white shadow-sm border border-emerald-100", className)}>
@@ -258,7 +301,9 @@ function TimerRing({ secondsLeft, totalSeconds = 25 }) {
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
         <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100" strokeWidth="6" />
         <circle
-          cx="22" cy="22" r={R}
+          cx="22"
+          cy="22"
+          r={R}
           className="fill-none stroke-emerald-600 transition-[stroke-dasharray] duration-200"
           strokeLinecap="round"
           strokeWidth="6"
@@ -328,7 +373,7 @@ function OptionButton({
   );
 }
 
-/* ───────── Playful rotating Splash (Tea Green theme) ───────── */
+/* Loading screen */
 function Splash({ label = "Loading from Google Sheets…" }) {
   const messages = [
     "Personalizing your questions…",
@@ -361,7 +406,7 @@ function Splash({ label = "Loading from Google Sheets…" }) {
   );
 }
 
-/* Cartoon avatar for user on Home */
+/* Avatars */
 function CartoonAvatar() {
   return (
     <div className="w-12 h-12 rounded-full bg-emerald-200 grid place-items-center overflow-hidden">
@@ -375,8 +420,6 @@ function CartoonAvatar() {
     </div>
   );
 }
-
-/* Opponent avatar (initials + pastel from seed) */
 function OppAvatar({ name }) {
   const initials = useMemo(
     () =>
@@ -423,7 +466,16 @@ function randomOpponent() {
 }
 
 /* ───────────────────────── Views ───────────────────────── */
-function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
+function Home({
+  bank,
+  onStartCategory,
+  onSeeAll,
+  onStartBattle,
+  studyCount,
+  examCount,
+  openStudy,
+  openExams,
+}) {
   const cats = Object.keys(bank);
   const preview = cats.slice(0, 6);
   return (
@@ -480,6 +532,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
           </div>
         </Card>
 
+        {/* Categories */}
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-semibold text-slate-900">Categories</h3>
           <button onClick={onSeeAll} className="text-[13px] text-emerald-700">
@@ -487,7 +540,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
           </button>
         </div>
 
-        <div className="grid grid-cols-3 gap-3 mb-7">
+        <div className="grid grid-cols-3 gap-3 mb-6">
           {preview.map((c) => (
             <button
               key={c}
@@ -499,6 +552,27 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle }) {
               <div className="text-[11px] text-slate-500">{(bank[c] || []).length} questions</div>
             </button>
           ))}
+        </div>
+
+        {/* NEW: Two cards in a row */}
+        <div className="grid grid-cols-2 gap-3">
+          <button
+            onClick={openStudy}
+            className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📚</div>
+            <div className="text-[14px] font-semibold text-slate-800">Study Material</div>
+            <div className="text-[12px] text-slate-500">{studyCount} items</div>
+          </button>
+
+          <button
+            onClick={openExams}
+            className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200"
+          >
+            <div className="w-10 h-10 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📢</div>
+            <div className="text-[14px] font-semibold text-slate-800">Exam Notifications</div>
+            <div className="text-[12px] text-slate-500">{examCount} items</div>
+          </button>
         </div>
       </div>
     </div>
@@ -609,17 +683,15 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
 
   const q = qs[i];
 
-  // Per-question timer
   useEffect(() => {
     setSecondsLeft(25);
     const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
     return () => clearInterval(id);
   }, [i]);
 
-  // Time out reveals correct and auto-advances
   useEffect(() => {
     if (secondsLeft <= 0 && q && !showFeedback && !advancing) {
-      revealAndQueueNext(null); // no selection
+      revealAndQueueNext(null);
     }
   }, [secondsLeft, showFeedback, advancing, q]);
 
@@ -728,7 +800,6 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
           </>
         )}
 
-        {/* Next button disabled (auto-advance) */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
             <button className="w-full py-3 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed" disabled>
@@ -741,14 +812,80 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
   );
 }
 
+/* Generic list page (Study / Exams) */
+function ListPage({ title, items, onBack }) {
+  const [q, setQ] = useState("");
+  const filtered = items.filter(
+    (it) =>
+      it.title.toLowerCase().includes(q.toLowerCase()) ||
+      it.desc.toLowerCase().includes(q.toLowerCase())
+  );
+
+  return (
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="w-full max-w-sm mx-auto pb-20">
+        {/* Sticky header with search */}
+        <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur supports-[backdrop-filter]:bg-[#eefbe7]/80 border-b border-emerald-100">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={onBack} className="text-slate-600">←</button>
+            <div className="text-[15px] font-semibold">{title}</div>
+            <span className="w-4" />
+          </div>
+          <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 shadow-sm">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400">
+              <circle cx="11" cy="11" r="7" />
+              <path d="M21 21l-4.3-4.3" />
+            </svg>
+            <input
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={`Search ${title.toLowerCase()}`}
+              className="w-full text-[14px] outline-none placeholder:text-slate-400 bg-transparent"
+              autoFocus
+            />
+          </div>
+        </div>
+
+        {/* List */}
+        <div className="px-4 pt-3 space-y-3">
+          {filtered.map((it, i) => (
+            <Card key={i} className="p-3">
+              <div className="text-[14px] font-semibold text-slate-800">{it.title}</div>
+              {it.date && <div className="text-[12px] text-slate-500 mt-0.5">{it.date}</div>}
+              {it.desc && <div className="text-[13px] text-slate-600 mt-2">{it.desc}</div>}
+              <div className="mt-3">
+                <a
+                  href={it.url || "#"}
+                  target="_blank"
+                  rel="noreferrer"
+                  className={cx(
+                    "inline-block px-3 py-1.5 rounded-lg text-sm font-semibold",
+                    it.url ? "bg-emerald-600 text-white hover:bg-emerald-700" : "bg-slate-200 text-slate-500 cursor-not-allowed"
+                  )}
+                  onClick={(e) => { if (!it.url) e.preventDefault(); }}
+                >
+                  {it.url ? "Open" : "No Link"}
+                </a>
+              </div>
+            </Card>
+          ))}
+          {filtered.length === 0 && (
+            <Card className="p-4 text-center text-sm text-slate-600">
+              No items found.
+            </Card>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function Result({ score, total, history, opponent, battleMode, onBack }) {
   const [showSummary, setShowSummary] = useState(false);
   const correctCount = history.filter((h) => h.isCorrect).length;
 
-  // Opponent score is randomized once for each result render (battle only)
   const opponentScore = useMemo(() => {
     if (!battleMode) return null;
-    // random near your score, but clamped to [0, total]
     const delta = Math.floor(Math.random() * 7) - 3; // -3..+3
     const raw = score + delta;
     const clamped = Math.max(0, Math.min(total, raw));
@@ -810,7 +947,6 @@ function Result({ score, total, history, opponent, battleMode, onBack }) {
     );
   }
 
-  // Score screen with battle comparison section (if battle)
   return (
     <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="w-full max-w-sm px-4 pb-20 pt-8 text-center">
@@ -836,12 +972,11 @@ function Result({ score, total, history, opponent, battleMode, onBack }) {
           </button>
         </div>
 
-        {/* BATTLE COMPARISON */}
+        {/* Battle comparison */}
         {battleMode && (
           <Card className="mt-6 p-3 text-left">
             <div className="text-[13px] text-slate-500 mb-2">Battle Result</div>
             <div className="grid grid-cols-2 gap-3">
-              {/* You */}
               <div className="rounded-xl border border-emerald-100 p-3 bg-emerald-50/40">
                 <div className="flex items-center gap-3 mb-1">
                   <div className="w-10 h-10 rounded-full grid place-items-center bg-emerald-500 text-white font-bold">
@@ -856,7 +991,6 @@ function Result({ score, total, history, opponent, battleMode, onBack }) {
                 <div className="text-xl font-extrabold text-slate-900">{score}</div>
               </div>
 
-              {/* Opponent */}
               <div className="rounded-xl border border-emerald-100 p-3 bg-white">
                 <div className="flex items-center gap-3 mb-1">
                   <OppAvatar name={opponent?.name || "Opponent"} />
@@ -895,7 +1029,8 @@ function Result({ score, total, history, opponent, battleMode, onBack }) {
 
 /* ───────────────────────── App ───────────────────────── */
 export default function App() {
-  const [view, setView] = useState("home"); // home | categories | battle_search | quiz | result
+  // views: home | categories | battle_search | quiz | result | study | exams
+  const [view, setView] = useState("home");
   const [category, setCategory] = useState("");
   const [bank, setBank] = useState({});
   const [result, setResult] = useState({ score: 0, total: 0, history: [] });
@@ -907,12 +1042,23 @@ export default function App() {
   const [opponent, setOpponent] = useState(null);
   const [battleMode, setBattleMode] = useState(false);
 
+  // NEW: study / exams lists
+  const [studyItems, setStudyItems] = useState([]);
+  const [examItems, setExamItems] = useState([]);
+
   useEffect(() => {
     let alive = true;
     (async () => {
       try {
-        const b = await loadQuestionBank();
-        if (alive) setBank(b);
+        const [b, study, exams] = await Promise.all([
+          loadQuestionBank(),
+          loadList(TAB_STUDY),
+          loadList(TAB_EXAMS),
+        ]);
+        if (!alive) return;
+        setBank(b);
+        setStudyItems(study);
+        setExamItems(exams);
       } catch (e) {
         console.error(e);
         if (alive) setErr(String(e?.message || e));
@@ -979,6 +1125,10 @@ export default function App() {
           onStartCategory={startCategory}
           onSeeAll={() => setView("categories")}
           onStartBattle={handleStartBattle}
+          studyCount={studyItems.length}
+          examCount={examItems.length}
+          openStudy={() => setView("study")}
+          openExams={() => setView("exams")}
         />
       )}
       {view === "categories" && (
@@ -1015,6 +1165,20 @@ export default function App() {
             setBattleQuestions(null);
             setOpponent(null);
           }}
+        />
+      )}
+      {view === "study" && (
+        <ListPage
+          title="Study Material"
+          items={studyItems}
+          onBack={() => setView("home")}
+        />
+      )}
+      {view === "exams" && (
+        <ListPage
+          title="Exam Notifications"
+          items={examItems}
+          onBack={() => setView("home")}
         />
       )}
     </div>
