@@ -1,21 +1,32 @@
 // === src/App.jsx ===
-// Loads categories + questions from Google Sheets using /spreadsheets/d/{FILE_ID}/gviz/tq.
-// Home shows 6 categories; “See all” page with search; auto-advance on option click.
-// Header detection is tolerant (works even if GViz gives "A,B,C" or blank labels).
+// Quiz UI that loads categories + questions from Google Sheets via GViz.
+// - Uses Spreadsheet FILE ID (not 2PACX link)
+// - Robust header detection
+// - Home shows 6 categories; “See all” page with search
+// - Auto-advance on option click
 
 import { useEffect, useState } from "react";
 
-/* ───────────────────────── 1) CONFIG ───────────────────────── */
-const GS_FILE_ID = "PUT_YOUR_FILE_ID_HERE"; // e.g. "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"
-const TAB_CATEGORIES = "Categories"; // has display name + tab name (or gid)
-const TAB_QUESTIONS = "Questions";   // optional single-sheet schema
+/* ───────────────────────── CONFIG ───────────────────────── */
+// Prefer an env var on Vercel/Vite; fallback to your PSC sheet so it "just works".
+const DEFAULT_FILE_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
+const GS_FILE_ID = (import.meta?.env?.VITE_GS_FILE_ID || "").trim() || DEFAULT_FILE_ID;
 
-/* ───────────────────────── 2) UTILITIES ────────────────────── */
+// Sheet/tab names (can be renamed in your sheet; detection is fuzzy)
+const TAB_CATEGORIES = "Categories"; // has display name + actual tab name (or gid)
+const TAB_QUESTIONS  = "Questions";  // optional single-sheet schema
+
+/* ───────────────────────── Utils ───────────────────────── */
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 const norm = (s) => String(s ?? "").trim();
 const lower = (s) => norm(s).toLowerCase();
 const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, "");
+const normalizeSheetName = (s) =>
+  norm(s)
+    .replace(/[\u2012\u2013\u2014\u2015\u2212]/g, "-") // various dashes → hyphen
+    .replace(/\s+/g, " ");
 
+/** Parse GViz “setResponse({...})” into JSON */
 function parseGViz(text) {
   const t = String(text || "");
   const i = t.indexOf("{");
@@ -24,26 +35,28 @@ function parseGViz(text) {
   throw new Error("GViz parse error");
 }
 
-async function gvizFetch(sheetName, tq = "select *") {
+/** GET GViz for a sheet by name or gid */
+async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const url = new URL(`https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`);
-  url.searchParams.set("sheet", sheetName);
+  if (gid) url.searchParams.set("gid", gid);
+  else url.searchParams.set("sheet", sheetName);
   url.searchParams.set("tq", tq);
   url.searchParams.set("tqx", "out:json");
+
   const res = await fetch(url.toString(), { cache: "no-store" });
   if (!res.ok) throw new Error(`GViz HTTP ${res.status}`);
   const raw = await res.text();
   const json = parseGViz(raw);
 
-  // If header labels are missing, c.label will be "" and id may be "A", "B", ...
+  // Columns sometimes come back as "", "A", "B", …; promote first row as header if needed.
   let cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`));
   let rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : ""));
 
-  // If GViz didn’t send real labels and the first row looks like headers, use first row as headers.
-  const looksGeneric = cols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/.test(c));
-  const firstRowLooksHeader = (rows[0] || []).some((v) =>
-    /(name|display|tab|sheet|actual|question|opta|optb|optc|optd|correct)/i.test(String(v || ""))
+  const looksGeneric = cols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
+  const firstRowHeaderish = (rows[0] || []).some((v) =>
+    /(name|display|tab|sheet|actual|question|opt|correct)/i.test(String(v || ""))
   );
-  if (looksGeneric && firstRowLooksHeader) {
+  if (looksGeneric && firstRowHeaderish) {
     cols = (rows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
     rows = rows.slice(1);
   }
@@ -51,6 +64,7 @@ async function gvizFetch(sheetName, tq = "select *") {
   return { cols, rows };
 }
 
+/** Find a column index by header names; fallbackIndex used when headers are missing */
 function findHeaderIndex(cols, candidates, fallbackIndex) {
   const candNorms = candidates.map((c) => strip(c));
   const colNorms = cols.map((c) => strip(c));
@@ -61,6 +75,7 @@ function findHeaderIndex(cols, candidates, fallbackIndex) {
   return typeof fallbackIndex === "number" ? fallbackIndex : -1;
 }
 
+/** Convert a questions sheet into normalized items */
 function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const idxQ   = findHeaderIndex(cols, ["question", "q", "title"]);
   const idxAns = findHeaderIndex(cols, ["answer", "ans", "correcttext"]);
@@ -74,14 +89,13 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const items = [];
   for (const r of rows) {
     const text = norm(r[idxQ]);
-    const optA = norm(r[idxA]), optB = norm(r[idxB]), optC = norm(r[idxC]), optD = norm(r[idxD]);
-    const options = [optA, optB, optC, optD].filter(Boolean);
+    const options = [r[idxA], r[idxB], r[idxC], r[idxD]].map(norm).filter(Boolean);
     if (!text || options.length < 2) continue;
 
-    let answerIndex = -1;
-    const correctRaw = norm(r[idxCor]);
     const answerText = norm(r[idxAns]);
+    const correctRaw = norm(r[idxCor]);
 
+    let answerIndex = -1;
     if (correctRaw) {
       const v = correctRaw.toUpperCase();
       if ("ABCD".includes(v)) answerIndex = v.charCodeAt(0) - 65;
@@ -120,71 +134,57 @@ function toBank(items) {
   return bank;
 }
 
-/* ───────────────────────── 3) DATA LOADER ──────────────────── */
+/* ───────────────────────── Data loader ───────────────────────── */
 async function loadQuestionBank() {
-  // Try one-sheet schema first
+  // 1) Single-sheet schema
   try {
-    const { cols, rows } = await gvizFetch(TAB_QUESTIONS);
+    const { cols, rows } = await gvizFetch({ sheetName: TAB_QUESTIONS });
     if (rows.length) {
       const items = mapQuestionRows(cols, rows);
       const bank = toBank(items);
       if (Object.keys(bank).length) return bank;
     }
-  } catch { /* ignore */ }
+  } catch { /* ignore and continue */ }
 
-  // Fallback: Categories + each tab listed there
-  const { cols: cCols0, rows: cRows0 } = await gvizFetch(TAB_CATEGORIES);
+  // 2) Categories + per-tab
+  const { cols: cCols0, rows: cRows0 } = await gvizFetch({ sheetName: TAB_CATEGORIES });
 
-  // Detect headers robustly; if GViz gave A/B/C, try first row as header.
+  // Re-detect header if GViz returned A/B/C…
   let cCols = cCols0, cRows = cRows0;
-  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/.test(c));
-  const firstLooksHeader = (cRows[0] || []).some((v) =>
-    /(name|display|tab|sheet|actual)/i.test(String(v || ""))
-  );
+  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
+  const firstLooksHeader = (cRows[0] || []).some((v) => /(name|display|tab|sheet|actual)/i.test(String(v || "")));
   if (generic && firstLooksHeader) {
     cCols = (cRows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
     cRows = cRows.slice(1);
   }
 
-  // Try to find indices by names; if not, fall back to common positions (B,C)
+  // Try to find “display” + “tab” columns by name; fallback to common positions (B,C)
   let idxDisplay = findHeaderIndex(cCols, ["name (display)", "display", "title", "name"]);
-  let idxTab     = findHeaderIndex(cCols, ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheet name", "sheetname"]);
-
+  let idxTab     = findHeaderIndex(cCols, ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheetname"]);
   if (idxDisplay === -1 || idxTab === -1) {
-    // Heuristic: ignore an "id" column, then pick the next two columns as display+tab.
     const idIdx = cCols.findIndex((x) => strip(x) === "id");
     const indices = cCols.map((_, i) => i).filter((i) => i !== idIdx);
     if (idxDisplay === -1 && indices.length) idxDisplay = indices[0];
     if (idxTab === -1 && indices.length > 1) idxTab = indices[1];
   }
-  if (idxDisplay === -1 || idxTab === -1) {
-    // Final fallback: assume B=display, C=tab
-    idxDisplay = idxDisplay === -1 ? 1 : idxDisplay;
-    idxTab = idxTab === -1 ? 2 : idxTab;
-  }
+  if (idxDisplay === -1) idxDisplay = 1; // column B
+  if (idxTab === -1)     idxTab     = 2; // column C
 
   const mappings = cRows
-    .map((r) => ({ display: norm(r[idxDisplay]), tab: norm(r[idxTab]) }))
+    .map((r) => ({
+      display: normalizeSheetName(r[idxDisplay]),
+      tab:     normalizeSheetName(r[idxTab]),
+    }))
     .filter((m) => m.display && m.tab);
 
   const bank = {};
   for (const m of mappings) {
     try {
-      // If "tab" cell looks like a numeric gid, GViz supports gid=<n>
-      let cols, rows;
-      if (/^\d+$/.test(m.tab)) {
-        const url = new URL(`https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`);
-        url.searchParams.set("gid", m.tab);
-        url.searchParams.set("tqx", "out:json");
-        const res = await fetch(url.toString(), { cache: "no-store" });
-        const raw = await res.text();
-        const json = parseGViz(raw);
-        cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`));
-        rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : ""));
-      } else {
-        ({ cols, rows } = await gvizFetch(m.tab));
-      }
-
+      const isGid = /^\d+$/.test(m.tab);
+      const { cols, rows } = await gvizFetch({
+        sheetName: isGid ? undefined : m.tab,
+        gid: isGid ? m.tab : undefined,
+      });
       const items = mapQuestionRows(cols, rows, m.display);
       bank[m.display] = items.map((q, i) => ({
         id: i + 1,
@@ -197,13 +197,15 @@ async function loadQuestionBank() {
       bank[m.display] = [];
     }
   }
+
   return bank;
 }
 
-/* ───────────────────────── 4) UI PIECES ────────────────────── */
+/* ───────────────────────── UI bits ───────────────────────── */
 const Card = ({ children, className = "" }) => (
   <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>{children}</div>
 );
+
 function LinearProgress({ value, max }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
@@ -212,6 +214,7 @@ function LinearProgress({ value, max }) {
     </div>
   );
 }
+
 function TimerRing({ secondsLeft, totalSeconds = 25 }) {
   const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
   return (
@@ -227,6 +230,7 @@ function TimerRing({ secondsLeft, totalSeconds = 25 }) {
     </div>
   );
 }
+
 function OptionButton({ label, isSelected, onClick, letter, disabled }) {
   return (
     <button
@@ -244,6 +248,7 @@ function OptionButton({ label, isSelected, onClick, letter, disabled }) {
     </button>
   );
 }
+
 function Splash({ label = "Loading…" }) {
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
@@ -255,7 +260,7 @@ function Splash({ label = "Loading…" }) {
   );
 }
 
-/* ───────────────────────── 5) VIEWS ────────────────────────── */
+/* ───────────────────────── Views ───────────────────────── */
 function Home({ bank, onStartCategory, onSeeAll }) {
   const cats = Object.keys(bank);
   const preview = cats.slice(0, 6);
@@ -267,7 +272,10 @@ function Home({ bank, onStartCategory, onSeeAll }) {
             <div className="w-10 h-10 rounded-full bg-violet-200 grid place-items-center">
               <span className="text-violet-700 text-sm font-semibold">K</span>
             </div>
-            <div><p className="text-[13px] text-slate-500">Hi, Kenzy</p><p className="text-[15px] font-semibold text-slate-900">Ready to play</p></div>
+            <div>
+              <p className="text-[13px] text-slate-500">Hi, Kenzy</p>
+              <p className="text-[15px] font-semibold text-slate-900">Ready to play</p>
+            </div>
           </div>
           <div className="flex items-center gap-1 text-violet-700 font-semibold">★ 200</div>
         </div>
@@ -359,8 +367,7 @@ function Quiz({ category, bank, onFinish }) {
 
   function handleNext(chosen = sel) {
     if (!q) return onFinish({ score, total: qs.length });
-    const correct = chosen === q.answerIndex ? 1 : 0;
-    const newScore = score + correct;
+    const newScore = score + (chosen === q.answerIndex ? 1 : 0);
     if (i + 1 >= qs.length) return onFinish({ score: newScore, total: qs.length });
     setScore(newScore);
     setI(i + 1);
@@ -445,7 +452,7 @@ function Result({ score, total, onBack }) {
   );
 }
 
-/* ───────────────────────── 6) APP ──────────────────────────── */
+/* ───────────────────────── App ───────────────────────── */
 export default function App() {
   const [view, setView] = useState("home"); // home | categories | quiz | result
   const [category, setCategory] = useState("");
@@ -458,9 +465,6 @@ export default function App() {
     let alive = true;
     (async () => {
       try {
-        if (!GS_FILE_ID || GS_FILE_ID.includes("PUT_YOUR_FILE_ID_HERE")) {
-          throw new Error("Missing GS_FILE_ID. Set the Spreadsheet file id.");
-        }
         const b = await loadQuestionBank();
         if (alive) setBank(b);
       } catch (e) {
