@@ -1,21 +1,20 @@
-\// === src/App.jsx ===
+// === src/App.jsx ===
 // Quiz UI that loads categories + questions from Google Sheets via GViz.
 // - Uses Spreadsheet FILE ID (not 2PACX link)
 // - Robust header detection (works even when GViz labels are A,B,C)
-// - Home shows 6 categories; “See all” page with sticky header + search
+// - Home: cartoon profile + “PSC Guru, No1 PSC Learning App.” (no points)
+// - “See all” page with sticky header + search
 // - Auto-advance on option click
 
 import { useEffect, useState } from "react";
 
 /* ───────────────────────── CONFIG ───────────────────────── */
-// Prefer an env var on Vercel/Vite; fallback to your PSC sheet so it "just works".
 const DEFAULT_FILE_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
 const GS_FILE_ID =
   (import.meta?.env?.VITE_GS_FILE_ID || "").trim() || DEFAULT_FILE_ID;
 
-// Sheet/tab names (can be renamed in your sheet; detection is fuzzy)
-const TAB_CATEGORIES = "Categories"; // has display name + actual tab name (or gid)
-const TAB_QUESTIONS = "Questions"; // optional single-sheet schema
+const TAB_CATEGORIES = "Categories";
+const TAB_QUESTIONS = "Questions";
 
 /* ───────────────────────── Utils ───────────────────────── */
 const cx = (...xs) => xs.filter(Boolean).join(" ");
@@ -25,7 +24,6 @@ const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, "");
 const normalizeSheetName = (s) =>
   norm(s).replace(/[\u2012\u2013\u2014\u2015\u2212]/g, "-").replace(/\s+/g, " ");
 
-/** Parse GViz “setResponse({...})” into JSON */
 function parseGViz(text) {
   const t = String(text || "");
   const i = t.indexOf("{");
@@ -34,7 +32,6 @@ function parseGViz(text) {
   throw new Error("GViz parse error");
 }
 
-/** GET GViz for a sheet by name or gid */
 async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const url = new URL(
     `https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`
@@ -49,7 +46,6 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const raw = await res.text();
   const json = parseGViz(raw);
 
-  // Columns sometimes come back as "", "A", "B", …; promote first row as header if needed.
   let cols = (json.table?.cols || []).map((c, i) =>
     lower(c?.label || c?.id || `col${i + 1}`)
   );
@@ -71,7 +67,6 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   return { cols, rows };
 }
 
-/** Find a column index by header names; fallbackIndex used when headers are missing */
 function findHeaderIndex(cols, candidates, fallbackIndex) {
   const candNorms = candidates.map((c) => strip(c));
   const colNorms = cols.map((c) => strip(c));
@@ -82,7 +77,6 @@ function findHeaderIndex(cols, candidates, fallbackIndex) {
   return typeof fallbackIndex === "number" ? fallbackIndex : -1;
 }
 
-/** Convert a questions sheet into normalized items */
 function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const idxQ = findHeaderIndex(cols, ["question", "q", "title"]);
   const idxAns = findHeaderIndex(cols, ["answer", "ans", "correcttext"]);
@@ -152,9 +146,7 @@ function toBank(items) {
   return bank;
 }
 
-/* ───────────────────────── Data loader ───────────────────────── */
 async function loadQuestionBank() {
-  // 1) Single-sheet schema
   try {
     const { cols, rows } = await gvizFetch({ sheetName: TAB_QUESTIONS });
     if (rows.length) {
@@ -162,16 +154,12 @@ async function loadQuestionBank() {
       const bank = toBank(items);
       if (Object.keys(bank).length) return bank;
     }
-  } catch {
-    /* ignore and continue */
-  }
+  } catch {}
 
-  // 2) Categories + per-tab
   const { cols: cCols0, rows: cRows0 } = await gvizFetch({
     sheetName: TAB_CATEGORIES,
   });
 
-  // Re-detect header if GViz returned A/B/C…
   let cCols = cCols0,
     cRows = cRows0;
   const generic = cCols.every(
@@ -185,7 +173,6 @@ async function loadQuestionBank() {
     cRows = cRows.slice(1);
   }
 
-  // Try to find “display” + “tab” columns by name; fallback to common positions (B,C)
   let idxDisplay = findHeaderIndex(
     cCols,
     ["name (display)", "display", "title", "name"],
@@ -202,8 +189,8 @@ async function loadQuestionBank() {
     if (idxDisplay === -1 && indices.length) idxDisplay = indices[0];
     if (idxTab === -1 && indices.length > 1) idxTab = indices[1];
   }
-  if (idxDisplay === -1) idxDisplay = 1; // column B
-  if (idxTab === -1) idxTab = 2; // column C
+  if (idxDisplay === -1) idxDisplay = 1;
+  if (idxTab === -1) idxTab = 2;
 
   const mappings = cRows
     .map((r) => ({
@@ -308,6 +295,21 @@ function Splash({ label = "Loading…" }) {
   );
 }
 
+/* ───────── Cartoon avatar used on the Home header ───────── */
+function CartoonAvatar() {
+  return (
+    <div className="w-12 h-12 rounded-full bg-violet-200 grid place-items-center overflow-hidden">
+      <svg viewBox="0 0 64 64" width="36" height="36">
+        <circle cx="32" cy="24" r="12" fill="#fff" />
+        <path d="M12 54c3-10 13-14 20-14s17 4 20 14" fill="#fff" />
+        <circle cx="28" cy="22" r="2" fill="#7c3aed" />
+        <circle cx="36" cy="22" r="2" fill="#7c3aed" />
+        <path d="M26 27c2 2 8 2 10 0" stroke="#7c3aed" strokeWidth="2" fill="none" strokeLinecap="round" />
+      </svg>
+    </div>
+  );
+}
+
 /* ───────────────────────── Views ───────────────────────── */
 function Home({ bank, onStartCategory, onSeeAll }) {
   const cats = Object.keys(bank);
@@ -315,17 +317,16 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
       <div className="w-full max-w-sm px-4 pb-24 pt-6">
+        {/* Header: avatar + PSC Guru tagline, no points */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-violet-200 grid place-items-center">
-              <span className="text-violet-700 text-sm font-semibold">K</span>
-            </div>
+            <CartoonAvatar />
             <div>
-              <p className="text-[13px] text-slate-500">Hi, Kenzy</p>
-              <p className="text-[15px] font-semibold text-slate-900">Ready to play</p>
+              <p className="text-[15px] font-semibold text-slate-900">PSC Guru</p>
+              <p className="text-[13px] text-slate-500">No1 PSC Learning App</p>
             </div>
           </div>
-          <div className="flex items-center gap-1 text-violet-700 font-semibold">★ 200</div>
+          {/* points removed */}
         </div>
 
         <div className="mb-5">
@@ -375,7 +376,7 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   );
 }
 
-// STICKY header + search
+// Sticky header + search on “All Categories”
 function AllCategories({ bank, onStartCategory, onBack }) {
   const [q, setQ] = useState("");
   const cats = Object.keys(bank).filter((n) =>
@@ -385,12 +386,9 @@ function AllCategories({ bank, onStartCategory, onBack }) {
   return (
     <div className="min-h-dvh bg-[#f6f3ff]">
       <div className="w-full max-w-sm mx-auto pb-20">
-        {/* Sticky header + search */}
         <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#f6f3ff]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f6f3ff]/80 border-b border-violet-100">
           <div className="flex items-center justify-between mb-3">
-            <button onClick={onBack} className="text-slate-600">
-              ←
-            </button>
+            <button onClick={onBack} className="text-slate-600">←</button>
             <div className="text-[15px] font-semibold">All Categories</div>
             <span className="w-4" />
           </div>
@@ -412,7 +410,6 @@ function AllCategories({ bank, onStartCategory, onBack }) {
           </div>
         </div>
 
-        {/* Content */}
         <div className="px-4 pt-3">
           <div className="grid grid-cols-3 gap-3">
             {cats.map((c) => (
@@ -481,7 +478,7 @@ function Quiz({ category, bank, onFinish }) {
           >
             ←
           </button>
-        <div className="text-[15px] font-semibold">{category}</div>
+          <div className="text-[15px] font-semibold">{category}</div>
           <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
         </div>
         <div className="text-[12px] text-slate-500 mb-2">
@@ -567,7 +564,7 @@ function Result({ score, total, onBack }) {
 
 /* ───────────────────────── App ───────────────────────── */
 export default function App() {
-  const [view, setView] = useState("home"); // home | categories | quiz | result
+  const [view, setView] = useState("home");
   const [category, setCategory] = useState("");
   const [bank, setBank] = useState({});
   const [result, setResult] = useState({ score: 0, total: 0 });
