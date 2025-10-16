@@ -1,7 +1,9 @@
 // === src/App.jsx ===
-// Loads questions from Google Sheets (GViz), shows quiz with feedback,
-// shuffles options, auto-advances after 2s, and shows a Score screen
-// with a "View Summary" button below "Keep practicing!".
+// Tea Green theme variant
+// - Loads questions from Google Sheets (GViz)
+// - Shuffled options, 2s auto-advance with red/green feedback
+// - Playful rotating loading screen
+// - Score screen with "View Summary" button
 
 import { useEffect, useState } from "react";
 
@@ -43,7 +45,7 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const raw = await res.text();
   const json = parseGViz(raw);
 
-  // Promote first row to headers if GViz returns generic A/B/C…
+  // Promote first row to headers if generic
   let cols = (json.table?.cols || []).map((c, i) =>
     lower(c?.label || c?.id || `col${i + 1}`)
   );
@@ -60,7 +62,6 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
     cols = (rows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
     rows = rows.slice(1);
   }
-
   return { cols, rows };
 }
 
@@ -81,23 +82,13 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   const idxB = findHeaderIndex(cols, ["optB", "b", "option b", "2"]);
   const idxC = findHeaderIndex(cols, ["optC", "c", "option c", "3"]);
   const idxD = findHeaderIndex(cols, ["optD", "d", "option d", "4"]);
-  const idxCor = findHeaderIndex(
-    cols,
-    ["correct", "answerindex", "correct option"],
-    -1
-  );
-  const idxCat = findHeaderIndex(
-    cols,
-    ["category", "subject", "topic", "cat"],
-    -1
-  );
+  const idxCor = findHeaderIndex(cols, ["correct", "answerindex", "correct option"], -1);
+  const idxCat = findHeaderIndex(cols, ["category", "subject", "topic", "cat"], -1);
 
   const items = [];
   for (const r of rows) {
     const text = norm(r[idxQ]);
-    const options = [r[idxA], r[idxB], r[idxC], r[idxD]]
-      .map(norm)
-      .filter(Boolean);
+    const options = [r[idxA], r[idxB], r[idxC], r[idxD]].map(norm).filter(Boolean);
     if (!text || options.length < 2) continue;
 
     const answerText = norm(r[idxAns]);
@@ -109,8 +100,7 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
       if ("ABCD".includes(v)) answerIndex = v.charCodeAt(0) - 65;
       else {
         const n = Number(v);
-        if (Number.isFinite(n) && n >= 1 && n <= options.length)
-          answerIndex = n - 1;
+        if (Number.isFinite(n) && n >= 1 && n <= options.length) answerIndex = n - 1;
       }
     }
     if (answerIndex < 0 && answerText) {
@@ -129,7 +119,7 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
   return items;
 }
 
-/* Shuffle utility that keeps track of the correct index */
+/* Shuffle utility (keeps track of correct index) */
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i);
   for (let i = idxs.length - 1; i > 0; i--) {
@@ -144,11 +134,7 @@ function shuffleWithIndex(arr, correctIdx) {
 function toBank(items) {
   const bank = {};
   for (const it of items) {
-    // SHUFFLE OPTIONS per question here
-    const { newOptions, newCorrect } = shuffleWithIndex(
-      it.options,
-      it.answerIndex
-    );
+    const { newOptions, newCorrect } = shuffleWithIndex(it.options, it.answerIndex);
     bank[it.cat] ??= [];
     bank[it.cat].push({
       id: bank[it.cat].length + 1,
@@ -162,7 +148,7 @@ function toBank(items) {
 
 /* ───────────────────────── Data loader ───────────────────────── */
 async function loadQuestionBank() {
-  // Try single-sheet schema first
+  // Try "Questions" sheet first
   try {
     const { cols, rows } = await gvizFetch({ sheetName: TAB_QUESTIONS });
     if (rows.length) {
@@ -173,15 +159,10 @@ async function loadQuestionBank() {
   } catch {}
 
   // Fallback: Categories + each tab
-  const { cols: cCols0, rows: cRows0 } = await gvizFetch({
-    sheetName: TAB_CATEGORIES,
-  });
+  const { cols: cCols0, rows: cRows0 } = await gvizFetch({ sheetName: TAB_CATEGORIES });
 
-  let cCols = cCols0,
-    cRows = cRows0;
-  const generic = cCols.every(
-    (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
-  );
+  let cCols = cCols0, cRows = cRows0;
+  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
   const firstLooksHeader = (cRows[0] || []).some((v) =>
     /(name|display|tab|sheet|actual)/i.test(String(v || ""))
   );
@@ -190,11 +171,7 @@ async function loadQuestionBank() {
     cRows = cRows.slice(1);
   }
 
-  let idxDisplay = findHeaderIndex(
-    cCols,
-    ["name (display)", "display", "title", "name"],
-    -1
-  );
+  let idxDisplay = findHeaderIndex(cCols, ["name (display)", "display", "title", "name"], -1);
   let idxTab = findHeaderIndex(
     cCols,
     ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheetname"],
@@ -231,13 +208,12 @@ async function loadQuestionBank() {
       bank[m.display] = [];
     }
   }
-
   return bank;
 }
 
 /* ───────────────────────── UI bits ───────────────────────── */
 const Card = ({ children, className = "" }) => (
-  <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>
+  <div className={cx("rounded-2xl bg-white shadow-sm border border-emerald-100", className)}>
     {children}
   </div>
 );
@@ -245,31 +221,27 @@ const Card = ({ children, className = "" }) => (
 function LinearProgress({ value, max }) {
   const pct = Math.min(100, Math.max(0, (value / max) * 100));
   return (
-    <div className="w-full h-1.5 bg-violet-100 rounded-full overflow-hidden">
-      <div className="h-full bg-violet-600" style={{ width: `${pct}%` }} />
+    <div className="w-full h-1.5 bg-emerald-100 rounded-full overflow-hidden">
+      <div className="h-full bg-emerald-600" style={{ width: `${pct}%` }} />
     </div>
   );
 }
 
 function TimerRing({ secondsLeft, totalSeconds = 25 }) {
-  const R = 18,
-    C = 2 * Math.PI * R,
-    p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
+  const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
   return (
     <div className="relative w-10 h-10">
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
-        <circle cx="22" cy="22" r={R} className="fill-none stroke-violet-100" strokeWidth="6" />
+        <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100" strokeWidth="6" />
         <circle
-          cx="22"
-          cy="22"
-          r={R}
-          className="fill-none stroke-violet-600 transition-[stroke-dasharray] duration-200"
+          cx="22" cy="22" r={R}
+          className="fill-none stroke-emerald-600 transition-[stroke-dasharray] duration-200"
           strokeLinecap="round"
           strokeWidth="6"
           strokeDasharray={`${C * p} ${C}`}
         />
       </svg>
-      <div className="absolute inset-0 grid place-items-center text-[10px] font-semibold text-violet-700">
+      <div className="absolute inset-0 grid place-items-center text-[10px] font-semibold text-emerald-700">
         0{Math.max(0, secondsLeft).toString().padStart(2, "0")}
       </div>
     </div>
@@ -292,8 +264,8 @@ function OptionButton({
       ? "border-red-500 bg-red-50"
       : "border-transparent"
     : isSelected
-    ? "border-violet-600 ring-2 ring-violet-200"
-    : "border-transparent hover:border-violet-200";
+    ? "border-emerald-600 ring-2 ring-emerald-200"
+    : "border-transparent hover:border-emerald-200";
 
   const textColor = showFeedback
     ? isCorrect
@@ -320,8 +292,8 @@ function OptionButton({
                 ? "bg-green-100 text-green-700"
                 : isWrong
                 ? "bg-red-100 text-red-700"
-                : "bg-violet-100 text-violet-700"
-              : "bg-violet-100 text-violet-700"
+                : "bg-emerald-100 text-emerald-700"
+              : "bg-emerald-100 text-emerald-700"
           )}
         >
           {letter}
@@ -332,27 +304,49 @@ function OptionButton({
   );
 }
 
-function Splash({ label = "Loading…" }) {
+/* ───────── Playful rotating Splash (Tea Green theme) ───────── */
+function Splash({ label = "Loading from Google Sheets…" }) {
+  const messages = [
+    "Personalizing your questions…",
+    "Finding new online friends…",
+    "Updating new questions…",
+    "Sharpening brain cells…",
+    "Warming up the quiz engine…",
+    "Checking your lucky stars…",
+  ];
+  const [i, setI] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setI((x) => (x + 1) % messages.length), 1400);
+    return () => clearInterval(id);
+  }, []);
+
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
-      <div className="text-center">
-        <div className="w-14 h-14 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin mx-auto mb-3" />
-        <div className="text-violet-700 font-semibold">{label}</div>
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
+      <div className="flex flex-col items-center text-center">
+        <div className="w-14 h-14 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mb-4" />
+        <div className="text-emerald-700 font-semibold text-[15px] transition-opacity duration-300">
+          {messages[i]}
+        </div>
+        <div className="text-slate-600 text-xs mt-1">{label}</div>
+        <div className="w-56 h-2 rounded-full bg-emerald-100 overflow-hidden mt-4">
+          <div className="h-full w-1/2 rounded-full bg-emerald-400/70 animate-pulse" />
+        </div>
       </div>
     </div>
   );
 }
 
-/* Cartoon avatar for the Home header */
+/* Cartoon avatar tweaked to green */
 function CartoonAvatar() {
   return (
-    <div className="w-12 h-12 rounded-full bg-violet-200 grid place-items-center overflow-hidden">
+    <div className="w-12 h-12 rounded-full bg-emerald-200 grid place-items-center overflow-hidden">
       <svg viewBox="0 0 64 64" width="36" height="36">
         <circle cx="32" cy="24" r="12" fill="#fff" />
         <path d="M12 54c3-10 13-14 20-14s17 4 20 14" fill="#fff" />
-        <circle cx="28" cy="22" r="2" fill="#7c3aed" />
-        <circle cx="36" cy="22" r="2" fill="#7c3aed" />
-        <path d="M26 27c2 2 8 2 10 0" stroke="#7c3aed" strokeWidth="2" fill="none" strokeLinecap="round" />
+        <circle cx="28" cy="22" r="2" fill="#059669" />
+        <circle cx="36" cy="22" r="2" fill="#059669" />
+        <path d="M26 27c2 2 8 2 10 0" stroke="#059669" strokeWidth="2" fill="none" strokeLinecap="round" />
       </svg>
     </div>
   );
@@ -363,27 +357,27 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   const cats = Object.keys(bank);
   const preview = cats.slice(0, 6);
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="w-full max-w-sm px-4 pb-24 pt-6">
-        {/* Header: avatar + tagline, no points */}
+        {/* Header */}
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3">
             <CartoonAvatar />
             <div>
               <p className="text-[15px] font-semibold text-slate-900">PSC Guru</p>
-              <p className="text-[13px] text-slate-500">No1 PSC Learning App</p>
+              <p className="text-[13px] text-slate-600">No1 PSC Learning App</p>
             </div>
           </div>
         </div>
 
         <div className="mb-5">
-          <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
+          <div className="flex items-center gap-2 bg-white/80 border border-emerald-100 rounded-xl px-3 py-2">
             <span className="text-slate-400">🔎</span>
             <input className="w-full text-[14px] outline-none placeholder:text-slate-400" placeholder="Search for a quiz" readOnly />
           </div>
         </div>
 
-        <Card className="p-4 mb-6 bg-gradient-to-br from-fuchsia-500 to-indigo-600 text-white">
+        <Card className="p-4 mb-6 bg-gradient-to-br from-lime-400 to-emerald-600 text-white">
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm/5 opacity-90">Play and Win</p>
@@ -400,7 +394,7 @@ function Home({ bank, onStartCategory, onSeeAll }) {
 
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-semibold text-slate-900">Categories</h3>
-          <button onClick={onSeeAll} className="text-[13px] text-violet-700">
+          <button onClick={onSeeAll} className="text-[13px] text-emerald-700">
             See all
           </button>
         </div>
@@ -410,9 +404,9 @@ function Home({ bank, onStartCategory, onSeeAll }) {
             <button
               key={c}
               onClick={() => onStartCategory(c)}
-              className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200"
+              className="rounded-2xl p-3 bg-white border border-emerald-100 hover:border-emerald-200"
             >
-              <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">＋</div>
+              <div className="w-10 h-10 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
               <div className="text-[13px] font-medium text-slate-800">{c}</div>
               <div className="text-[11px] text-slate-500">{(bank[c] || []).length} questions</div>
             </button>
@@ -425,23 +419,20 @@ function Home({ bank, onStartCategory, onSeeAll }) {
 
 function AllCategories({ bank, onStartCategory, onBack }) {
   const [q, setQ] = useState("");
-  const cats = Object.keys(bank).filter((n) =>
-    n.toLowerCase().includes(q.toLowerCase())
-  );
+  const cats = Object.keys(bank).filter((n) => n.toLowerCase().includes(q.toLowerCase()));
 
   return (
-    <div className="min-h-dvh bg-[#f6f3ff]">
+    <div className="min-h-dvh bg-[#eefbe7]">
       <div className="w-full max-w-sm mx-auto pb-20">
         {/* Sticky top bar */}
-        <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#f6f3ff]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f6f3ff]/80 border-b border-violet-100">
+        <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur supports-[backdrop-filter]:bg-[#eefbe7]/80 border-b border-emerald-100">
           <div className="flex items-center justify-between mb-3">
             <button onClick={onBack} className="text-slate-600">←</button>
             <div className="text-[15px] font-semibold">All Categories</div>
             <span className="w-4" />
           </div>
-
           <div>
-            <div className="flex items-center gap-2 bg-white/90 border border-violet-100 rounded-xl px-3 py-2 shadow-sm">
+            <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 shadow-sm">
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400">
                 <circle cx="11" cy="11" r="7" />
                 <path d="M21 21l-4.3-4.3" />
@@ -463,9 +454,9 @@ function AllCategories({ bank, onStartCategory, onBack }) {
               <button
                 key={c}
                 onClick={() => onStartCategory(c)}
-                className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition"
+                className="rounded-2xl p-3 bg-white border border-emerald-100 hover:border-emerald-200 active:scale-[.99] transition"
               >
-                <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
+                <div className="w-10 h-10 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">
                   <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
                     <circle cx="12" cy="12" r="9" />
                     <path d="M8 12h8M12 8v8" />
@@ -506,7 +497,7 @@ function Quiz({ category, bank, onFinish }) {
   // Time out reveals correct and auto-advances
   useEffect(() => {
     if (secondsLeft <= 0 && q && !showFeedback && !advancing) {
-      revealAndQueueNext(null); // no selection
+      revealAndQueueNext(null);
     }
   }, [secondsLeft, showFeedback, advancing, q]);
 
@@ -547,7 +538,7 @@ function Quiz({ category, bank, onFinish }) {
   const letters = ["a", "b", "c", "d", "e", "f"];
 
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="w-full max-w-sm px-4 pb-20 pt-4">
         <div className="flex items-center justify-between mb-2">
           <button
@@ -556,7 +547,7 @@ function Quiz({ category, bank, onFinish }) {
           >
             ←
           </button>
-          <div className="text-[15px] font-semibold">{category}</div>
+        <div className="text-[15px] font-semibold">{category}</div>
           <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
         </div>
         <div className="text-[12px] text-slate-500 mb-2">
@@ -597,14 +588,11 @@ function Quiz({ category, bank, onFinish }) {
           </>
         )}
 
-        {/* Next button disabled (auto-advance in 2s) */}
+        {/* Next button disabled (auto-advance) */}
         <div className="fixed bottom-4 left-0 right-0">
           <div className="mx-auto max-w-sm px-4">
             <button
-              className={cx(
-                "w-full py-3 rounded-xl text-white font-semibold",
-                "bg-violet-300 cursor-not-allowed"
-              )}
+              className="w-full py-3 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed"
               disabled
             >
               Next
@@ -622,7 +610,7 @@ function Result({ score, total, history, onBack }) {
 
   if (showSummary) {
     return (
-      <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
         <div className="w-full max-w-sm px-4 pb-16 pt-6">
           <div className="flex items-center justify-between mb-3">
             <button onClick={() => setShowSummary(false)} className="text-slate-600">←</button>
@@ -645,10 +633,7 @@ function Result({ score, total, history, onBack }) {
                       ? "bg-red-50 border-red-500"
                       : "bg-white border-transparent";
                     return (
-                      <div
-                        key={i}
-                        className={cx("text-[13px] rounded-lg border px-3 py-2", cls)}
-                      >
+                      <div key={i} className={cx("text-[13px] rounded-lg border px-3 py-2", cls)}>
                         {o}
                       </div>
                     );
@@ -667,7 +652,7 @@ function Result({ score, total, history, onBack }) {
             <div className="mx-auto max-w-sm px-4 grid gap-3">
               <button
                 onClick={onBack}
-                className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700"
+                className="w-full py-3 rounded-xl text-white font-semibold bg-emerald-600 hover:bg-emerald-700"
               >
                 Back to Home
               </button>
@@ -678,30 +663,27 @@ function Result({ score, total, history, onBack }) {
     );
   }
 
-  // Score screen with "View Summary" button BELOW Keep practicing!
+  // Score screen with "View Summary" button below Keep practicing!
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="w-full max-w-sm px-4 pb-16 pt-8 text-center">
-        <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100">
-          <div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div>
+        <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-lime-100 to-emerald-100 border border-emerald-100">
+          <div className="w-16 h-16 rounded-full bg-emerald-200 text-emerald-700 font-bold grid place-items-center">★</div>
         </div>
         <div className="text-slate-500 text-sm">Your Score</div>
-        <div className="text-4xl font-extrabold text-slate-900 mt-1">
-          {score}/{total}
-        </div>
+        <div className="text-4xl font-extrabold text-slate-900 mt-1">{score}/{total}</div>
         <div className="text-sm text-slate-600 mt-1">
           Correct: {correctCount} • Wrong: {history.length - correctCount}
         </div>
 
-        <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold">
+        <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-50 text-emerald-700 text-sm font-semibold">
           Keep practicing!
         </div>
 
-        {/* Move Summary button here ↓ */}
         <div className="mt-3">
           <button
             onClick={() => setShowSummary(true)}
-            className="px-4 py-2 rounded-lg font-semibold border border-violet-200 bg-white text-violet-700 hover:bg-violet-50"
+            className="px-4 py-2 rounded-lg font-semibold border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50"
           >
             View Summary
           </button>
@@ -711,7 +693,7 @@ function Result({ score, total, history, onBack }) {
           <div className="mx-auto max-w-sm px-4 grid gap-3">
             <button
               onClick={onBack}
-              className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700"
+              className="w-full py-3 rounded-xl text-white font-semibold bg-emerald-600 hover:bg-emerald-700"
             >
               Back to Home
             </button>
@@ -724,7 +706,7 @@ function Result({ score, total, history, onBack }) {
 
 /* ───────────────────────── App ───────────────────────── */
 export default function App() {
-  const [view, setView] = useState("home"); // home | categories | quiz | result
+  const [view, setView] = useState("home");
   const [category, setCategory] = useState("");
   const [bank, setBank] = useState({});
   const [result, setResult] = useState({ score: 0, total: 0, history: [] });
@@ -744,9 +726,7 @@ export default function App() {
         if (alive) setLoading(false);
       }
     })();
-    return () => {
-      alive = false;
-    };
+    return () => void (alive = false);
   }, []);
 
   const startCategory = (c) => {
@@ -754,11 +734,11 @@ export default function App() {
     setView("quiz");
   };
 
-  if (loading) return <Splash label="Loading from Google Sheets…" />;
+  if (loading) return <Splash />;
 
   if (err) {
     return (
-      <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
         <div className="max-w-sm px-4">
           <Card className="p-4">
             <div className="text-[15px] font-semibold">Couldn't load Google Sheet</div>
