@@ -1,8 +1,8 @@
-// === src/App.jsx ===
+\// === src/App.jsx ===
 // Quiz UI that loads categories + questions from Google Sheets via GViz.
 // - Uses Spreadsheet FILE ID (not 2PACX link)
-// - Robust header detection
-// - Home shows 6 categories; “See all” page with search
+// - Robust header detection (works even when GViz labels are A,B,C)
+// - Home shows 6 categories; “See all” page with sticky header + search
 // - Auto-advance on option click
 
 import { useEffect, useState } from "react";
@@ -10,11 +10,12 @@ import { useEffect, useState } from "react";
 /* ───────────────────────── CONFIG ───────────────────────── */
 // Prefer an env var on Vercel/Vite; fallback to your PSC sheet so it "just works".
 const DEFAULT_FILE_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o";
-const GS_FILE_ID = (import.meta?.env?.VITE_GS_FILE_ID || "").trim() || DEFAULT_FILE_ID;
+const GS_FILE_ID =
+  (import.meta?.env?.VITE_GS_FILE_ID || "").trim() || DEFAULT_FILE_ID;
 
 // Sheet/tab names (can be renamed in your sheet; detection is fuzzy)
 const TAB_CATEGORIES = "Categories"; // has display name + actual tab name (or gid)
-const TAB_QUESTIONS  = "Questions";  // optional single-sheet schema
+const TAB_QUESTIONS = "Questions"; // optional single-sheet schema
 
 /* ───────────────────────── Utils ───────────────────────── */
 const cx = (...xs) => xs.filter(Boolean).join(" ");
@@ -22,9 +23,7 @@ const norm = (s) => String(s ?? "").trim();
 const lower = (s) => norm(s).toLowerCase();
 const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, "");
 const normalizeSheetName = (s) =>
-  norm(s)
-    .replace(/[\u2012\u2013\u2014\u2015\u2212]/g, "-") // various dashes → hyphen
-    .replace(/\s+/g, " ");
+  norm(s).replace(/[\u2012\u2013\u2014\u2015\u2212]/g, "-").replace(/\s+/g, " ");
 
 /** Parse GViz “setResponse({...})” into JSON */
 function parseGViz(text) {
@@ -37,7 +36,9 @@ function parseGViz(text) {
 
 /** GET GViz for a sheet by name or gid */
 async function gvizFetch({ sheetName, gid, tq = "select *" }) {
-  const url = new URL(`https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`);
+  const url = new URL(
+    `https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`
+  );
   if (gid) url.searchParams.set("gid", gid);
   else url.searchParams.set("sheet", sheetName);
   url.searchParams.set("tq", tq);
@@ -49,10 +50,16 @@ async function gvizFetch({ sheetName, gid, tq = "select *" }) {
   const json = parseGViz(raw);
 
   // Columns sometimes come back as "", "A", "B", …; promote first row as header if needed.
-  let cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`));
-  let rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : ""));
+  let cols = (json.table?.cols || []).map((c, i) =>
+    lower(c?.label || c?.id || `col${i + 1}`)
+  );
+  let rows = (json.table?.rows || []).map((r) =>
+    (r.c || []).map((c) => ((c && c.v) != null ? String(c.v) : ""))
+  );
 
-  const looksGeneric = cols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
+  const looksGeneric = cols.every(
+    (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
+  );
   const firstRowHeaderish = (rows[0] || []).some((v) =>
     /(name|display|tab|sheet|actual|question|opt|correct)/i.test(String(v || ""))
   );
@@ -77,19 +84,29 @@ function findHeaderIndex(cols, candidates, fallbackIndex) {
 
 /** Convert a questions sheet into normalized items */
 function mapQuestionRows(cols, rows, defaultCategory = "General") {
-  const idxQ   = findHeaderIndex(cols, ["question", "q", "title"]);
+  const idxQ = findHeaderIndex(cols, ["question", "q", "title"]);
   const idxAns = findHeaderIndex(cols, ["answer", "ans", "correcttext"]);
-  const idxA   = findHeaderIndex(cols, ["optA", "a", "option a", "1"]);
-  const idxB   = findHeaderIndex(cols, ["optB", "b", "option b", "2"]);
-  const idxC   = findHeaderIndex(cols, ["optC", "c", "option c", "3"]);
-  const idxD   = findHeaderIndex(cols, ["optD", "d", "option d", "4"]);
-  const idxCor = findHeaderIndex(cols, ["correct", "answerindex", "correct option"], -1);
-  const idxCat = findHeaderIndex(cols, ["category", "subject", "topic", "cat"], -1);
+  const idxA = findHeaderIndex(cols, ["optA", "a", "option a", "1"]);
+  const idxB = findHeaderIndex(cols, ["optB", "b", "option b", "2"]);
+  const idxC = findHeaderIndex(cols, ["optC", "c", "option c", "3"]);
+  const idxD = findHeaderIndex(cols, ["optD", "d", "option d", "4"]);
+  const idxCor = findHeaderIndex(
+    cols,
+    ["correct", "answerindex", "correct option"],
+    -1
+  );
+  const idxCat = findHeaderIndex(
+    cols,
+    ["category", "subject", "topic", "cat"],
+    -1
+  );
 
   const items = [];
   for (const r of rows) {
     const text = norm(r[idxQ]);
-    const options = [r[idxA], r[idxB], r[idxC], r[idxD]].map(norm).filter(Boolean);
+    const options = [r[idxA], r[idxB], r[idxC], r[idxD]]
+      .map(norm)
+      .filter(Boolean);
     if (!text || options.length < 2) continue;
 
     const answerText = norm(r[idxAns]);
@@ -101,7 +118,8 @@ function mapQuestionRows(cols, rows, defaultCategory = "General") {
       if ("ABCD".includes(v)) answerIndex = v.charCodeAt(0) - 65;
       else {
         const n = Number(v);
-        if (Number.isFinite(n) && n >= 1 && n <= options.length) answerIndex = n - 1;
+        if (Number.isFinite(n) && n >= 1 && n <= options.length)
+          answerIndex = n - 1;
       }
     }
     if (answerIndex < 0 && answerText) {
@@ -144,23 +162,40 @@ async function loadQuestionBank() {
       const bank = toBank(items);
       if (Object.keys(bank).length) return bank;
     }
-  } catch { /* ignore and continue */ }
+  } catch {
+    /* ignore and continue */
+  }
 
   // 2) Categories + per-tab
-  const { cols: cCols0, rows: cRows0 } = await gvizFetch({ sheetName: TAB_CATEGORIES });
+  const { cols: cCols0, rows: cRows0 } = await gvizFetch({
+    sheetName: TAB_CATEGORIES,
+  });
 
   // Re-detect header if GViz returned A/B/C…
-  let cCols = cCols0, cRows = cRows0;
-  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c));
-  const firstLooksHeader = (cRows[0] || []).some((v) => /(name|display|tab|sheet|actual)/i.test(String(v || "")));
+  let cCols = cCols0,
+    cRows = cRows0;
+  const generic = cCols.every(
+    (c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c)
+  );
+  const firstLooksHeader = (cRows[0] || []).some((v) =>
+    /(name|display|tab|sheet|actual)/i.test(String(v || ""))
+  );
   if (generic && firstLooksHeader) {
     cCols = (cRows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
     cRows = cRows.slice(1);
   }
 
   // Try to find “display” + “tab” columns by name; fallback to common positions (B,C)
-  let idxDisplay = findHeaderIndex(cCols, ["name (display)", "display", "title", "name"]);
-  let idxTab     = findHeaderIndex(cCols, ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheetname"]);
+  let idxDisplay = findHeaderIndex(
+    cCols,
+    ["name (display)", "display", "title", "name"],
+    -1
+  );
+  let idxTab = findHeaderIndex(
+    cCols,
+    ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheetname"],
+    -1
+  );
   if (idxDisplay === -1 || idxTab === -1) {
     const idIdx = cCols.findIndex((x) => strip(x) === "id");
     const indices = cCols.map((_, i) => i).filter((i) => i !== idIdx);
@@ -168,12 +203,12 @@ async function loadQuestionBank() {
     if (idxTab === -1 && indices.length > 1) idxTab = indices[1];
   }
   if (idxDisplay === -1) idxDisplay = 1; // column B
-  if (idxTab === -1)     idxTab     = 2; // column C
+  if (idxTab === -1) idxTab = 2; // column C
 
   const mappings = cRows
     .map((r) => ({
       display: normalizeSheetName(r[idxDisplay]),
-      tab:     normalizeSheetName(r[idxTab]),
+      tab: normalizeSheetName(r[idxTab]),
     }))
     .filter((m) => m.display && m.tab);
 
@@ -203,7 +238,9 @@ async function loadQuestionBank() {
 
 /* ───────────────────────── UI bits ───────────────────────── */
 const Card = ({ children, className = "" }) => (
-  <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>{children}</div>
+  <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>
+    {children}
+  </div>
 );
 
 function LinearProgress({ value, max }) {
@@ -216,13 +253,22 @@ function LinearProgress({ value, max }) {
 }
 
 function TimerRing({ secondsLeft, totalSeconds = 25 }) {
-  const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
+  const R = 18,
+    C = 2 * Math.PI * R,
+    p = Math.max(0, Math.min(1, secondsLeft / totalSeconds));
   return (
     <div className="relative w-10 h-10">
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
         <circle cx="22" cy="22" r={R} className="fill-none stroke-violet-100" strokeWidth="6" />
-        <circle cx="22" cy="22" r={R} className="fill-none stroke-violet-600 transition-[stroke-dasharray] duration-200"
-                strokeLinecap="round" strokeWidth="6" strokeDasharray={`${C * p} ${C}`} />
+        <circle
+          cx="22"
+          cy="22"
+          r={R}
+          className="fill-none stroke-violet-600 transition-[stroke-dasharray] duration-200"
+          strokeLinecap="round"
+          strokeWidth="6"
+          strokeDasharray={`${C * p} ${C}`}
+        />
       </svg>
       <div className="absolute inset-0 grid place-items-center text-[10px] font-semibold text-violet-700">
         0{Math.max(0, secondsLeft).toString().padStart(2, "0")}
@@ -242,7 +288,9 @@ function OptionButton({ label, isSelected, onClick, letter, disabled }) {
       )}
     >
       <span className="inline-flex items-center gap-3">
-        <span className="grid place-items-center w-6 h-6 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">{letter}</span>
+        <span className="grid place-items-center w-6 h-6 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">
+          {letter}
+        </span>
         <span className="text-[15px] text-slate-800">{label}</span>
       </span>
     </button>
@@ -289,19 +337,33 @@ function Home({ bank, onStartCategory, onSeeAll }) {
 
         <Card className="p-4 mb-6 bg-gradient-to-br from-fuchsia-500 to-indigo-600 text-white">
           <div className="flex items-center justify-between">
-            <div><p className="text-sm/5 opacity-90">Play and Win</p><p className="text-xs/5 opacity-80">Start a quiz now and enjoy</p></div>
-            <button onClick={() => onStartCategory(preview[0] || cats[0])} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
+            <div>
+              <p className="text-sm/5 opacity-90">Play and Win</p>
+              <p className="text-xs/5 opacity-80">Start a quiz now and enjoy</p>
+            </div>
+            <button
+              onClick={() => onStartCategory(preview[0] || cats[0])}
+              className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold"
+            >
+              Get Started
+            </button>
           </div>
         </Card>
 
         <div className="mb-4 flex items-center justify-between">
           <h3 className="text-[15px] font-semibold text-slate-900">Categories</h3>
-          <button onClick={onSeeAll} className="text-[13px] text-violet-700">See all</button>
+          <button onClick={onSeeAll} className="text-[13px] text-violet-700">
+            See all
+          </button>
         </div>
 
         <div className="grid grid-cols-3 gap-3 mb-7">
           {preview.map((c) => (
-            <button key={c} onClick={() => onStartCategory(c)} className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200">
+            <button
+              key={c}
+              onClick={() => onStartCategory(c)}
+              className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200"
+            >
               <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">＋</div>
               <div className="text-[13px] font-medium text-slate-800">{c}</div>
               <div className="text-[11px] text-slate-500">{(bank[c] || []).length} questions</div>
@@ -313,32 +375,65 @@ function Home({ bank, onStartCategory, onSeeAll }) {
   );
 }
 
+// STICKY header + search
 function AllCategories({ bank, onStartCategory, onBack }) {
   const [q, setQ] = useState("");
-  const cats = Object.keys(bank).filter((n) => n.toLowerCase().includes(q.toLowerCase()));
+  const cats = Object.keys(bank).filter((n) =>
+    n.toLowerCase().includes(q.toLowerCase())
+  );
+
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
-      <div className="w-full max-w-sm px-4 pb-20 pt-4">
-        <div className="flex items-center justify-between mb-4">
-          <button onClick={onBack} className="text-slate-600">←</button>
-          <div className="text-[15px] font-semibold">All Categories</div>
-          <span />
-        </div>
-        <div className="mb-4">
-          <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
-            <span className="text-slate-400">🔎</span>
-            <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search categories" className="w-full text-[14px] outline-none placeholder:text-slate-400" autoFocus />
+    <div className="min-h-dvh bg-[#f6f3ff]">
+      <div className="w-full max-w-sm mx-auto pb-20">
+        {/* Sticky header + search */}
+        <div className="sticky top-0 z-30 -mx-4 px-4 pt-4 pb-3 bg-[#f6f3ff]/95 backdrop-blur supports-[backdrop-filter]:bg-[#f6f3ff]/80 border-b border-violet-100">
+          <div className="flex items-center justify-between mb-3">
+            <button onClick={onBack} className="text-slate-600">
+              ←
+            </button>
+            <div className="text-[15px] font-semibold">All Categories</div>
+            <span className="w-4" />
+          </div>
+
+          <div>
+            <div className="flex items-center gap-2 bg-white/90 border border-violet-100 rounded-xl px-3 py-2 shadow-sm">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <input
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+                placeholder="Search categories"
+                className="w-full text-[14px] outline-none placeholder:text-slate-400 bg-transparent"
+                autoFocus
+              />
+            </div>
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-3">
-          {cats.map((c) => (
-            <button key={c} onClick={() => onStartCategory(c)} className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200">
-              <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">＋</div>
-              <div className="text-[12px] font-medium text-slate-800 text-left">{c}</div>
-              <div className="text-[11px] text-slate-500 text-left">{(bank[c] || []).length} questions</div>
-            </button>
-          ))}
+        {/* Content */}
+        <div className="px-4 pt-3">
+          <div className="grid grid-cols-3 gap-3">
+            {cats.map((c) => (
+              <button
+                key={c}
+                onClick={() => onStartCategory(c)}
+                className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition"
+              >
+                <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80">
+                    <circle cx="12" cy="12" r="9" />
+                    <path d="M8 12h8M12 8v8" />
+                  </svg>
+                </div>
+                <div className="text-[12px] font-medium text-slate-800 text-left">{c}</div>
+                <div className="text-[11px] text-slate-500 text-left">
+                  {(bank[c] || []).length} questions
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       </div>
     </div>
@@ -374,24 +469,35 @@ function Quiz({ category, bank, onFinish }) {
     setSel(null);
   }
 
-  const letters = ["a","b","c","d","e","f"];
+  const letters = ["a", "b", "c", "d", "e", "f"];
 
   return (
     <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
       <div className="w-full max-w-sm px-4 pb-8 pt-4">
         <div className="flex items-center justify-between mb-2">
-          <button onClick={() => onFinish({ score, total: qs.length, aborted: true })} className="text-slate-600">←</button>
-          <div className="text-[15px] font-semibold">{category}</div>
+          <button
+            onClick={() => onFinish({ score, total: qs.length, aborted: true })}
+            className="text-slate-600"
+          >
+            ←
+          </button>
+        <div className="text-[15px] font-semibold">{category}</div>
           <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
         </div>
-        <div className="text-[12px] text-slate-500 mb-2">Question <span className="font-semibold">{Math.min(i+1, qs.length)}/{qs.length || 0}</span></div>
-        <LinearProgress value={Math.min(i+1, qs.length)} max={Math.max(1, qs.length)} />
+        <div className="text-[12px] text-slate-500 mb-2">
+          Question <span className="font-semibold">{Math.min(i + 1, qs.length)}/{qs.length || 0}</span>
+        </div>
+        <LinearProgress value={Math.min(i + 1, qs.length)} max={Math.max(1, qs.length)} />
 
         {!q ? (
-          <Card className="p-4 mt-4 bg-white/90"><div className="text-[14px] text-slate-700">No questions found for this category.</div></Card>
+          <Card className="p-4 mt-4 bg-white/90">
+            <div className="text-[14px] text-slate-700">No questions found for this category.</div>
+          </Card>
         ) : (
           <>
-            <Card className="p-4 mt-4 mb-3 bg-white/90"><div className="text-[14px] font-semibold text-slate-800">{q.text}</div></Card>
+            <Card className="p-4 mt-4 mb-3 bg-white/90">
+              <div className="text-[14px] font-semibold text-slate-800">{q.text}</div>
+            </Card>
             <div className="mt-2">
               {q.options.map((opt, idx) => (
                 <OptionButton
@@ -404,7 +510,10 @@ function Quiz({ category, bank, onFinish }) {
                     if (advancing) return;
                     setSel(idx);
                     setAdvancing(true);
-                    setTimeout(() => { handleNext(idx); setAdvancing(false); }, 350);
+                    setTimeout(() => {
+                      handleNext(idx);
+                      setAdvancing(false);
+                    }, 350);
                   }}
                 />
               ))}
@@ -417,8 +526,12 @@ function Quiz({ category, bank, onFinish }) {
             <button
               onClick={() => handleNext()}
               disabled={(sel == null && secondsLeft > 0) || advancing}
-              className={cx("w-full py-3 rounded-xl text-white font-semibold",
-                sel == null && secondsLeft > 0 ? "bg-violet-300" : "bg-violet-600 hover:bg-violet-700")}
+              className={cx(
+                "w-full py-3 rounded-xl text-white font-semibold",
+                sel == null && secondsLeft > 0
+                  ? "bg-violet-300"
+                  : "bg-violet-600 hover:bg-violet-700"
+              )}
             >
               Next
             </button>
@@ -474,10 +587,15 @@ export default function App() {
         if (alive) setLoading(false);
       }
     })();
-    return () => { alive = false; };
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const startCategory = (c) => { setCategory(c); setView("quiz"); };
+  const startCategory = (c) => {
+    setCategory(c);
+    setView("quiz");
+  };
 
   if (loading) return <Splash label="Loading from Google Sheets…" />;
 
@@ -496,10 +614,18 @@ export default function App() {
 
   return (
     <div className="min-h-dvh">
-      {view === "home" && <Home bank={bank} onStartCategory={startCategory} onSeeAll={() => setView("categories")} />}
-      {view === "categories" && <AllCategories bank={bank} onStartCategory={startCategory} onBack={() => setView("home")} />}
-      {view === "quiz" && <Quiz category={category} bank={bank} onFinish={(r)=>{ setResult(r); setView("result"); }} />}
-      {view === "result" && <Result score={result.score} total={result.total} onBack={()=>setView("home")} />}
+      {view === "home" && (
+        <Home bank={bank} onStartCategory={startCategory} onSeeAll={() => setView("categories")} />
+      )}
+      {view === "categories" && (
+        <AllCategories bank={bank} onStartCategory={startCategory} onBack={() => setView("home")} />
+      )}
+      {view === "quiz" && (
+        <Quiz category={category} bank={bank} onFinish={(r) => { setResult(r); setView("result"); }} />
+      )}
+      {view === "result" && (
+        <Result score={result.score} total={result.total} onBack={() => setView("home")} />
+      )}
     </div>
   );
 }
