@@ -1,33 +1,20 @@
 // === src/App.jsx ===
-// Loads categories + questions from Google Sheets using GViz with /spreadsheets/d/{FILE_ID}.
+// Loads categories + questions from Google Sheets using /spreadsheets/d/{FILE_ID}/gviz/tq.
 // Home shows 6 categories; “See all” page with search; auto-advance on option click.
+// Header detection is tolerant (works even if GViz gives "A,B,C" or blank labels).
 
 import { useEffect, useState } from "react";
 
 /* ───────────────────────── 1) CONFIG ───────────────────────── */
-const GS_FILE_ID = "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"; // <-- put your FILE ID here
-const TAB_CATEGORIES = "Categories"; // columns: "Name (display)", "text (actual tab name)"
-const TAB_QUESTIONS  = "Questions";  // optional single sheet (Category, Question, optA..optD, correct)
+const GS_FILE_ID = "PUT_YOUR_FILE_ID_HERE"; // e.g. "16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o"
+const TAB_CATEGORIES = "Categories"; // has display name + tab name (or gid)
+const TAB_QUESTIONS = "Questions";   // optional single-sheet schema
 
 /* ───────────────────────── 2) UTILITIES ────────────────────── */
 const cx = (...xs) => xs.filter(Boolean).join(" ");
 const norm = (s) => String(s ?? "").trim();
 const lower = (s) => norm(s).toLowerCase();
-
-function pick(obj, names) {
-  const keys = Object.keys(obj);
-  for (const n of names) {
-    const want = lower(n);
-    let k = keys.find((kk) => lower(kk) === want);
-    if (k) return obj[k];
-  }
-  for (const n of names) {
-    const want = lower(n);
-    let k = keys.find((kk) => lower(kk).includes(want));
-    if (k) return obj[k];
-  }
-  return undefined;
-}
+const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, "");
 
 function parseGViz(text) {
   const t = String(text || "");
@@ -46,50 +33,74 @@ async function gvizFetch(sheetName, tq = "select *") {
   if (!res.ok) throw new Error(`GViz HTTP ${res.status}`);
   const raw = await res.text();
   const json = parseGViz(raw);
-  const cols = (json.table?.cols || []).map((c) => lower(c?.label || c?.id || ""));
-  const rows = (json.table?.rows || []).map((r) =>
-    (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : "")
+
+  // If header labels are missing, c.label will be "" and id may be "A", "B", ...
+  let cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`));
+  let rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : ""));
+
+  // If GViz didn’t send real labels and the first row looks like headers, use first row as headers.
+  const looksGeneric = cols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/.test(c));
+  const firstRowLooksHeader = (rows[0] || []).some((v) =>
+    /(name|display|tab|sheet|actual|question|opta|optb|optc|optd|correct)/i.test(String(v || ""))
   );
+  if (looksGeneric && firstRowLooksHeader) {
+    cols = (rows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
+    rows = rows.slice(1);
+  }
+
   return { cols, rows };
 }
 
+function findHeaderIndex(cols, candidates, fallbackIndex) {
+  const candNorms = candidates.map((c) => strip(c));
+  const colNorms = cols.map((c) => strip(c));
+  for (const c of candNorms) {
+    const i = colNorms.findIndex((cn) => cn === c || cn.includes(c));
+    if (i !== -1) return i;
+  }
+  return typeof fallbackIndex === "number" ? fallbackIndex : -1;
+}
+
 function mapQuestionRows(cols, rows, defaultCategory = "General") {
-  const h = (n) => cols.findIndex((c) => c === lower(n));
-  const idxQ  = h("question");
-  const idxA  = h("answer");
-  const idxA1 = h("opta"), idxB1 = h("optb"), idxC1 = h("optc"), idxD1 = h("optd");
-  const idxCat = h("category");
+  const idxQ   = findHeaderIndex(cols, ["question", "q", "title"]);
+  const idxAns = findHeaderIndex(cols, ["answer", "ans", "correcttext"]);
+  const idxA   = findHeaderIndex(cols, ["optA", "a", "option a", "1"]);
+  const idxB   = findHeaderIndex(cols, ["optB", "b", "option b", "2"]);
+  const idxC   = findHeaderIndex(cols, ["optC", "c", "option c", "3"]);
+  const idxD   = findHeaderIndex(cols, ["optD", "d", "option d", "4"]);
+  const idxCor = findHeaderIndex(cols, ["correct", "answerindex", "correct option"], -1);
+  const idxCat = findHeaderIndex(cols, ["category", "subject", "topic", "cat"], -1);
 
   const items = [];
   for (const r of rows) {
-    const q = norm(r[idxQ]);
-    const ansText = norm(r[idxA]);
-    const opts = [r[idxA1], r[idxB1], r[idxC1], r[idxD1]].map(norm).filter(Boolean);
-    if (!q || opts.length < 2) continue;
+    const text = norm(r[idxQ]);
+    const optA = norm(r[idxA]), optB = norm(r[idxB]), optC = norm(r[idxC]), optD = norm(r[idxD]);
+    const options = [optA, optB, optC, optD].filter(Boolean);
+    if (!text || options.length < 2) continue;
 
-    // correct can be in "correct" or derived from "answer"
-    let correctIdx = -1;
-    const idxCorrect = h("correct");
-    const correctRaw = norm(r[idxCorrect]);
+    let answerIndex = -1;
+    const correctRaw = norm(r[idxCor]);
+    const answerText = norm(r[idxAns]);
+
     if (correctRaw) {
       const v = correctRaw.toUpperCase();
-      if ("ABCD".includes(v) && opts[v.charCodeAt(0) - 65]) correctIdx = v.charCodeAt(0) - 65;
+      if ("ABCD".includes(v)) answerIndex = v.charCodeAt(0) - 65;
       else {
         const n = Number(v);
-        if (Number.isFinite(n) && n >= 1 && n <= opts.length) correctIdx = n - 1;
+        if (Number.isFinite(n) && n >= 1 && n <= options.length) answerIndex = n - 1;
       }
     }
-    if (correctIdx < 0 && ansText) {
-      const i = opts.findIndex((o) => lower(o) === lower(ansText));
-      if (i >= 0) correctIdx = i;
+    if (answerIndex < 0 && answerText) {
+      const i = options.findIndex((o) => strip(o) === strip(answerText));
+      if (i >= 0) answerIndex = i;
     }
-    if (correctIdx < 0) correctIdx = 0;
+    if (answerIndex < 0) answerIndex = 0;
 
     items.push({
-      cat: norm(r[idxCat]) || defaultCategory,
-      text: q,
-      options: opts,
-      answerIndex: correctIdx,
+      cat: idxCat >= 0 ? norm(r[idxCat]) || defaultCategory : defaultCategory,
+      text,
+      options,
+      answerIndex,
     });
   }
   return items;
@@ -119,13 +130,38 @@ async function loadQuestionBank() {
       const bank = toBank(items);
       if (Object.keys(bank).length) return bank;
     }
-  } catch {}
+  } catch { /* ignore */ }
 
   // Fallback: Categories + each tab listed there
-  const { cols: cCols, rows: cRows } = await gvizFetch(TAB_CATEGORIES);
-  const idxDisplay = cCols.findIndex((c) => /(name.*display|display|title|name)/.test(c));
-  const idxTab     = cCols.findIndex((c) => /(text.*actual|tab|sheet)/.test(c));
-  if (idxDisplay < 0 || idxTab < 0) throw new Error("Categories sheet missing required columns");
+  const { cols: cCols0, rows: cRows0 } = await gvizFetch(TAB_CATEGORIES);
+
+  // Detect headers robustly; if GViz gave A/B/C, try first row as header.
+  let cCols = cCols0, cRows = cRows0;
+  const generic = cCols.every((c) => c === "" || /^[a-z]\w*$/i.test(c) || /^col\d+$/.test(c));
+  const firstLooksHeader = (cRows[0] || []).some((v) =>
+    /(name|display|tab|sheet|actual)/i.test(String(v || ""))
+  );
+  if (generic && firstLooksHeader) {
+    cCols = (cRows[0] || []).map((v, i) => lower(v || `col${i + 1}`));
+    cRows = cRows.slice(1);
+  }
+
+  // Try to find indices by names; if not, fall back to common positions (B,C)
+  let idxDisplay = findHeaderIndex(cCols, ["name (display)", "display", "title", "name"]);
+  let idxTab     = findHeaderIndex(cCols, ["text (actual tab name)", "actual tab name", "tab", "sheet", "sheet name", "sheetname"]);
+
+  if (idxDisplay === -1 || idxTab === -1) {
+    // Heuristic: ignore an "id" column, then pick the next two columns as display+tab.
+    const idIdx = cCols.findIndex((x) => strip(x) === "id");
+    const indices = cCols.map((_, i) => i).filter((i) => i !== idIdx);
+    if (idxDisplay === -1 && indices.length) idxDisplay = indices[0];
+    if (idxTab === -1 && indices.length > 1) idxTab = indices[1];
+  }
+  if (idxDisplay === -1 || idxTab === -1) {
+    // Final fallback: assume B=display, C=tab
+    idxDisplay = idxDisplay === -1 ? 1 : idxDisplay;
+    idxTab = idxTab === -1 ? 2 : idxTab;
+  }
 
   const mappings = cRows
     .map((r) => ({ display: norm(r[idxDisplay]), tab: norm(r[idxTab]) }))
@@ -134,7 +170,21 @@ async function loadQuestionBank() {
   const bank = {};
   for (const m of mappings) {
     try {
-      const { cols, rows } = await gvizFetch(m.tab);
+      // If "tab" cell looks like a numeric gid, GViz supports gid=<n>
+      let cols, rows;
+      if (/^\d+$/.test(m.tab)) {
+        const url = new URL(`https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`);
+        url.searchParams.set("gid", m.tab);
+        url.searchParams.set("tqx", "out:json");
+        const res = await fetch(url.toString(), { cache: "no-store" });
+        const raw = await res.text();
+        const json = parseGViz(raw);
+        cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`));
+        rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => (c && c.v) != null ? String(c.v) : ""));
+      } else {
+        ({ cols, rows } = await gvizFetch(m.tab));
+      }
+
       const items = mapQuestionRows(cols, rows, m.display);
       bank[m.display] = items.map((q, i) => ({
         id: i + 1,
@@ -143,7 +193,7 @@ async function loadQuestionBank() {
         answerIndex: q.answerIndex,
       }));
     } catch (e) {
-      console.warn("Failed loading", m.tab, e);
+      console.warn("Failed loading tab", m.tab, e);
       bank[m.display] = [];
     }
   }
@@ -297,7 +347,6 @@ function Quiz({ category, bank, onFinish }) {
 
   const q = qs[i];
 
-  // timer per question
   useEffect(() => {
     setSecondsLeft(25);
     const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000);
@@ -409,6 +458,9 @@ export default function App() {
     let alive = true;
     (async () => {
       try {
+        if (!GS_FILE_ID || GS_FILE_ID.includes("PUT_YOUR_FILE_ID_HERE")) {
+          throw new Error("Missing GS_FILE_ID. Set the Spreadsheet file id.");
+        }
         const b = await loadQuestionBank();
         if (alive) setBank(b);
       } catch (e) {
@@ -430,7 +482,7 @@ export default function App() {
       <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
         <div className="max-w-sm px-4">
           <Card className="p-4">
-            <div className="text-[15px] font-semibold">Couldn’t load Google Sheet</div>
+            <div className="text-[15px] font-semibold">Couldn't load Google Sheet</div>
             <p className="text-sm text-slate-600 mt-2">{err}</p>
           </Card>
         </div>
