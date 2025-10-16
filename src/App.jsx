@@ -1,19 +1,19 @@
 // === src/App.jsx ===
-// Loads categories + questions from a published Google Sheet.
+// Loads categories + questions from a published Google Sheet (d/e/2PACX…).
 // Home shows 6 categories; “See all” opens an All Categories page with search.
-// Auto-advance to the next question after selecting an option.
-// Robust GViz → CSV fallback with sheet name → gid resolver.
+// Auto-advance to next question on option click.
+// No reliance on /pubhtml (CORS). We detect gid via CSV redirect URL and cache it.
 
 import { useEffect, useState } from "react";
 
-// ───────────────────────────────── Google Sheets config ─────────────────────────
+// ── Google Sheets config ────────────────────────────────────────────────────────
 const SHEET_PUBLISH_KEY =
   "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
 
-const TAB_CATEGORIES = "Categories"; // has "Name (display)" + "text (actual tab name)"
-const TAB_QUESTIONS  = "Questions";  // optional single-sheet schema (Category, Question, optA..optD, correct)
+const TAB_CATEGORIES = "Categories"; // columns: “Name (display)”, “text (actual tab name)”
+const TAB_QUESTIONS  = "Questions";  // optional single-sheet schema
 
-// ─────────────────────────────── Demo fallback (if Sheets fails) ───────────────
+// ── Demo fallback ───────────────────────────────────────────────────────────────
 const DEMO_QS = [
   { id: 1, text: "Which 3 numbers have the same answer whether they're added or multiplied together?", options: ["6, 3 and 4", "1, 2 and 3", "2, 4 and 6", "1, 2 and 4"], answerIndex: 1 },
   { id: 2, text: "What is 12 × 12?", options: ["124", "122", "144", "164"], answerIndex: 2 },
@@ -23,11 +23,10 @@ const DEMO_QS = [
 const demoSet = (n = 8) => Array.from({ length: n }, (_, i) => ({ ...DEMO_QS[i % DEMO_QS.length], id: i + 1 }));
 const FALLBACK_BANK = { Math: demoSet(8), Chemistry: demoSet(6), Physics: demoSet(6) };
 
-// ───────────────────────────────────── Helpers ──────────────────────────────────
+// ── Helpers ─────────────────────────────────────────────────────────────────────
 const BASE_E = `https://docs.google.com/spreadsheets/d/e/${SHEET_PUBLISH_KEY}`;
-
 const cx = (...xs) => xs.filter(Boolean).join(" ");
-const normKey = (s) => String(s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+const normKey  = (s) => String(s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
 const normName = (s) => String(s || "").toLowerCase().replace(/\s+/g, " ").trim();
 
 export function pick(obj, candidates) {
@@ -52,19 +51,16 @@ export function calcNewScore(prev, chosen, answerIndex) {
 export function inferAnswerIndexFromValue(answerRaw, options) {
   if (answerRaw == null) return -1;
   const val = String(answerRaw).trim();
-  // numeric "1..N"
   const n = Number(val);
-  if (Number.isFinite(n) && n >= 1 && n <= options.length) return n - 1;
-  // letter "A..H"
+  if (Number.isFinite(n) && n >= 1 && n <= options.length) return n - 1; // 1..N
   const letters = ["a","b","c","d","e","f","g","h"];
   const li = letters.indexOf(val.toLowerCase());
-  if (li >= 0 && li < options.length) return li;
-  // exact text match
+  if (li >= 0 && li < options.length) return li; // A..H
   const idx = options.findIndex(o => String(o).trim().toLowerCase() === val.toLowerCase());
   return idx >= 0 ? idx : -1;
 }
 
-// ───────────────────────────────── GViz helpers ────────────────────────────────
+// ── GViz helpers ────────────────────────────────────────────────────────────────
 const gvizUrl = (sheet, tq = "") => {
   const u = new URL(`${BASE_E}/gviz/tq`);
   u.searchParams.set("tqx", "out:json");
@@ -93,8 +89,20 @@ function tableToObjects(table) {
   });
 }
 
-// ───────────────────────────── CSV + gid resolver ──────────────────────────────
-export function parseCSV(csvText) {
+// ── CSV + “gid via redirect” resolver (no /pubhtml needed) ─────────────────────
+// We cache discovered name→gid in localStorage so we don’t probe every time.
+const GID_CACHE_KEY = "gid_cache_v1";
+function readGidCache() {
+  try { return new Map(JSON.parse(localStorage.getItem(GID_CACHE_KEY) || "[]")); }
+  catch { return new Map(); }
+}
+function writeGidCache(map) {
+  try { localStorage.setItem(GID_CACHE_KEY, JSON.stringify(Array.from(map.entries()))); }
+  catch {}
+}
+const gidCache = readGidCache();
+
+export async function parseCSV(csvText) {
   const rows = [];
   let i = 0, s = String(csvText ?? "").replace(/\r\n?/g, "\n");
   let field = "", cur = [], inQuotes = false;
@@ -120,80 +128,37 @@ export function parseCSV(csvText) {
     .map((r) => Object.fromEntries(headers.map((h, idx) => [h, (r[idx] ?? "").trim()])));
 }
 
-// Resolve sheet name → gid by scraping the published HTML (robust)
-let __gidMapPromise = null;
-function stripHTML(t) { return String(t || "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim(); }
-
-async function getGidMap() {
-  if (__gidMapPromise) return __gidMapPromise;
-  __gidMapPromise = (async () => {
-    try {
-      const res = await fetch(`${BASE_E}/pubhtml`, { mode: "cors" });
-      const html = await res.text();
-      const map = {};
-      // anchors with #gid=...
-      const reA = /<a[^>]*href="[^"]*[#?]gid=(\d+)[^"]*"[^>]*>([\s\S]*?)<\/a>/g;
-      // buttons with data-gid and inner <span class="name">Sheet Name</span>
-      const reB = /data-gid="(\d+)"[\s\S]*?<span[^>]*class="name"[^>]*>([\s\S]*?)<\/span>/g;
-      let m;
-      while ((m = reA.exec(html))) map[normName(stripHTML(m[2]))] = m[1];
-      while ((m = reB.exec(html))) map[normName(stripHTML(m[2]))] = m[1];
-      return map;
-    } catch (e) {
-      console.warn("gid map parse failed", e);
-      return {};
-    }
-  })();
-  return __gidMapPromise;
-}
-
-async function resolveGidFor(sheetNameRaw) {
-  const sheetName = String(sheetNameRaw ?? "");
-  if (/^\d+$/.test(sheetName.trim())) return sheetName.trim(); // Allow gid directly in the cell
-  const map = await getGidMap();
-  const key = normName(sheetName);
-  let gid = map[key];
-  if (!gid) gid = Object.entries(map).find(([n]) => n === key)?.[1];
-  if (!gid) gid = Object.entries(map).find(([n]) => n.includes(key))?.[1];
-  return gid || null;
-}
-
-async function fetchCSVRows(sheetName) {
-  const gid = await resolveGidFor(sheetName);
-  if (gid) {
-    const u = new URL(`${BASE_E}/pub`);
-    u.searchParams.set("output", "csv");
-    u.searchParams.set("gid", gid);
-    u.searchParams.set("single", "true");
-    const res = await fetch(u.toString(), { mode: "cors" });
-    const txt = await res.text();
-    return parseCSV(txt);
-  }
-  // Fallback by name (sometimes ignored for /d/e publishes)
-  const u2 = new URL(`${BASE_E}/pub`);
-  u2.searchParams.set("output", "csv");
-  u2.searchParams.set("sheet", sheetName);
-  const res2 = await fetch(u2.toString(), { mode: "cors" });
-  const txt2 = await res2.text();
-  return parseCSV(txt2);
-}
-
-async function fetchGVizByGid(sheetName) {
-  const gid = await resolveGidFor(sheetName);
-  if (!gid) return [];
-  const u = new URL(`${BASE_E}/gviz/tq`);
-  u.searchParams.set("tqx", "out:json");
-  u.searchParams.set("gid", gid);
+/** Try to fetch CSV by name; capture gid from the final response URL if present. */
+async function fetchCSVByNameProbe(sheetName) {
+  const u = new URL(`${BASE_E}/pub`);
+  u.searchParams.set("output", "csv");
+  u.searchParams.set("sheet", sheetName);
+  u.searchParams.set("single", "true");
   const res = await fetch(u.toString(), { mode: "cors" });
   const txt = await res.text();
-  const json = parseGVizTextToJSON(txt);
-  if (json.status === "ok" && (json.table?.rows?.length ?? 0) > 0) {
-    return tableToObjects(json.table);
+  // If Google redirected to a ?gid=... URL, many browsers expose that on res.url
+  const gidMatch = /[?&#]gid=(\d+)/.exec(res.url || "");
+  if (gidMatch) {
+    gidCache.set(normName(sheetName), gidMatch[1]);
+    writeGidCache(gidCache);
   }
-  return [];
+  return parseCSV(txt);
+}
+
+/** Fetch CSV explicitly by gid. */
+async function fetchCSVByGid(gid) {
+  const u = new URL(`${BASE_E}/pub`);
+  u.searchParams.set("output", "csv");
+  u.searchParams.set("gid", gid);
+  u.searchParams.set("single", "true");
+  const res = await fetch(u.toString(), { mode: "cors" });
+  const txt = await res.text();
+  return parseCSV(txt);
 }
 
 async function fetchSheetRows(sheetName) {
+  const key = normName(sheetName);
+
   // 1) GViz by NAME
   try {
     const res = await fetch(gvizUrl(sheetName), { mode: "cors" });
@@ -203,13 +168,42 @@ async function fetchSheetRows(sheetName) {
       return tableToObjects(json.table);
     }
   } catch {}
-  // 2) GViz by GID
-  try { const byGid = await fetchGVizByGid(sheetName); if (byGid.length) return byGid; } catch {}
-  // 3) CSV (gid or name)
-  try { return await fetchCSVRows(sheetName); } catch { return []; }
+
+  // 2) GViz by cached GID
+  const cached = gidCache.get(key);
+  if (cached) {
+    try {
+      const u = new URL(`${BASE_E}/gviz/tq`);
+      u.searchParams.set("tqx", "out:json");
+      u.searchParams.set("gid", cached);
+      const res = await fetch(u.toString(), { mode: "cors" });
+      const txt = await res.text();
+      const json = parseGVizTextToJSON(txt);
+      if (json.status === "ok" && (json.table?.rows?.length ?? 0) > 0) {
+        return tableToObjects(json.table);
+      }
+    } catch {}
+  }
+
+  // 3) CSV by NAME (and learn gid from redirect)
+  try {
+    const rows = await fetchCSVByNameProbe(sheetName);
+    if (rows.length) return rows;
+  } catch {}
+
+  // 4) CSV by cached GID (in case 3 learned it but rows were empty due to headers)
+  const cached2 = gidCache.get(key);
+  if (cached2) {
+    try {
+      const rows = await fetchCSVByGid(cached2);
+      if (rows.length) return rows;
+    } catch {}
+  }
+
+  return [];
 }
 
-// ────────────────────── Convert rows → question bank by category ───────────────
+// ── Convert rows → question bank by category ────────────────────────────────────
 function parseQuestionRows(rows, defaultCategory = "General") {
   const bank = {};
   for (const r of rows) {
@@ -219,8 +213,8 @@ function parseQuestionRows(rows, defaultCategory = "General") {
     const B = pick(r, ["optB", "B", "Option B", "2"]) ?? "";
     const C = pick(r, ["optC", "C", "Option C", "3"]) ?? "";
     const D = pick(r, ["optD", "D", "Option D", "4"]) ?? "";
-    const answerRaw   = pick(r, ["correct", "Correct", "AnswerIndex", "Correct Option", "Ans"]);
-    const answerText  = pick(r, ["answer", "Answer", "CorrectText"]);
+    const answerRaw  = pick(r, ["correct", "Correct", "AnswerIndex", "Correct Option", "Ans"]);
+    const answerText = pick(r, ["answer", "Answer", "CorrectText"]);
 
     const options = [A, B, C, D].filter(x => String(x).length > 0);
     if (!text || options.length < 2) continue;
@@ -230,7 +224,7 @@ function parseQuestionRows(rows, defaultCategory = "General") {
       const idx = options.findIndex(o => String(o).trim().toLowerCase() === String(answerText).trim().toLowerCase());
       if (idx >= 0) answerIndex = idx;
     }
-    if (answerIndex < 0) answerIndex = 0; // safe default
+    if (answerIndex < 0) answerIndex = 0;
 
     if (!bank[cat]) bank[cat] = [];
     bank[cat].push({ id: bank[cat].length + 1, text, options, answerIndex });
@@ -238,7 +232,7 @@ function parseQuestionRows(rows, defaultCategory = "General") {
   return bank;
 }
 
-// ─────────────────────────── Loaders for both schemas ──────────────────────────
+// ── Loaders for both schemas ───────────────────────────────────────────────────
 async function loadFromCategoryTabs() {
   const catRows = await fetchSheetRows(TAB_CATEGORIES);
   const mappings = catRows
@@ -268,21 +262,17 @@ async function loadFromCategoryTabs() {
 }
 
 async function loadQuestionBank() {
-  // Try the single "Questions" sheet first
   const rows = await fetchSheetRows(TAB_QUESTIONS).catch(() => []);
   if (rows.length) {
     const bank = parseQuestionRows(rows);
     if (Object.keys(bank).length) return bank;
   }
-  // Then fall back to Categories + per-tab
   const bank2 = await loadFromCategoryTabs();
   if (Object.keys(bank2).length) return bank2;
-
-  // Finally, demo data
   return FALLBACK_BANK;
 }
 
-// ─────────────────────────────── Reusable UI pieces ────────────────────────────
+// ── UI pieces ───────────────────────────────────────────────────────────────────
 const Card = ({ children, className = "" }) => (
   <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>{children}</div>
 );
@@ -352,8 +342,8 @@ function Splash({ label = "Loading…" }) {
   );
 }
 
-// ───────────────────────────────────── Views ────────────────────────────────────
-// Home: only 6 categories + “See all”
+// ── Views ───────────────────────────────────────────────────────────────────────
+// Home: 6 categories + “See all”
 function Home({ bank, onStartCategory, onSeeAll }) {
   const categories = Object.keys(bank);
   const preview = categories.slice(0, 6);
@@ -373,7 +363,7 @@ function Home({ bank, onStartCategory, onSeeAll }) {
           <div className="flex items-center gap-1 text-violet-700 font-semibold"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.3L12 17l-5.5 2.6 1-6.3L3 8.9 9 8z"/></svg>200</div>
         </div>
 
-        {/* Search (visual only here) */}
+        {/* Search (visual only) */}
         <div className="mb-5">
           <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
@@ -579,7 +569,7 @@ function Result({ score, total, onBack }) {
   );
 }
 
-// ─────────────────────────────────── App Shell ──────────────────────────────────
+// ── App Shell ───────────────────────────────────────────────────────────────────
 export default function App() {
   const [view, setView] = useState("home"); // home | categories | quiz | result
   const [category, setCategory] = useState("Math");
@@ -628,32 +618,16 @@ export default function App() {
   return (
     <div className="min-h-dvh">
       {view === "home" && (
-        <Home
-          bank={bank}
-          onStartCategory={startCategory}
-          onSeeAll={() => setView("categories")}
-        />
+        <Home bank={bank} onStartCategory={startCategory} onSeeAll={() => setView("categories")} />
       )}
       {view === "categories" && (
-        <AllCategories
-          bank={bank}
-          onStartCategory={startCategory}
-          onBack={() => setView("home")}
-        />
+        <AllCategories bank={bank} onStartCategory={startCategory} onBack={() => setView("home")} />
       )}
       {view === "quiz" && (
-        <Quiz
-          category={category}
-          bank={bank}
-          onFinish={(r) => { setResult(r); setView("result"); }}
-        />
+        <Quiz category={category} bank={bank} onFinish={(r) => { setResult(r); setView("result"); }} />
       )}
       {view === "result" && (
-        <Result
-          score={result.score}
-          total={result.total}
-          onBack={() => setView("home")}
-        />
+        <Result score={result.score} total={result.total} onBack={() => setView("home")} />
       )}
     </div>
   );
