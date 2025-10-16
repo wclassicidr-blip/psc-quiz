@@ -1,380 +1,446 @@
-// src/App.jsx
-import React, { useEffect, useMemo, useState } from "react";
 
-/** ===================== CONFIG ===================== */
-// PASTE YOUR PUBLISHED SHEET ID BELOW (2PACX-...).
-// Ensure: File → Share → Publish to web (the entire doc) is ON.
-const PUB_ID = "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
+// === src/App.jsx ===
+import { useEffect, useState } from "react";
 
-// Published endpoints
-const PUB_HTML  = `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pubhtml?widget=true&headers=false`;
-const CSV_URL   = (gid) =>
-  `https://docs.google.com/spreadsheets/d/e/${PUB_ID}/pub?gid=${gid}&single=true&output=csv`;
+// Google Sheets config — your published /d/e key
+const SHEET_PUBLISH_KEY =
+  "2PACX-1vR4PuWTfq2838_kUaKcwmeWlKb5OtEmL6YqUX4DjPcrb6EaJfW-monSIqbZTiI3ZFrE6GBFHaP7k95A";
 
-/** ===================== UTILITIES ===================== */
-// Robust CSV parser (handles quotes, commas, newlines)
-function parseCSV(text) {
+const TAB_CATEGORIES = "Categories"; // case-insensitive
+const TAB_QUESTIONS = "Questions";   // optional schema 1
+
+// Demo fallback
+const DEMO_QS = [
+  { id: 1, text: "Which 3 numbers have the same answer whether they're added or multiplied together?", options: ["6, 3 and 4", "1, 2 and 3", "2, 4 and 6", "1, 2 and 4"], answerIndex: 1 },
+  { id: 2, text: "What is 12 × 12?", options: ["124", "122", "144", "164"], answerIndex: 2 },
+  { id: 3, text: "The square root of 81 is…", options: ["7", "8", "9", "10"], answerIndex: 2 },
+  { id: 4, text: "What is 3/5 as a percentage?", options: ["40%", "50%", "55%", "60%"], answerIndex: 3 },
+];
+const demoSet = (n = 8) => Array.from({ length: n }, (_, i) => ({ ...DEMO_QS[i % DEMO_QS.length], id: i + 1 }));
+const FALLBACK_BANK = { Math: demoSet(8), Chemistry: demoSet(6), Physics: demoSet(6) };
+
+// Helpers
+export function calcNewScore(prev, chosen, answerIndex) { return prev + (chosen === answerIndex ? 1 : 0); }
+export function inferAnswerIndexFromValue(answerRaw, options) {
+  if (answerRaw == null) return -1;
+  const val = String(answerRaw).trim();
+  const n = Number(val);
+  if (Number.isFinite(n) && n >= 1 && n <= options.length) return n - 1;
+  const L = val.toLowerCase();
+  const letters = ["a","b","c","d","e","f","g","h"];
+  const li = letters.indexOf(L);
+  if (li >= 0 && li < options.length) return li;
+  const idx = options.findIndex((o) => String(o).trim().toLowerCase() === L);
+  return idx >= 0 ? idx : -1;
+}
+const normKey = (s) => String(s || "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, "");
+export function pick(obj, candidates) {
+  const keys = Object.keys(obj);
+  for (const cand of candidates) {
+    const want = normKey(cand);
+    const k = keys.find((kk) => normKey(kk) === want);
+    if (k) return obj[k];
+  }
+  for (const cand of candidates) {
+    const want = normKey(cand);
+    const k = keys.find((kk) => normKey(kk).includes(want));
+    if (k) return obj[k];
+  }
+  return undefined;
+}
+
+// GViz + CSV fetchers
+const BASE_E = `https://docs.google.com/spreadsheets/d/e/${SHEET_PUBLISH_KEY}`;
+const gvizUrl = (sheet, tq = "") => {
+  const u = new URL(`${BASE_E}/gviz/tq`);
+  u.searchParams.set("tqx", "out:json");
+  u.searchParams.set("sheet", sheet);
+  if (tq) u.searchParams.set("tq", tq);
+  return u.toString();
+};
+export function parseGVizTextToJSON(text) {
+  const t = String(text || "");
+  const m = t.match(/setResponse\((.*)\)\s*;?\s*$/s);
+  if (m) { try { return JSON.parse(m[1]); } catch {} }
+  const trimmed = t.trim();
+  if (trimmed.startsWith("{") && trimmed.endsWith("}")) { try { return JSON.parse(trimmed); } catch {} }
+  const start = t.indexOf("{"); const end = t.lastIndexOf("}");
+  if (start >= 0 && end > start) { const body = t.slice(start, end + 1); try { return JSON.parse(body); } catch {} }
+  const snippet = t.slice(0, 160).replace(/\s+/g, " ");
+  throw new Error(`GViz parse error: unexpected response. Head: ${snippet}`);
+}
+function tableToObjects(table) {
+  const cols = (table.cols || []).map((c, i) => (c?.label || c?.id || `col${i}`));
+  return (table.rows || []).map((r) => {
+    const obj = {}; (r.c || []).forEach((cell, i) => (obj[cols[i]] = cell?.v ?? "")); return obj;
+  });
+}
+
+// CSV parser + fetch with gid resolver
+export function parseCSV(csvText) {
   const rows = [];
-  let i = 0, s = text, cell = "", row = [], inq = false;
+  let i = 0, field = '', cur = [], inQuotes = false;
+  const pushField = () => { cur.push(field); field = ''; };
+  const pushRow = () => { rows.push(cur); cur = []; };
+  const s = csvText.replace(/\r\n?/g, "\n");
   while (i < s.length) {
     const ch = s[i++];
-    if (inq) {
-      if (ch === '"' && s[i] === '"') { cell += '"'; i++; }
-      else if (ch === '"') inq = false;
-      else cell += ch;
+    if (inQuotes) {
+      if (ch === '"') {
+        if (s[i] === '"') { field += '"'; i++; } else { inQuotes = false; }
+      } else { field += ch; }
     } else {
-      if (ch === '"') inq = true;
-      else if (ch === ",") { row.push(cell); cell = ""; }
-      else if (ch === "\n") { row.push(cell); rows.push(row); row = []; cell = ""; }
-      else if (ch === "\r") { /* ignore */ }
-      else cell += ch;
+      if (ch === '"') inQuotes = true;
+      else if (ch === ',') pushField();
+      else if (ch === '\n') { pushField(); pushRow(); }
+      else field += ch;
     }
   }
-  if (cell.length || row.length) { row.push(cell); rows.push(row); }
-  return rows;
+  pushField(); pushRow();
+  if (!rows.length) return [];
+  const headers = rows[0].map((h) => h.trim());
+  return rows.slice(1).filter(r => r.length && r.some(x=>x!==""))
+    .map((r) => Object.fromEntries(headers.map((h, idx) => [h, (r[idx] ?? '').trim()])));
 }
-
-async function fetchSheetTabs() {
-  // Parse pubhtml safely (no regex literals that break esbuild)
-  const res  = await fetch(PUB_HTML, { credentials: "omit" });
-  if (!res.ok) throw new Error(`Failed to load pubhtml (${res.status})`);
-  const html = await res.text();
-  const doc  = new DOMParser().parseFromString(html, "text/html");
-  const map = {};
-  [...doc.querySelectorAll('a[href*="gid="]')].forEach(a => {
-    const href = a.getAttribute("href") || "";
-    const m = /gid=(\d+)/.exec(href);
-    if (m) {
-      const gid   = m[1];
-      const title = (a.textContent || "").trim().replace(/\s+/g, " ");
-      if (title) map[title] = gid;
-    }
-  });
-  if (!Object.keys(map).length) {
-    throw new Error("No tabs found. Check if the sheet is Published to the web.");
+// Resolve sheet name → gid by scraping the public HTML
+let __gidMapPromise = null;
+function stripHTML(t) { return String(t || "").replace(/<[^>]*>/g, "").replace(/&amp;/g, "&").trim(); }
+async function getGidMap() {
+  if (__gidMapPromise) return __gidMapPromise;
+  __gidMapPromise = (async () => {
+    try {
+      const res = await fetch(`${BASE_E}/pubhtml`, { mode: "cors" });
+      const html = await res.text();
+      const map = {};
+      const re1 = /<a[^>]*href=\\"[^\"]*gid=(\\d+)[^\"]*\\"[^>]*>([\\s\\S]*?)<\\/a>/g;
+      let m;
+      while ((m = re1.exec(html))) {
+        const gid = m[1]; const name = stripHTML(m[2]); if (name) map[name] = gid;
+      }
+      return map;
+    } catch (e) { console.warn("gid map parse failed", e); return {}; }
+  })();
+  return __gidMapPromise;
+}
+async function fetchCSVRows(sheetName) {
+  const map = await getGidMap();
+  const gid = map[sheetName] || map[sheetName.trim()] || map[sheetName.replace(/\s+/g, " ")];
+  if (gid) {
+    const u = new URL(`${BASE_E}/pub`);
+    u.searchParams.set("output", "csv");
+    u.searchParams.set("gid", gid);
+    u.searchParams.set("single", "true");
+    const res = await fetch(u.toString(), { mode: "cors" });
+    const txt = await res.text();
+    return parseCSV(txt);
   }
-  return map; // { "Category Title": "123456789", ... }
+  const u2 = new URL(`${BASE_E}/pub`);
+  u2.searchParams.set("output", "csv");
+  u2.searchParams.set("sheet", sheetName);
+  const res2 = await fetch(u2.toString(), { mode: "cors" });
+  const txt2 = await res2.text();
+  return parseCSV(txt2);
+}
+async function fetchSheetRows(sheetName) {
+  try {
+    const url = gvizUrl(sheetName);
+    const res = await fetch(url, { mode: "cors" });
+    const txt = await res.text();
+    const json = parseGVizTextToJSON(txt);
+    if (json.status === "ok") return tableToObjects(json.table);
+  } catch (e) {}
+  try { return await fetchCSVRows(sheetName); } catch (e) {
+    console.error("Both GViz and CSV failed for", sheetName, e);
+    return [];
+  }
 }
 
-async function fetchSheetRowsCSV(gid) {
-  const r = await fetch(CSV_URL(gid), { credentials: "omit" });
-  if (!r.ok) throw new Error(`Failed CSV for gid=${gid} (${r.status})`);
-  const text = await r.text();
-  const rows = parseCSV(text);
-  if (!rows.length) return { header: [], rows: [] };
-  const [header, ...body] = rows;
-  return { header, rows: body };
+// Parse question rows (supports your headers)
+function parseQuestionRows(rows, defaultCategory = "General") {
+  const bank = {};
+  for (const r of rows) {
+    const cat = pick(r, ["Category", "Subject", "Topic", "Cat"]) || defaultCategory;
+    const text = pick(r, ["question", "Question", "Text", "Q", "Title"]);
+    const A = pick(r, ["optA", "A", "Option A", "1"]) ?? "";
+    const B = pick(r, ["optB", "B", "Option B", "2"]) ?? "";
+    const C = pick(r, ["optC", "C", "Option C", "3"]) ?? "";
+    const D = pick(r, ["optD", "D", "Option D", "4"]) ?? "";
+    const answerRaw = pick(r, ["correct", "AnswerIndex", "Answer", "Correct", "Correct Option", "Ans"]);
+    const options = [A,B,C,D].filter(x => String(x).length > 0);
+    if (!text || options.length < 2) continue;
+    let answerIndex = inferAnswerIndexFromValue(answerRaw, options);
+    if (answerIndex < 0) answerIndex = 0; // fallback
+    if (!bank[cat]) bank[cat] = [];
+    bank[cat].push({ id: bank[cat].length + 1, text, options, answerIndex });
+  }
+  return bank;
 }
 
-function rowsToQuestions(header, rows) {
-  const norm = (s) => String(s || "").trim().toLowerCase();
-  const idx = Object.fromEntries(header.map((h, i) => [norm(h), i]));
-  const get = (r, k) => r[idx[k]] ?? "";
-
-  return rows
-    .filter(r => r.some(c => (c || "").trim()))
-    .map((r, i) => {
-      const q = get(r, "question") || get(r, "q") || get(r, "questions") || "";
-      const ans = get(r, "answer") || get(r, "ans") || "";
-      const id  = get(r, "id") || String(i + 1);
-
-      const optKeys = [
-        "a","b","c","d","e",
-        "option a","option b","option c","option d","option e",
-        "option1","option2","option3","option4","option5"
-      ];
-      const opts = optKeys.map(k => get(r, k)).filter(Boolean);
-
-      return { id, question: q, options: opts, answer: ans };
-    })
-    .filter(x => x.question); // keep only valid questions
+// Loaders for schema 2 (Categories + per-tab) or schema 1
+async function loadFromCategoryTabs() {
+  const catRows = await fetchSheetRows(TAB_CATEGORIES);
+  const mappings = catRows
+    .map((r) => ({
+      display: pick(r, ["name(display)", "displayname", "title", "name"]) || pick(r, ["Name (display)"]),
+      tab: pick(r, ["text(actualtabname)", "text", "tab", "sheet", "sheetname", "actualtabname"]) || pick(r, ["text (actual tab name)"]),
+    }))
+    .filter((m) => m.display && m.tab);
+  const results = await Promise.all(mappings.map(async (m) => {
+    try {
+      const rows = await fetchSheetRows(m.tab);
+      const b = parseQuestionRows(rows, m.display);
+      const list = b[m.display] || b[Object.keys(b)[0]] || [];
+      return [m.display, list];
+    } catch (e) {
+      console.warn("Failed to load tab", m.tab, e);
+      return [m.display, []];
+    }
+  }));
+  const bank = {}; for (const [name, list] of results) bank[name] = list; return bank;
+}
+async function loadQuestionBank() {
+  const questionsRows = await fetchSheetRows(TAB_QUESTIONS).catch(() => []);
+  if (questionsRows.length) {
+    const bank = parseQuestionRows(questionsRows);
+    if (Object.keys(bank).length) return bank;
+  }
+  const bank2 = await loadFromCategoryTabs();
+  if (Object.keys(bank2).length) return bank2;
+  return FALLBACK_BANK;
 }
 
-/** ===================== APP ===================== */
+// UI helpers
+const cx = (...xs) => xs.filter(Boolean).join(" ");
+const Card = ({ children, className = "" }) => (
+  <div className={cx("rounded-2xl bg-white shadow-sm border border-violet-100", className)}>{children}</div>
+);
+function Pill({ children, intent = "default" }) {
+  const styles = { default: "bg-violet-100 text-violet-700", success: "bg-emerald-100 text-emerald-700", warning: "bg-amber-100 text-amber-700" }[intent];
+  return <span className={cx("inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-medium", styles)}>{children}</span>;
+}
+function LinearProgress({ value, max }) {
+  const pct = Math.min(100, Math.max(0, (value / max) * 100));
+  return (
+    <div className="w-full h-1.5 bg-violet-100 rounded-full overflow-hidden">
+      <div className="h-full bg-violet-600" style={{ width: `${pct}%` }} />
+    </div>
+  );
+}
+function TimerRing({ secondsLeft, totalSeconds = 25 }) {
+  const radius = 18; const C = 2 * Math.PI * radius; const progress = Math.max(0, Math.min(1, secondsLeft / totalSeconds)); const dash = C * progress;
+  return (
+    <div className="relative w-10 h-10">
+      <svg viewBox="0 0 44 44" className="absolute inset-0 rotate-[-90deg]">
+        <circle cx="22" cy="22" r={radius} className="fill-none stroke-violet-100" strokeWidth="6" />
+        <circle cx="22" cy="22" r={radius} className="fill-none stroke-violet-600 transition-[stroke-dasharray] duration-200 ease-linear" strokeLinecap="round" strokeWidth="6" strokeDasharray={`${dash} ${C}`} />
+      </svg>
+      <div className="absolute inset-0 grid place-items-center text-[10px] font-semibold text-violet-700">0{Math.max(0, secondsLeft).toString().padStart(2, "0")}</div>
+    </div>
+  );
+}
+function OptionButton({ label, isSelected, onClick, letter, disabled }) {
+  return (
+    <button disabled={disabled} onClick={onClick} className={cx("w-full text-left rounded-xl border-2 px-4 py-3 mb-3 transition-all","bg-white/80 hover:bg-white focus:outline-none", isSelected?"border-violet-600 ring-2 ring-violet-200":"border-transparent hover:border-violet-200")}>
+      <span className="inline-flex items-center gap-3">
+        <span className="grid place-items-center w-6 h-6 rounded-full text-xs font-semibold bg-violet-100 text-violet-700">{letter}</span>
+        <span className="text-[15px] text-slate-800">{label}</span>
+      </span>
+    </button>
+  );
+}
+function Splash({ label = "Loading…" }) {
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="text-center">
+        <div className="w-14 h-14 rounded-full border-4 border-violet-200 border-t-violet-600 animate-spin mx-auto mb-3" />
+        <div className="text-violet-700 font-semibold">{label}</div>
+      </div>
+    </div>
+  );
+}
+
+// Views
+function Home({ bank, onStartCategory }) {
+  const categories = Object.keys(bank);
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="w-full max-w-sm px-4 pb-24 pt-6">
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-violet-200 grid place-items-center"><span className="text-violet-700 text-sm font-semibold">K</span></div>
+            <div>
+              <p className="text-[13px] text-slate-500">Hi, Kenzy</p>
+              <p className="text-[15px] font-semibold text-slate-900">Ready to play</p>
+            </div>
+          </div>
+          <div className="flex items-center gap-1 text-violet-700 font-semibold"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.3L12 17l-5.5 2.6 1-6.3L3 8.9 9 8z"/></svg>200</div>
+        </div>
+
+        <div className="mb-5">
+          <div className="flex items-center gap-2 bg-white/80 border border-violet-100 rounded-xl px-3 py-2">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
+            <input className="w-full text-[14px] outline-none placeholder:text-slate-400" placeholder="Search for a quiz"/>
+          </div>
+        </div>
+
+        <Card className="p-4 mb-6 bg-gradient-to-br from-fuchsia-500 to-indigo-600 text-white">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm/5 opacity-90">Play and Win</p>
+              <p className="text-xs/5 opacity-80">Start a quiz now and enjoy</p>
+            </div>
+            <button onClick={() => onStartCategory(categories[0] || "Math")} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
+          </div>
+        </Card>
+
+        <div className="mb-4 flex items-center justify-between"><h3 className="text-[15px] font-semibold text-slate-900">Categories</h3><button className="text-[13px] text-violet-700">See all</button></div>
+        <div className="grid grid-cols-3 gap-3 mb-7">
+          {categories.map((c) => (
+            <button key={c} onClick={() => onStartCategory(c)} className="rounded-2xl p-3 bg-white border border-violet-100 hover:border-violet-200 active:scale-[.99] transition">
+              <div className="w-10 h-10 mb-2 rounded-xl bg-violet-50 grid place-items-center text-violet-700">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
+              </div>
+              <div className="text-[13px] font-medium text-slate-800">{c}</div>
+              <div className="text-[11px] text-slate-500">{bank[c]?.length || 0} questions</div>
+            </button>
+          ))}
+        </div>
+
+        <div className="mb-3">
+          <h3 className="text-[15px] font-semibold text-slate-900 mb-2">Recent</h3>
+          <Card className="p-3 mb-2 flex items-center justify-between">
+            <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20V10"/><path d="M6 20V14"/><path d="M18 20V4"/></svg></div><div><div className="text-[14px] font-medium text-slate-900">Biology</div><div className="text-[12px] text-slate-500">12 questions</div></div></div>
+            <Pill intent="success">Completed</Pill>
+          </Card>
+          <Card className="p-3 flex items-center justify-between">
+            <div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-violet-50 grid place-items-center text-violet-700"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 4h18M3 10h18M3 16h18"/></svg></div><div><div className="text-[14px] font-medium text-slate-900">Geography</div><div className="text-[12px] text-slate-500">20 questions</div></div></div>
+            <Pill intent="warning">Incomplete</Pill>
+          </Card>
+        </div>
+
+        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-sm px-4"><div className="rounded-2xl bg-white border border-violet-100 py-2 px-6 flex items-center justify-between text-slate-600"><span className="text-violet-700">●</span><span>▤</span><span>♡</span><span>⚙︎</span></div></div></div>
+      </div>
+    </div>
+  );
+}
+
+function Quiz({ category, bank, onFinish }) {
+  const TOTAL = (bank[category] || []).length;
+  const [index, setIndex] = useState(0);
+  const [selected, setSelected] = useState(null);
+  const [score, setScore] = useState(0);
+  const [secondsLeft, setSecondsLeft] = useState(25);
+  const [advancing, setAdvancing] = useState(false);
+  const q = (bank[category] || [])[index];
+
+  useEffect(() => { setSecondsLeft(25); const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000); return () => clearInterval(id); }, [index]);
+  useEffect(() => { if (secondsLeft <= 0 && !advancing) handleNext(); }, [secondsLeft, advancing]);
+
+  function handleNext(chosenIndex = selected) {
+    if (!q) return onFinish({ score, total: TOTAL });
+    const newScore = calcNewScore(score, chosenIndex, q?.answerIndex);
+    if (index + 1 >= TOTAL) { onFinish({ score: newScore, total: TOTAL }); return; }
+    setScore(newScore); setIndex((i) => i + 1); setSelected(null);
+  }
+
+  const letters = ["a", "b", "c", "d", "e", "f"];
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="w-full max-w-sm px-4 pb-8 pt-4">
+        <div className="flex items-center justify-between mb-2">
+          <button onClick={() => onFinish({ score, total: TOTAL, aborted: true })} className="text-slate-600">←</button>
+          <div className="text-[15px] font-semibold">{category}</div>
+          <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
+        </div>
+        <div className="text-[12px] text-slate-500 mb-2">Question <span className="font-semibold text-slate-700">{Math.min(index + 1, TOTAL)}/{TOTAL || 0}</span></div>
+        <LinearProgress value={Math.min(index + 1, TOTAL)} max={Math.max(1, TOTAL)} />
+
+        {!q ? (
+          <Card className="p-4 mt-4 bg-white/90"><div className="text-[14px] text-slate-700">No questions found for this category.</div></Card>
+        ) : (
+          <>
+            <Card className="p-4 mt-4 mb-3 bg-white/90"><div className="text-[14px] font-semibold text-slate-800">{q?.text}</div></Card>
+            <div className="mt-2">
+              {q?.options.map((opt, i) => (
+                <OptionButton key={i} letter={letters[i]} label={opt} isSelected={selected === i} disabled={secondsLeft <= 0} onClick={() => { if (advancing) return; setSelected(i); setAdvancing(true); setTimeout(() => { handleNext(i); setAdvancing(false); }, 350); }} />
+              ))}
+            </div>
+          </>
+        )}
+
+        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-sm px-4"><button onClick={handleNext} disabled={(selected == null && secondsLeft > 0) || advancing} className={cx("w-full py-3 rounded-xl text-white font-semibold", selected == null && secondsLeft > 0?"bg-violet-300":"bg-violet-600 hover:bg-violet-700")}>Next</button></div></div>
+      </div>
+    </div>
+  );
+}
+function Result({ score, total, onBack }) {
+  return (
+    <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+      <div className="w-full max-w-sm px-4 pb-16 pt-10 text-center">
+        <div className="w-36 h-36 rounded-full mx-auto mb-6 grid place-items-center bg-gradient-to-br from-fuchsia-100 to-indigo-100 border border-violet-100"><div className="w-16 h-16 rounded-full bg-violet-200 text-violet-700 font-bold grid place-items-center">★</div></div>
+        <div className="text-slate-500 text-sm">Your Score</div>
+        <div className="text-4xl font-extrabold text-slate-900 mt-1">{score}/{total}</div>
+        <div className="text-xl font-semibold text-slate-900 mt-4">Congratulations!</div>
+        <p className="text-slate-500 text-sm mt-1">Great job, Kenzy! You have done well</p>
+        <div className="mt-5 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-violet-50 text-violet-700 text-sm font-semibold"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2l3 6 6 .9-4.5 4.4 1 6.3L12 17l-5.5 2.6 1-6.3L3 8.9 9 8z"/></svg>200 Points</div>
+        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-sm px-4 grid gap-3"><button onClick={onBack} className="w-full py-3 rounded-xl text-white font-semibold bg-violet-600 hover:bg-violet-700">Back to Home</button><button onClick={onBack} className="w-full py-3 rounded-xl font-semibold border border-violet-200 bg-white text-violet-700">Try another quiz</button></div></div>
+      </div>
+    </div>
+  );
+}
+
+// App
 export default function App() {
-  const [tabMap, setTabMap] = useState({});
-  const [categories, setCategories] = useState([]);
-  const [loadingCats, setLoadingCats] = useState(true);
-  const [catError, setCatError] = useState("");
+  const [view, setView] = useState("home");
+  const [category, setCategory] = useState("Math");
+  const [result, setResult] = useState({ score: 0, total: 0 });
+  const [bank, setBank] = useState(FALLBACK_BANK);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
-  const [mode, setMode] = useState("category"); // "category" | "random"
-  const [selectedCategory, setSelectedCategory] = useState("");
-  const [count, setCount] = useState(10);
-
-  const [loadingQs, setLoadingQs] = useState(false);
-  const [qsError, setQsError] = useState("");
-  const [questions, setQuestions] = useState([]);
-  const [idx, setIdx] = useState(0);
-  const [showAnswer, setShowAnswer] = useState(false);
-  const [responses, setResponses] = useState({}); // id -> chosen option index
-
-  // Load categories (tab titles)
   useEffect(() => {
-    let on = true;
+    let alive = true;
     (async () => {
       try {
-        setLoadingCats(true);
-        setCatError("");
-        const map = await fetchSheetTabs();
-        if (!on) return;
-        setTabMap(map);
-        setCategories(Object.keys(map).sort());
+        const b = await loadQuestionBank();
+        if (alive) setBank(b);
       } catch (e) {
-        setCatError(
-          (e && e.message) || "Failed to load categories. Ensure the sheet is Published to the web."
-        );
+        console.error(e);
+        if (alive) setError(String(e?.message || e));
       } finally {
-        if (on) setLoadingCats(false);
+        if (alive) setLoading(false);
       }
     })();
-    return () => { on = false; };
+    return () => { alive = false; };
   }, []);
 
-  const progress = useMemo(() => {
-    if (!questions.length) return 0;
-    return Math.round(((idx + 1) / questions.length) * 100);
-  }, [idx, questions.length]);
+  if (loading) return <Splash label="Loading quizzes from Google Sheets…" />;
 
-  async function loadCategoryQuestions(name) {
-    const gid = tabMap[name];
-    if (!gid) throw new Error(`Unknown category: ${name}`);
-    const { header, rows } = await fetchSheetRowsCSV(gid);
-    return rowsToQuestions(header, rows);
+  if (error) {
+    return (
+      <div className="min-h-dvh grid place-items-center bg-[#f6f3ff]">
+        <div className="max-w-sm px-4">
+          <Card className="p-4">
+            <div className="text-[15px] font-semibold text-slate-900">Couldn't load from Google Sheets</div>
+            <p className="text-sm text-slate-600 mt-1">{error}</p>
+            <p className="text-sm text-slate-600 mt-2">Showing demo data so you can still try the UI.</p>
+            <div className="mt-3"><button className="px-3 py-2 rounded-lg bg-violet-600 text-white" onClick={() => setError("")}>Use demo anyway</button></div>
+          </Card>
+        </div>
+      </div>
+    );
   }
-
-  async function handleStart() {
-    try {
-      setQsError("");
-      setLoadingQs(true);
-      setQuestions([]);
-      setIdx(0);
-      setShowAnswer(false);
-      setResponses({});
-
-      if (mode === "category") {
-        if (!selectedCategory) {
-          setQsError("Please select a category.");
-          return;
-        }
-        const qs = await loadCategoryQuestions(selectedCategory);
-        const final = qs.slice(0, Number(count) || 10);
-        setQuestions(final);
-      } else {
-        // Random: pick a random category, then randomize questions
-        const cats = Object.keys(tabMap);
-        if (!cats.length) throw new Error("No categories available.");
-        const pick = cats[Math.floor(Math.random() * cats.length)];
-        const qs = await loadCategoryQuestions(pick);
-        const shuffled = qs.sort(() => Math.random() - 0.5).slice(0, Number(count) || 10);
-        setSelectedCategory(pick); // Show which category got picked
-        setQuestions(shuffled);
-      }
-    } catch (e) {
-      setQsError((e && e.message) || "Failed to load questions. Check sheet access / names.");
-    } finally {
-      setLoadingQs(false);
-    }
-  }
-
-  function handleChoose(optionIndex) {
-    const q = questions[idx];
-    if (!q) return;
-    setResponses(prev => ({ ...prev, [q.id]: optionIndex }));
-  }
-
-  function handleNext() {
-    setShowAnswer(false);
-    if (idx < questions.length - 1) setIdx(idx + 1);
-  }
-
-  function handlePrev() {
-    setShowAnswer(false);
-    if (idx > 0) setIdx(idx - 1);
-  }
-
-  function handleQuit() {
-    setQuestions([]);
-    setIdx(0);
-    setShowAnswer(false);
-    setResponses({});
-  }
-
-  const result = useMemo(() => {
-    if (!questions.length) return null;
-    let correct = 0;
-    questions.forEach(q => {
-      const chosen = responses[q.id];
-      const ans = (q.answer || "").trim().toLowerCase();
-      const chosenText = Number.isInteger(chosen) ? (q.options[chosen] || "").trim().toLowerCase() : "";
-      // If no options sheet, allow direct text compare
-      if (q.options.length) {
-        if (chosenText && (chosenText === ans)) correct += 1;
-      } else {
-        // No options; treat any non-empty response as incorrect here
-        // (Can be extended to accept free-text answers)
-      }
-    });
-    return { correct, total: questions.length };
-  }, [questions, responses]);
 
   return (
-    <div style={{maxWidth: 960, margin: "0 auto", padding: "20px"}}>
-      <h1 style={{fontSize: 28, fontWeight: 700, marginBottom: 12}}>PSC Quiz</h1>
-
-      {/* Category Loader */}
-      {loadingCats && <p>Loading categories…</p>}
-      {!loadingCats && catError && (
-        <div style={{background:"#fee2e2", border:"1px solid #fecaca", padding:"10px", borderRadius:8, color:"#7f1d1d", marginBottom:12}}>
-          {catError}<br/>
-          <small>Tip: Make sure your Google Sheet is published (File → Share → Publish to web). Then redeploy.</small>
-        </div>
+    <div className="min-h-dvh">
+      {view === "home" && (
+        <Home bank={bank} onStartCategory={(c) => { setCategory(c); setView("quiz"); }} />
       )}
-
-      {/* Start Panel */}
-      {!questions.length && !loadingCats && !catError && (
-        <div style={{display:"grid", gap:12, padding:"12px", border:"1px solid #e5e7eb", borderRadius:12}}>
-          <div>
-            <label style={{display:"block", fontSize:14, color:"#6b7280"}}>Mode</label>
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              style={{padding:"10px", width:"100%"}}
-            >
-              <option value="category">Pick a Category</option>
-              <option value="random">Random Quiz</option>
-            </select>
-          </div>
-
-          {mode === "category" && (
-            <div>
-              <label style={{display:"block", fontSize:14, color:"#6b7280"}}>Category</label>
-              <select
-                value={selectedCategory}
-                onChange={(e) => setSelectedCategory(e.target.value)}
-                style={{padding:"10px", width:"100%"}}
-              >
-                <option value="">— Select —</option>
-                {categories.map((c) => (
-                  <option key={c} value={c}>{c}</option>
-                ))}
-              </select>
-            </div>
-          )}
-
-          <div>
-            <label style={{display:"block", fontSize:14, color:"#6b7280"}}>Number of Questions</label>
-            <input
-              type="number"
-              min={1}
-              max={100}
-              value={count}
-              onChange={(e) => setCount(e.target.value)}
-              style={{padding:"10px", width:"100%"}}
-            />
-          </div>
-
-          <button
-            onClick={handleStart}
-            disabled={loadingQs}
-            style={{padding:"12px", borderRadius:10, background:"#0f172a", color:"#fff", fontWeight:700}}
-          >
-            {loadingQs ? "Starting…" : "Start Quiz"}
-          </button>
-
-          {mode === "random" && selectedCategory && (
-            <div style={{fontSize:12, color:"#6b7280"}}>Random picked category: <b>{selectedCategory}</b></div>
-          )}
-
-          {qsError && (
-            <div style={{background:"#fee2e2", border:"1px solid #fecaca", padding:"10px", borderRadius:8, color:"#7f1d1d"}}>
-              {qsError}
-            </div>
-          )}
-        </div>
+      {view === "quiz" && (
+        <Quiz category={category} bank={bank} onFinish={(r) => { setResult(r); setView("result"); }} />
       )}
-
-      {/* Quiz Panel */}
-      {!!questions.length && (
-        <div style={{marginTop:16}}>
-          {/* Progress bar */}
-          <div style={{background:"#e5e7eb", height:10, borderRadius:8, overflow:"hidden", marginBottom:12}}>
-            <div style={{width:`${progress}%`, height:"100%", background:"#10b981"}} />
-          </div>
-
-          <div style={{display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8}}>
-            <div style={{fontSize:14, color:"#6b7280"}}>
-              Question {idx + 1} / {questions.length}
-              {mode === "random" && selectedCategory ? (
-                <span style={{marginLeft:8, fontSize:12, color:"#6b7280"}}>• {selectedCategory}</span>
-              ) : null}
-            </div>
-            <button
-              onClick={handleQuit}
-              style={{padding:"8px 12px", background:"#fee2e2", color:"#7f1d1d", border:"1px solid #fecaca", borderRadius:8}}
-            >
-              Quit Quiz
-            </button>
-          </div>
-
-          {/* Question card */}
-          <div style={{border:"1px solid #e5e7eb", borderRadius:12, padding:16}}>
-            <div style={{fontWeight:700, marginBottom:10}}>
-              {questions[idx]?.question || "—"}
-            </div>
-            {/* Options (if any) */}
-            {questions[idx]?.options?.length ? (
-              <div style={{display:"grid", gap:8}}>
-                {questions[idx].options.map((opt, i) => {
-                  const chosen = responses[questions[idx].id];
-                  const isChosen = chosen === i;
-                  return (
-                    <button
-                      key={i}
-                      onClick={() => handleChoose(i)}
-                      style={{
-                        textAlign:"left",
-                        padding:"10px",
-                        borderRadius:10,
-                        border: isChosen ? "2px solid #0ea5e9" : "1px solid #e5e7eb",
-                        background: "#fff"
-                      }}
-                    >
-                      {opt || "(blank)"}
-                    </button>
-                  );
-                })}
-              </div>
-            ) : (
-              <div style={{fontSize:14, color:"#6b7280"}}>No options provided for this question.</div>
-            )}
-
-            {/* Controls */}
-            <div style={{display:"flex", gap:8, marginTop:12}}>
-              <button onClick={handlePrev} disabled={idx===0} style={{padding:"10px 14px", borderRadius:10, border:"1px solid #e5e7eb"}}>Prev</button>
-              <button onClick={() => setShowAnswer(s => !s)} style={{padding:"10px 14px", borderRadius:10, border:"1px solid #e5e7eb"}}>
-                {showAnswer ? "Hide Answer" : "Show Answer"}
-              </button>
-              <button onClick={handleNext} disabled={idx===questions.length-1} style={{padding:"10px 14px", borderRadius:10, background:"#0f172a", color:"#fff"}}>
-                Next
-              </button>
-            </div>
-
-            {showAnswer && (
-              <div style={{marginTop:10, padding:10, border:"1px dashed #10b981", borderRadius:10, background:"#ecfdf5"}}>
-                <div style={{fontSize:14, color:"#065f46"}}>
-                  Correct answer: <b>{questions[idx]?.answer || "(none provided)"}</b>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Results (when finished) */}
-          {idx === questions.length - 1 && (
-            <div style={{marginTop:12, fontSize:14}}>
-              <b>Summary:</b> {result?.correct ?? 0} / {result?.total ?? 0} correct
-            </div>
-          )}
-        </div>
+      {view === "result" && (
+        <Result score={result.score} total={result.total} onBack={() => setView("home")} />
       )}
     </div>
   );
