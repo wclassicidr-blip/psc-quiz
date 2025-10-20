@@ -15,6 +15,7 @@ const TAB_CATEGORIES = "Categories";
 const TAB_QUESTIONS = "Questions";
 const TAB_STUDY = "Study Material";
 const TAB_EXAMS = "Exam Notifications";
+const TAB_EXAM_CATEGORIES = "EXAM CAT";
 const BATTLE_QUESTION_COUNT = 20;
 
 /* ───────────────────────── Utils ───────────────────────── */
@@ -98,6 +99,30 @@ function toBank(items){ const bank={}; for(const it of items){ const {newOptions
 function flattenBank(bank){ const out=[]; for(const [cat,list] of Object.entries(bank)){ for(const q of list) out.push({...q,cat}); } return out; }
 
 /* Loaders */
+async function loadQuestionBankFrom(mappingTab){
+  try{ const {cols,rows}=await gvizFetch({sheetName:TAB_QUESTIONS}); if(rows.length){ const items=mapQuestionRows(cols,rows); const bank=toBank(items); if(Object.keys(bank).length) return bank; } }catch{}
+  const {cols:cCols0,rows:cRows0}=await gvizFetch({sheetName:mappingTab});
+  let cCols=cCols0,cRows=cRows0;
+  const generic=cCols.every((c)=>c===""||/^[a-z]\w*$/i.test(c)||/^col\d+$/i.test(c));
+  const headerish=(cRows[0]||[]).some((v)=>/(name|display|tab|sheet|actual)/i.test(String(v||"")));
+  if(generic&&headerish){ cCols=(cRows[0]||[]).map((v,i)=>lower(v||`col${i+1}`)); cRows=cRows.slice(1); }
+  let idxDisplay=findHeaderIndex(cCols,["name (display)","display","title","name"],-1);
+  let idxTab=findHeaderIndex(cCols,["text (actual tab name)","actual tab name","tab","sheet","sheetname"],-1);
+  if(idxDisplay===-1||idxTab===-1){ const idIdx=cCols.findIndex((x)=>strip(x)==="id"); const indices=cCols.map((_,i)=>i).filter((i)=>i!==idIdx); if(idxDisplay===-1&&indices.length) idxDisplay=indices[0]; if(idxTab===-1&&indices.length>1) idxTab=indices[1]; }
+  if(idxDisplay===-1) idxDisplay=1; if(idxTab===-1) idxTab=2;
+  const mappings=cRows.map((r)=>({display:normalizeSheetName(r[idxDisplay]),tab:normalizeSheetName(r[idxTab])})).filter((m)=>m.display&&m.tab);
+  const bank={};
+  for(const m of mappings){
+    try{
+      const isGid=/^\d+$/.test(m.tab);
+      const {cols,rows}=await gvizFetch({sheetName:isGid?undefined:m.tab,gid:isGid?m.tab:undefined});
+      const items=mapQuestionRows(cols,rows,m.display);
+      bank[m.display]=toBank(items)[m.display]||[];
+    }catch(e){ console.warn("Failed tab",m.tab,e); bank[m.display]=[]; }
+  }
+  return bank;
+}
+
 async function loadQuestionBank(){
   try{ const {cols,rows}=await gvizFetch({sheetName:TAB_QUESTIONS}); if(rows.length){ const items=mapQuestionRows(cols,rows); const bank=toBank(items); if(Object.keys(bank).length) return bank; } }catch{}
   const {cols:cCols0,rows:cRows0}=await gvizFetch({sheetName:TAB_CATEGORIES});
@@ -175,11 +200,14 @@ const KERALA_PLACES=["Thiruvananthapuram","Kollam","Pathanamthitta","Alappuzha",
 function randomOpponent(){ return { name: sampleOne(MALAYALI_NAMES)+" "+sampleOne(["K","S","N","M","P","V"]), place: sampleOne(KERALA_PLACES) }; }
 
 /* Views */
-function Home({ bank, onStartCategory, onSeeAll, onStartBattle, studyCount, examCount, openStudy, openExams, recent }) {
-  const cats=Object.keys(bank);
+function Home({ bankTopic, bankExam, onStartCategory, onSeeAll, onStartBattle, studyCount, examCount, openStudy, openExams, recent }) {
   const [homeQ,setHomeQ]=useState("");
-  const filtered=cats.filter((c)=>c.toLowerCase().includes(homeQ.toLowerCase()));
-  const preview=filtered.slice(0,6);
+  const catsTopic=Object.keys(bankTopic);
+  const catsExam=Object.keys(bankExam);
+  const filteredTopic=catsTopic.filter((c)=>c.toLowerCase().includes(homeQ.toLowerCase()));
+  const filteredExam=catsExam.filter((c)=>c.toLowerCase().includes(homeQ.toLowerCase()));
+  const previewTopic=filteredTopic.slice(0,6);
+  const previewExam=filteredExam.slice(0,6);
 
   return(
     <div className="min-h-dvh bg-[#eefbe7]">
@@ -211,7 +239,7 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle, studyCount, exam
                 <p className="text-sm/5 md:text-base/5 opacity-90">Play and Win</p>
                 <p className="text-xs/5 md:text-sm/5 opacity-80">Start a quiz now and enjoy</p>
               </div>
-              <button onClick={()=>onStartCategory(preview[0]||cats[0])} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
+              <button onClick={()=>onStartCategory(previewTopic[0],'topic'||cats[0])} className="px-3 py-2 rounded-lg bg-white/15 hover:bg-white/25 text-sm font-semibold">Get Started</button>
             </div>
           </Card>
 
@@ -227,23 +255,41 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle, studyCount, exam
         </div>
 
         {/* categories */}
+        
+        {/* topic categories */}
         <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-[15px] md:text-[17px] font-semibold text-slate-900">Categories</h3>
+          <h3 className="text-[15px] md:text-[17px] font-semibold text-slate-900">Categories — Topics</h3>
           <button onClick={onSeeAll} className="text-[13px] md:text-[14px] text-emerald-700">See all</button>
         </div>
 
         <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
-          {preview.map((c)=>(
-            <button key={c} onClick={()=>onStartCategory(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
+          {previewTopic.map((c)=>(
+            <button key={"topic-"+c} onClick={()=>onStartCategory(c,'topic')} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
               <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
               <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
-              <div className="text-[11px] md:text-[12px] text-slate-500">{(bank[c]||[]).length} questions</div>
+              <div className="text-[11px] md:text-[12px] text-slate-500">{(bankTopic[c]||[]).length} questions</div>
             </button>
           ))}
-          {preview.length===0 && <div className="col-span-full text-center text-sm text-slate-600">No categories match “{homeQ}”.</div>}
+          {previewTopic.length===0 && <div className="col-span-full text-center text-sm text-slate-600">No topic categories match “{homeQ}”.</div>}
         </div>
 
-        {/* study + exam row */}
+        {/* exam categories */}
+        <div className="mb-2 mt-6 flex items-center justify-between">
+          <h3 className="text-[15px] md:text-[17px] font-semibold text-slate-900">Categories — Exams</h3>
+          <button onClick={onSeeAll} className="text-[13px] md:text-[14px] text-emerald-700">See all</button>
+        </div>
+
+        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4 mb-6">
+          {previewExam.map((c)=>(
+            <button key={"exam-"+c} onClick={()=>onStartCategory(c,'exam')} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
+              <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">★</div>
+              <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
+              <div className="text-[11px] md:text-[12px] text-slate-500">{(bankExam[c]||[]).length} questions</div>
+            </button>
+          ))}
+          {previewExam.length===0 && <div className="col-span-full text-center text-sm text-slate-600">No exam categories match “{homeQ}”.</div>}
+        </div>
+{/* study + exam row */}
         <div className="grid grid-cols-2 md:grid-cols-2 gap-3 md:gap-4">
           <button onClick={openStudy} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📚</div>
@@ -281,13 +327,15 @@ function Home({ bank, onStartCategory, onSeeAll, onStartBattle, studyCount, exam
   );
 }
 
-function AllCategories({ bank, onStartCategory, onBack }) {
+
+function AllCategories({ bankTopic, bankExam, onStartCategory, onBack }) {
   const [q,setQ]=useState("");
-  const cats=Object.keys(bank).filter((n)=>n.toLowerCase().includes(q.toLowerCase()));
+  const catsTopic=Object.keys(bankTopic).filter((n)=>n.toLowerCase().includes(q.toLowerCase()));
+  const catsExam=Object.keys(bankExam).filter((n)=>n.toLowerCase().includes(q.toLowerCase()));
   return(
     <div className="min-h-dvh bg-[#eefbe7]">
       <div className="w-full mx-auto max-w-5xl pb-20">
-        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-6 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur supports-[backdrop-filter]:bg-[#eefbe7]/80 border-b border-emerald-100">
+        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-0 pt-4 pb-3 bg-[#eefbe7]/90 backdrop-blur supports-[backdrop-filter]:bg-[#eefbe7]/80 border-b border-emerald-100">
           <div className="flex items-center justify-between mb-3">
             <button onClick={onBack} className="text-slate-600">←</button>
             <div className="text-[15px] md:text-[17px] font-semibold">All Categories</div>
@@ -295,28 +343,41 @@ function AllCategories({ bank, onStartCategory, onBack }) {
           </div>
           <div className="max-w-2xl">
             <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-              <input value={q} onChange={(e)=>setQ(e.target.value)} placeholder="Search categories" className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent" autoFocus/>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.5"/><path d="M21 21l-4.3-4.3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/></svg>
+              <input className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400" placeholder="Search categories" value={q} onChange={(e)=>setQ(e.target.value)}/>
             </div>
           </div>
         </div>
 
-        <div className="px-4 md:px-6 pt-3">
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
-            {cats.map((c)=>(
-              <button key={c} onClick={()=>onStartCategory(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 transition">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="opacity-80"><circle cx="12" cy="12" r="9"/><path d="M8 12h8M12 8v8"/></svg>
-                </div>
-                <div className="text-[12px] md:text-[13px] font-medium text-slate-800 text-left">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500 text-left">{(bank[c]||[]).length} questions</div>
+        <div className="px-4 md:px-0">
+          <h3 className="mt-5 mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900">Topics</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4 mb-8">
+            {catsTopic.map((c)=>(
+              <button key={"topic-"+c} onClick={()=>onStartCategory(c,'topic')} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left">
+                <div className="w-9 h-9 md:w-11 md:h-11 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500">{(bankTopic[c]||[]).length} questions</div>
               </button>
             ))}
+            {catsTopic.length===0 && <div className="col-span-full text-center text-sm text-slate-600">No results.</div>}
+          </div>
+
+          <h3 className="mt-6 mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900">Exams</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-4">
+            {catsExam.map((c)=>(
+              <button key={"exam-"+c} onClick={()=>onStartCategory(c,'exam')} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left">
+                <div className="w-9 h-9 md:w-11 md:h-11 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">★</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500">{(bankExam[c]||[]).length} questions</div>
+              </button>
+            ))}
+            {catsExam.length===0 && <div className="col-span-full text-center text-sm text-slate-600">No results.</div>}
           </div>
         </div>
       </div>
     </div>
   );
+}
 }
 
 function BattleSearch({ onMatched }) {
@@ -548,6 +609,8 @@ export default function App(){
   const [view,setView]=useState("home");
   const [category,setCategory]=useState("");
   const [bank,setBank]=useState({});
+  const [bankTopic,setBankTopic]=useState({});
+  const [bankExam,setBankExam]=useState({});
   const [result,setResult]=useState({score:0,total:0,history:[]});
   const [loading,setLoading]=useState(true);
   const [err,setErr]=useState("");
@@ -565,9 +628,9 @@ export default function App(){
   useEffect(()=>{ const saved=JSON.parse(localStorage.getItem("recent_cats")||"[]"); if(Array.isArray(saved)) setRecent(saved.slice(0,2)); },[]);
   function pushRecent(cat){ if(!cat) return; setRecent((prev)=>{ const next=[cat,...prev.filter((c)=>c!==cat)].slice(0,2); localStorage.setItem("recent_cats",JSON.stringify(next)); return next; }); }
 
-  useEffect(()=>{ let alive=true; (async()=>{ try{ const [b,study,exams]=await Promise.all([loadQuestionBank(),loadList(TAB_STUDY),loadList(TAB_EXAMS)]); if(!alive) return; setBank(b); setStudyItems(study); setExamItems(exams); }catch(e){ console.error(e); if(alive) setErr(String(e?.message||e)); }finally{ if(alive) setLoading(false); } })(); return()=>{alive=false}; },[]);
+  useEffect(()=>{ let alive=true; (async()=>{ try{ const [bt,be,study,exams]=await Promise.all([loadQuestionBankFrom(TAB_CATEGORIES),loadQuestionBankFrom(TAB_EXAM_CATEGORIES),loadList(TAB_STUDY),loadList(TAB_EXAMS)]); if(!alive) return; setBankTopic(bt); setBankExam(be); setBank(bt); setStudyItems(study); setExamItems(exams); }catch(e){ console.error(e); if(alive) setErr(String(e?.message||e)); }finally{ if(alive) setLoading(false); } })(); return()=>{alive=false}; },[]);
 
-  const startCategory=(c)=>{ setCategory(c); setCurrentCategory(c); setBattleMode(false); setBattleQuestions(null); setOpponent(null); setView("quiz"); };
+  const startCategory=(c,kind='topic')=>{ if(kind==='exam') setBank(bankExam); else setBank(bankTopic); setCategory(c); setCurrentCategory(c); setBattleMode(false); setBattleQuestions(null); setOpponent(null); setView("quiz"); };
   const handleStartBattle=()=>{ setBattleMode(true); setBattleQuestions(null); setOpponent(null); setView("battle_search"); };
   const handleMatched=()=>{ const opp=randomOpponent(); const flat=flattenBank(bank); const picked=sampleMany(flat,BATTLE_QUESTION_COUNT).map((q,idx)=>({id:idx+1,text:q.text,options:q.options,answerIndex:q.answerIndex,cat:q.cat})); setOpponent(opp); setBattleQuestions(picked); setCategory("Random Battle"); setView("quiz"); };
 
@@ -576,9 +639,9 @@ export default function App(){
 
   return(
     <div className="min-h-dvh">
-      {view==="home" && <Home bank={bank} onStartCategory={startCategory} onSeeAll={()=>setView("categories")} onStartBattle={handleStartBattle}
+      {view==="home" && <Home bankTopic={bankTopic} bankExam={bankExam} onStartCategory={startCategory} onSeeAll={()=>setView("categories")} onStartBattle={handleStartBattle}
         studyCount={studyItems.length} examCount={examItems.length} openStudy={()=>setView("study")} openExams={()=>setView("exams")} recent={recent}/>}
-      {view==="categories" && <AllCategories bank={bank} onStartCategory={startCategory} onBack={()=>setView("home")}/>}
+      {view==="categories" && <AllCategories bankTopic={bankTopic} bankExam={bankExam} onStartCategory={startCategory} onBack={()=>setView("home")}/>}
       {view==="battle_search" && <BattleSearch onMatched={handleMatched}/>}
       {view==="quiz" && <Quiz category={category} bank={bank} customQuestions={battleQuestions} opponent={opponent} battleMode={battleMode}
         onFinish={(r)=>{ setResult(r); if(!r.aborted&&!r.battleMode&&currentCategory) pushRecent(currentCategory); setView("result"); }}/>}
