@@ -1,12 +1,15 @@
 // App.jsx — PSC Guru (Tea Green theme) + Dark Mode Toggle
-// - Adds a sun/moon toggle in headers, persists preference, and applies Tailwind "dark" class.
-// - Keeps all prior fixes: OMR shows full answers, Quick-quiz % slider with +/- works, etc.
+// - Dark/Light toggle with sun/moon, persists to localStorage, applies on <html> and local wrapper.
+// - Keeps features: Mock Exams (timer + section cutoffs), OMR-style review w/ actual answers,
+//   Daily goals & streaks, XP/levels, badges, Battle mode, Random Quick Quiz with % slider,
+//   Topic & Exam categories from Google Sheets.
+// - Fixes: validated JSX, no unterminated strings, +/- stepper works, OMR shows full text.
 
 import { useEffect, useMemo, useState } from 'react'
 
 /* ========================= CONFIG ========================= */
 const DEFAULT_FILE_ID = '16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o'
-const GS_FILE_ID = (import.meta.env?.VITE_GS_FILE_ID || '').trim() || DEFAULT_FILE_ID
+const GS_FILE_ID = (import.meta?.env?.VITE_GS_FILE_ID || '').trim() || DEFAULT_FILE_ID
 
 const TAB_CATEGORIES = 'Categories'
 const TAB_EXAM_CATS = 'EXAM CAT'
@@ -177,7 +180,6 @@ const THEME_KEY = 'prefers_dark'
 function applyThemeClass(isDark){
   const root = document.documentElement
   if (isDark) root.classList.add('dark'); else root.classList.remove('dark')
-  // Optional: set theme-color for mobile address bar contrast
   const meta = document.querySelector('meta[name="theme-color"]')
   if (meta) meta.setAttribute('content', isDark ? '#0B1220' : '#eefbe7')
 }
@@ -185,7 +187,6 @@ function applyThemeClass(isDark){
 function useTheme(){
   const [dark, setDark] = useState(false)
   useEffect(()=>{
-    // Initialize from storage or system preference
     const stored = localStorage.getItem(THEME_KEY)
     const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
     const initial = stored === '1' || (stored == null && sys)
@@ -578,7 +579,7 @@ function BattleSearch({ onMatched, theme }) {
   )
 }
 
-/* ========= Quick Setup (random N questions) ========= */
+/* ========= Quick Setup (random N questions, % slider) ========= */
 function QuickSetup({ bank, onStart, onBack, theme }){
   const total = useMemo(()=> flattenBank(bank).length, [bank])
   const disabled = total === 0
@@ -960,42 +961,37 @@ export default function App(){
 
   function pushRecent(item){ const next=[item, ...recent.filter(x=> (typeof x==='string'? x: x.name)!==(typeof item==='string'? item: item.name))].slice(0,6); setRecent(next); localStorage.setItem('recent_items', JSON.stringify(next)) }
 
-  if(!ready) return <Splash />
+  let content = <Splash />
+  if(ready){
+    if(view==='home') content = (
+      <Home
+        topicBank={topicBank}
+        examBank={examBank}
+        onStartTopic={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') ; pushRecent(c) }}
+        onStartExam={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz'); pushRecent({kind:'exam', name:c}) }}
+        onSeeAllTopics={()=> setView('allTopics')}
+        onSeeAllExams={()=> setView('allExams')}
+        onStartBattle={()=> setView('battleSearch')}
+        onQuick={()=> setView('quick')}
+        openStudy={()=> setView('study')}
+        openExams={()=> setView('exams')}
+        recent={recent}
+        toMock={()=> setView('mockSetup')}
+        toProfile={()=> alert('Profile screen coming soon 🙂')}
+        theme={theme}
+      />
+    )
+    else if(view==='allTopics') content = <AllCategories title="All Topic Categories" bank={topicBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='allExams') content = <AllCategories title="All Exam Categories" bank={examBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='battleSearch') content = <BattleSearch onMatched={()=>{ const opp = randomOpponent(); const all = flattenBank(mergeBanks(topicBank, examBank)); const picked = sampleMany(all, BATTLE_QUESTION_COUNT).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat })); setCurrent({ customQuestions:picked, category:'Battle', battleMode:true, opponent:opp }); setView('quiz') }} theme={theme} />
+    else if(view==='quick') content = <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='study') content = <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='exams') content = <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='mockSetup') content = <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='quiz') content = <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} theme={theme} />
+    else if(view==='results') content = <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
+  }
 
-  if(view==='home') return (
-    <Home
-      topicBank={topicBank}
-      examBank={examBank}
-      onStartTopic={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') ; pushRecent(c) }}
-      onStartExam={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz'); pushRecent({kind:'exam', name:c}) }}
-      onSeeAllTopics={()=> setView('allTopics')}
-      onSeeAllExams={()=> setView('allExams')}
-      onStartBattle={()=> setView('battleSearch')}
-      onQuick={()=> setView('quick')}
-      openStudy={()=> setView('study')}
-      openExams={()=> setView('exams')}
-      recent={recent}
-      toMock={()=> setView('mockSetup')}
-      toProfile={()=> alert('Profile screen coming soon 🙂')}
-      theme={theme}
-    />
-  )
-
-  if(view==='allTopics') return <AllCategories title="All Topic Categories" bank={topicBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-  if(view==='allExams') return <AllCategories title="All Exam Categories" bank={examBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-
-  if(view==='battleSearch') return <BattleSearch onMatched={()=>{ const opp = randomOpponent(); const all = flattenBank(mergeBanks(topicBank, examBank)); const picked = sampleMany(all, BATTLE_QUESTION_COUNT).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat })); setCurrent({ customQuestions:picked, category:'Battle', battleMode:true, opponent:opp }); setView('quiz') }} theme={theme} />
-
-  if(view==='quick') return <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-
-  if(view==='study') return <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} theme={theme} />
-  if(view==='exams') return <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} theme={theme} />
-
-  if(view==='mockSetup') return <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-
-  if(view==='quiz') return <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} theme={theme} />
-
-  if(view==='results') return <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
-
-  return <Splash />
+  // IMPORTANT: Local wrapper ensures dark mode always flips even if <html> is modified elsewhere.
+  return <div className={theme.dark ? 'dark' : ''}>{content}</div>
 }
