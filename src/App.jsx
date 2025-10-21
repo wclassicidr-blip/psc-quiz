@@ -9,7 +9,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 /* ========================= CONFIG ========================= */
 const DEFAULT_FILE_ID = '16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o'
-const GS_FILE_ID = (import.meta?.env?.VITE_GS_FILE_ID || '').trim() || DEFAULT_FILE_ID
+const GS_FILE_ID = (import.meta.env?.VITE_GS_FILE_ID || '').trim() || DEFAULT_FILE_ID
 
 const TAB_CATEGORIES = 'Categories'
 const TAB_EXAM_CATS = 'EXAM CAT'
@@ -45,19 +45,19 @@ function parseGViz(text) {
 }
 
 async function gvizFetch({ sheetName, gid, tq = 'select *' }) {
-  const url = new URL(\`https://docs.google.com/spreadsheets/d/\${GS_FILE_ID}/gviz/tq\`)
+  const url = new URL(`https://docs.google.com/spreadsheets/d/${GS_FILE_ID}/gviz/tq`)
   if (gid) url.searchParams.set('gid', gid); else url.searchParams.set('sheet', sheetName)
   url.searchParams.set('tq', tq)
   url.searchParams.set('tqx', 'out:json')
   const res = await fetch(url.toString(), { cache: 'no-store' })
-  if (!res.ok) throw new Error(\`GViz HTTP \${res.status}\`)
+  if (!res.ok) throw new Error(`GViz HTTP ${res.status}`)
   const raw = await res.text()
   const json = parseGViz(raw)
-  let cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || \`col\${i + 1}\`))
+  let cols = (json.table?.cols || []).map((c, i) => lower(c?.label || c?.id || `col${i + 1}`))
   let rows = (json.table?.rows || []).map((r) => (r.c || []).map((c) => ((c && c.v) != null ? String(c.v) : '')))
   const looksGeneric = cols.every((c) => c === '' || /^[a-z]\w*$/i.test(c) || /^col\d+$/i.test(c))
   const headerish = (rows[0] || []).some((v) => /(name|display|tab|sheet|actual|question|opt|correct|title|url|desc|date|categories|duration|year|questions)/i.test(String(v || '')))
-  if (looksGeneric && headerish) { cols = (rows[0] || []).map((v, i) => lower(v || \`col\${i + 1}\`)); rows = rows.slice(1) }
+  if (looksGeneric && headerish) { cols = (rows[0] || []).map((v, i) => lower(v || `col${i + 1}`)); rows = rows.slice(1) }
   return { cols, rows }
 }
 
@@ -895,7 +895,7 @@ export default function App(){
   const [examList, setExamList] = useState([])
   const [view, setView] = useState('splash')
   const [current, setCurrent] = useState(null) // holds either current quiz config or results
-  const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') }catch{return []} })
+  const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') } catch { return [] } })
 
   useEffect(()=>{ (async()=>{
     try{
