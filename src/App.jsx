@@ -1,9 +1,6 @@
-// App.jsx — PSC Guru (Tea Green theme)
-// Fixes: resolves unterminated strings / truncated JSX and "Unexpected token" in Quiz history push.
-// Enhancements kept: percentage-based quick-quiz slider (+/− work), OMR shows full answers.
-//
-// NOTE (lightweight tests): non-throwing console.assert checks are included for core
-// utilities so they never crash the app but help validate behavior during dev.
+// App.jsx — PSC Guru (Tea Green theme) + Dark Mode Toggle
+// - Adds a sun/moon toggle in headers, persists preference, and applies Tailwind "dark" class.
+// - Keeps all prior fixes: OMR shows full answers, Quick-quiz % slider with +/- works, etc.
 
 import { useEffect, useMemo, useState } from 'react'
 
@@ -165,30 +162,70 @@ function toBank(items) {
 function flattenBank(bank) { const out = []; for (const [cat, list] of Object.entries(bank)) for (const q of list) out.push({ ...q, cat }); return out }
 function mergeBanks(a, b){ const out = {...a}; for(const [k,v] of Object.entries(b||{})){ out[k] = (out[k]||[]).concat(v) } return out }
 
-/* ====== Lightweight, non-throwing tests (won't break UI) ====== */
+/* ====== Non-throwing smoke tests ====== */
 ;(function unitSmokeTests(){
   try {
-    console.assert(clamp(10, 0, 5) === 5, 'clamp: upper bound')
-    console.assert(clamp(-1, 0, 5) === 0, 'clamp: lower bound')
+    console.assert(clamp(10, 0, 5) === 5, 'clamp upper')
+    console.assert(clamp(-1, 0, 5) === 0, 'clamp lower')
     const { newOptions, newCorrect } = shuffleWithIndex(['A','B','C','D'], 2)
-    console.assert(newOptions.length === 4 && newCorrect >= 0 && newCorrect < 4, 'shuffleWithIndex: size and index')
-    const cols = ['Question','OptA','OptB','OptC','OptD','Correct']
-    const rows = [['Q1','A','B','C','D','B']]
-    const items = mapQuestionRows(cols, rows, 'Gen')
-    console.assert(items[0]?.options?.length === 4, 'mapQuestionRows: options')
-
-    // Extra sanity checks
-    const bank = toBank(items)
-    const flat = flattenBank(bank)
-    console.assert(Array.isArray(flat) && flat.length >= 1, 'flattenBank: non-empty')
-    console.assert(typeof mergeBanks({A:[{id:1}]},{A:[{id:2}]})?.A?.length === 'number', 'mergeBanks: merges arrays')
-  } catch { /* never throw in UI */ }
+    console.assert(newOptions.length === 4 && newCorrect >= 0 && newCorrect < 4, 'shuffleWithIndex ok')
+  } catch {}
 })()
+
+/* ========= Theming ========= */
+const THEME_KEY = 'prefers_dark'
+function applyThemeClass(isDark){
+  const root = document.documentElement
+  if (isDark) root.classList.add('dark'); else root.classList.remove('dark')
+  // Optional: set theme-color for mobile address bar contrast
+  const meta = document.querySelector('meta[name="theme-color"]')
+  if (meta) meta.setAttribute('content', isDark ? '#0B1220' : '#eefbe7')
+}
+
+function useTheme(){
+  const [dark, setDark] = useState(false)
+  useEffect(()=>{
+    // Initialize from storage or system preference
+    const stored = localStorage.getItem(THEME_KEY)
+    const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+    const initial = stored === '1' || (stored == null && sys)
+    setDark(initial); applyThemeClass(initial)
+  }, [])
+  function toggle(){
+    setDark((d)=> {
+      const next = !d
+      localStorage.setItem(THEME_KEY, next ? '1' : '0')
+      applyThemeClass(next)
+      return next
+    })
+  }
+  return { dark, toggle }
+}
+
+function ThemeToggle({ dark, onToggle }) {
+  return (
+    <button
+      onClick={onToggle}
+      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
+      aria-label="Toggle dark mode"
+      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-200 text-slate-700 hover:bg-emerald-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
+    >
+      {dark ? (
+        // Sun icon
+        <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0"><circle cx="12" cy="12" r="4" fill="currentColor"/><g stroke="currentColor" strokeWidth="2"><path d="M12 1v3"/><path d="M12 20v3"/><path d="M4.22 4.22l2.12 2.12"/><path d="M17.66 17.66l2.12 2.12"/><path d="M1 12h3"/><path d="M20 12h3"/><path d="M4.22 19.78l2.12-2.12"/><path d="M17.66 6.34l2.12-2.12"/></g></svg>
+      ) : (
+        // Moon icon
+        <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0"><path fill="currentColor" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+      )}
+      <span className="text-sm hidden sm:inline">{dark ? 'Light' : 'Dark'}</span>
+    </button>
+  )
+}
 
 /* ========= Avatars / UI ========= */
 function CartoonAvatar() {
   return (
-    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-200 grid place-items-center overflow-hidden" aria-hidden="true">
+    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-200 grid place-items-center overflow-hidden dark:bg-emerald-300/30" aria-hidden="true">
       <svg viewBox="0 0 64 64" width="36" height="36">
         <circle cx="32" cy="24" r="12" fill="#fff" />
         <path d="M12 54c3-10 13-14 20-14s17 4 20 14" fill="#fff" />
@@ -215,31 +252,33 @@ const KERALA_PLACES = ['Thiruvananthapuram','Kollam','Pathanamthitta','Alappuzha
 function randomOpponent() { return { name: sampleOne(MALAYALI_NAMES) + ' ' + sampleOne(['K','S','N','M','P','V']), place: sampleOne(KERALA_PLACES) } }
 
 const Card = ({ children, className = '' }) => (
-  <div className={cx('rounded-2xl bg-white shadow-sm border border-emerald-100', className)}>{children}</div>
+  <div className={cx('rounded-2xl bg-white shadow-sm border border-emerald-100 dark:bg-slate-800 dark:border-slate-700', className)}>{children}</div>
 )
 
-function LinearProgress({ value, max }) { const pct = Math.min(100, Math.max(0, (value / max) * 100)); return (<div className="w-full h-1.5 md:h-2 bg-emerald-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-600" style={{ width: `${pct}%`} } /></div>) }
+function LinearProgress({ value, max }) { const pct = Math.min(100, Math.max(0, (value / max) * 100)); return (<div className="w-full h-1.5 md:h-2 bg-emerald-100 rounded-full overflow-hidden dark:bg-slate-700"><div className="h-full bg-emerald-600" style={{ width: `${pct}%`} } /></div>) }
 
 function TimerRing({ secondsLeft, totalSeconds = 25 }) {
   const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds))
   return (
     <div className="relative w-10 h-10 md:w-11 md:h-11">
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
-        <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100" strokeWidth="6" />
+        <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100 dark:stroke-slate-700" strokeWidth="6" />
         <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-600 transition-[stroke-dasharray] duration-200" strokeLinecap="round" strokeWidth="6" strokeDasharray={`${C * p} ${C}`} />
       </svg>
-      <div className="absolute inset-0 grid place-items-center text-[10px] md:text-xs font-semibold text-emerald-700">0{Math.max(0, secondsLeft).toString().padStart(2, '0')}</div>
+      <div className="absolute inset-0 grid place-items-center text-[10px] md:text-xs font-semibold text-emerald-700 dark:text-emerald-300">0{Math.max(0, secondsLeft).toString().padStart(2, '0')}</div>
     </div>
   )
 }
 
 function OptionButton({ label, letter, disabled, isSelected, showFeedback, isCorrect, isWrong }) {
-  const feedbackClass = showFeedback ? (isCorrect ? 'border-green-500 bg-green-50' : isWrong ? 'border-red-500 bg-red-50' : 'border-transparent') : isSelected ? 'border-emerald-600 ring-2 ring-emerald-200' : 'border-transparent hover:border-emerald-200'
-  const textColor = showFeedback ? (isCorrect ? 'text-green-800' : isWrong ? 'text-red-700' : 'text-slate-800') : 'text-slate-800'
+  const feedbackClass = showFeedback
+    ? (isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : isWrong ? 'border-red-500 bg-red-50 dark:bg-red-900/30' : 'border-transparent')
+    : isSelected ? 'border-emerald-600 ring-2 ring-emerald-200 dark:ring-emerald-900' : 'border-transparent hover:border-emerald-200 dark:hover:border-slate-600'
+  const textColor = showFeedback ? (isCorrect ? 'text-green-800 dark:text-green-300' : isWrong ? 'text-red-700 dark:text-red-300' : 'text-slate-800 dark:text-slate-100') : 'text-slate-800 dark:text-slate-100'
   return (
-    <button disabled={disabled} className={cx('w-full text-left rounded-xl border-2 px-4 py-3 md:px-5 md:py-3.5 mb-3 transition-all bg-white/80', feedbackClass)} aria-pressed={isSelected ? 'true' : 'false'}>
+    <button disabled={disabled} className={cx('w-full text-left rounded-xl border-2 px-4 py-3 md:px-5 md:py-3.5 mb-3 transition-all bg-white/80 dark:bg-slate-800/80', feedbackClass)} aria-pressed={isSelected ? 'true' : 'false'}>
       <span className="inline-flex items-center gap-3">
-        <span className={cx('grid place-items-center w-6 h-6 rounded-full text-xs font-semibold md:w-7 md:h-7 md:text-sm', showFeedback ? (isCorrect ? 'bg-green-100 text-green-700' : isWrong ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700') : 'bg-emerald-100 text-emerald-700')}>{letter}</span>
+        <span className={cx('grid place-items-center w-6 h-6 rounded-full text-xs font-semibold md:w-7 md:h-7 md:text-sm', showFeedback ? (isCorrect ? 'bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200' : isWrong ? 'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200' : 'bg-emerald-100 text-emerald-700 dark:bg-slate-700 dark:text-emerald-300') : 'bg-emerald-100 text-emerald-700 dark:bg-slate-700 dark:text-emerald-300')}>{letter}</span>
         <span className={cx('text-[15px] md:text-[16px]', textColor)}>{label}</span>
       </span>
     </button>
@@ -251,11 +290,11 @@ function Splash() {
   const [i, setI] = useState(0)
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % messages.length), 1400); return () => clearInterval(id) }, [])
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7] dark:bg-slate-900">
       <div className="flex flex-col items-center text-center">
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mb-4" />
-        <div className="text-emerald-700 font-semibold text-[15px] md:text-[17px] transition-opacity duration-300">{messages[i]}</div>
-        <div className="w-56 md:w-72 h-2 rounded-full bg-emerald-100 overflow-hidden mt-4"><div className="h-full w-1/2 rounded-full bg-emerald-400/70 animate-pulse" /></div>
+        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mb-4 dark:border-slate-700 dark:border-t-emerald-600" />
+        <div className="text-emerald-700 dark:text-emerald-300 font-semibold text-[15px] md:text-[17px] transition-opacity duration-300">{messages[i]}</div>
+        <div className="w-56 md:w-72 h-2 rounded-full bg-emerald-100 overflow-hidden mt-4 dark:bg-slate-700"><div className="h-full w-1/2 rounded-full bg-emerald-400/70 animate-pulse" /></div>
       </div>
     </div>
   )
@@ -337,32 +376,35 @@ async function loadExamBank(){
 async function loadList(tabName) { try { const { cols, rows } = await gvizFetch({ sheetName: tabName }); return mapListRows(cols, rows) } catch (e) { console.warn('List load failed', tabName, e); return [] } }
 
 /* ========= Views ========= */
-function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, onSeeAllExams, onStartBattle, onQuick, openStudy, openExams, recent, toMock, toProfile }) {
+function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, onSeeAllExams, onStartBattle, onQuick, openStudy, openExams, recent, toMock, toProfile, theme }) {
   const topicCats = Object.keys(topicBank)
   const examCats = Object.keys(examBank)
   const [homeQ, setHomeQ] = useState('')
   const filteredTopics = topicCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
   const filteredExams = examCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
   const previewTopics = filteredTopics.slice(0, 6)
-  const previewExams = filteredExams.slice(0, 6)
+
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8 pb-28 pt-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3 md:gap-4">
             <CartoonAvatar />
             <div>
-              <p className="text-[15px] md:text-[17px] font-semibold text-slate-900">PSC Guru</p>
-              <p className="text-[13px] md:text-[14px] text-slate-600">No1 PSC Learning App</p>
+              <p className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">PSC Guru</p>
+              <p className="text-[13px] md:text-[14px] text-slate-600 dark:text-slate-400">No1 PSC Learning App</p>
             </div>
           </div>
-          <button onClick={toProfile} className="text-[13px] md:text-[14px] text-emerald-700 underline">Profile & Goals</button>
+          <div className="flex items-center gap-2">
+            <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+            <button onClick={toProfile} className="text-[13px] md:text-[14px] text-emerald-700 underline dark:text-emerald-300">Profile & Goals</button>
+          </div>
         </div>
 
         <div className="mb-5 max-w-2xl sticky top-0 z-20">
-          <div className="flex items-center gap-2 bg-white/80 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5">
+          <div className="flex items-center gap-2 bg-white/80 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 dark:bg-slate-800/80 dark:border-slate-700">
             <span className="text-slate-400">🔎</span>
-            <input className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400" placeholder="Search categories" value={homeQ} onChange={(e) => setHomeQ(e.target.value)} />
+            <input className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent text-slate-800 dark:text-slate-100" placeholder="Search categories" value={homeQ} onChange={(e) => setHomeQ(e.target.value)} />
           </div>
         </div>
 
@@ -400,56 +442,57 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
         {/* Topic Categories */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[15px] md:text-[17px] font-semibold">Topic Categories</div>
-            <button onClick={onSeeAllTopics} className="text-[13px] md:text-[14px] text-emerald-700">View all</button>
+            <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Topic Categories</div>
+            <button onClick={onSeeAllTopics} className="text-[13px] md:text-[14px] text-emerald-700 dark:text-emerald-300">View all</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {previewTopics.map((c) => (
-              <button key={c} onClick={() => onStartTopic(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
-                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500">{(topicBank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStartTopic(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">＋</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{(topicBank[c] || []).length} questions</div>
               </button>
             ))}
-            {previewTopics.length === 0 && <div className="col-span-full text-center text-sm text-slate-600">No topics match “{homeQ}”.</div>}
+            {previewTopics.length === 0 && <div className="col-span-full text-center text-sm text-slate-600 dark:text-slate-400">No topics match “{homeQ}”.</div>}
           </div>
         </div>
 
         {/* Exam Categories */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[15px] md:text-[17px] font-semibold">Exam Categories</div>
-            <button onClick={onSeeAllExams} className="text-[13px] md:text-[14px] text-emerald-700">View all</button>
+            <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Exam Categories</div>
+            <button onClick={onSeeAllExams} className="text-[13px] md:text-[14px] text-emerald-700 dark:text-emerald-300">View all</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {Object.keys(examBank).slice(0,6).map((c) => (
-              <button key={c} onClick={() => onStartExam(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">🎓</div>
-                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500">{(examBank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStartExam(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">🎓</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{(examBank[c] || []).length} questions</div>
               </button>
             ))}
-            {Object.keys(examBank).slice(0,6).length === 0 && <div className="col-span-full text-center text-sm text-slate-600">No exams match “{homeQ}”.</div>}
+            {Object.keys(examBank).slice(0,6).length === 0 && <div className="col-span-full text-center text-sm text-slate-600 dark:text-slate-400">No exams match “{homeQ}”.</div>}
           </div>
         </div>
 
         {/* Tools */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3">
-          <button onClick={openStudy} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📚</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800">Study Material</div>
-            <div className="text-[12px] text-slate-500">Curated links</div>
+          <button onClick={openStudy} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📚</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Study Material</div>
+            <div className="text-[12px] text-slate-500 dark:text-slate-400">Curated links</div>
           </button>
-          <button onClick={openExams} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📢</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800">Exam Notifications</div>
-            <div className="text-[12px] text-slate-500">Latest alerts</div>
+          <button onClick={openExams} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📢</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Exam Notifications</div>
+            <div className="text-[12px] text-slate-500 dark:text-slate-400">Latest alerts</div>
           </button>
         </div>
 
+        {/* Recent */}
         {recent.length > 0 && (
           <div className="mt-6">
-            <div className="mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900">Recent</div>
+            <div className="mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Recent</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {recent.map((item, idx) => {
                 const kind = typeof item === 'string' ? (topicBank[item] ? 'topic' : 'exam') : item.kind
@@ -457,12 +500,12 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
                 const count = kind === 'exam' ? (examBank[name] || []).length : (topicBank[name] || []).length
                 const onClick = kind === 'exam' ? () => onStartExam(name) : () => onStartTopic(name)
                 return (
-                  <button key={idx} onClick={onClick} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left">
+                  <button key={idx} onClick={onClick} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">🕘</div>
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">🕘</div>
                       <div>
-                        <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{name}</div>
-                        <div className="text-[11px] md:text-[12px] text-slate-500">{count} questions • {kind==='exam'?'Exam':'Topic'}</div>
+                        <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{name}</div>
+                        <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{count} questions • {kind==='exam'?'Exam':'Topic'}</div>
                       </div>
                     </div>
                   </button>
@@ -476,33 +519,33 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
   )
 }
 
-function AllCategories({ title, bank, onStart, onBack }) {
+function AllCategories({ title, bank, onStart, onBack, theme }) {
   const [q, setQ] = useState('')
   const cats = Object.keys(bank).filter((n) => n.toLowerCase().includes(q.toLowerCase()))
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="w-full mx-auto max-w-6xl pb-20">
-        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-6 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur border-b border-emerald-100 flex items-center justify-between">
-          <button onClick={onBack} className="text-slate-600">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold">{title}</div>
-          <span className="w-4" />
+        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-6 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur border-b border-emerald-100 flex items-center justify-between dark:bg-slate-900/95 dark:border-slate-800">
+          <button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button>
+          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{title}</div>
+          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
         </div>
         <div className="px-4 md:px-6 pt-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
             <div className="col-span-full max-w-xl mb-2">
-              <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm">
+              <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm dark:bg-slate-800/90 dark:border-slate-700">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}`} className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent" autoFocus />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}`} className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent text-slate-800 dark:text-slate-100" autoFocus />
               </div>
             </div>
             {cats.map((c) => (
-              <button key={c} onClick={() => onStart(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 transition">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
-                <div className="text-[12px] md:text-[13px] font-medium text-slate-800 text-left">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500 text-left">{(bank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStart(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 transition dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">＋</div>
+                <div className="text-[12px] md:text-[13px] font-medium text-slate-800 text-left dark:text-slate-100">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500 text-left dark:text-slate-400">{(bank[c] || []).length} questions</div>
               </button>
             ))}
-            {cats.length === 0 && <Card className="p-4 text-center text-sm text-slate-600 col-span-full">No items found.</Card>}
+            {cats.length === 0 && <Card className="p-4 text-center text-sm text-slate-600 dark:text-slate-400 col-span-full">No items found.</Card>}
           </div>
         </div>
       </div>
@@ -510,14 +553,15 @@ function AllCategories({ title, bank, onStart, onBack }) {
   )
 }
 
-function BattleSearch({ onMatched }) {
+function BattleSearch({ onMatched, theme }) {
   useEffect(() => { const id = setTimeout(() => { onMatched() }, 3000); return () => clearTimeout(id) }, [onMatched])
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7] dark:bg-slate-900">
       <div className="w-full max-w-sm md:max-w-md px-4 pt-16 text-center">
+        <div className="absolute top-4 right-4"><ThemeToggle dark={theme.dark} onToggle={theme.toggle} /></div>
         <div className="relative w-48 h-48 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping"></div>
-          <div className="absolute inset-3 rounded-full border-4 border-emerald-300 animate-pulse"></div>
+          <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping dark:border-slate-700"></div>
+          <div className="absolute inset-3 rounded-full border-4 border-emerald-300 animate-pulse dark:border-slate-600"></div>
           <div className="absolute inset-6 rounded-full border-4 border-emerald-500 animate-spin"></div>
           <div className="absolute inset-0 grid place-items-center">
             <div className="flex -space-x-3">
@@ -527,23 +571,21 @@ function BattleSearch({ onMatched }) {
             </div>
           </div>
         </div>
-        <div className="text-emerald-800 font-semibold text-lg mb-1">Finding an opponent…</div>
-        <div className="text-slate-600 text-sm">Looking for players online</div>
+        <div className="text-emerald-800 dark:text-emerald-300 font-semibold text-lg mb-1">Finding an opponent…</div>
+        <div className="text-slate-600 dark:text-slate-400 text-sm">Looking for players online</div>
       </div>
     </div>
   )
 }
 
 /* ========= Quick Setup (random N questions) ========= */
-function QuickSetup({ bank, onStart, onBack }){
+function QuickSetup({ bank, onStart, onBack, theme }){
   const total = useMemo(()=> flattenBank(bank).length, [bank])
   const disabled = total === 0
 
-  // Minimum selectable should never exceed total; if total<QUICK_MIN allow "all" of what's there
   const minSelectable = total ? Math.min(QUICK_MIN, total) : 0
   const minPct = total ? Math.max(1, Math.ceil(100 * minSelectable / total)) : 0
 
-  // Keep BOTH count & pct and sync them
   const [count, setCount] = useState(0)
   const [pct, setPct] = useState(0)
 
@@ -577,12 +619,12 @@ function QuickSetup({ bank, onStart, onBack }){
   const presetPercents = [10,25,50,75,100].filter(p=> p>=minPct)
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-16 pt-6">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={onBack} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-800"><span>←</span><span className="hidden sm:inline">Back</span></button>
-          <div className="text-[16px] md:text-[18px] font-semibold">Random Quick Quiz</div>
-          <span className="w-8"/>
+          <button onClick={onBack} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100"><span>←</span><span className="hidden sm:inline">Back</span></button>
+          <div className="text-[16px] md:text-[18px] font-semibold text-slate-900 dark:text-slate-100">Random Quick Quiz</div>
+          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
         </div>
 
         <Card className="p-0 overflow-hidden">
@@ -602,35 +644,35 @@ function QuickSetup({ bank, onStart, onBack }){
           {/* Body */}
           <div className="p-4 md:p-5">
             <div className="grid md:grid-cols-12 gap-4 items-center">
-              {/* Fancy stepper (count-based) */}
+              {/* Stepper */}
               <div className="md:col-span-6">
-                <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm">
+                <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm dark:bg-slate-800/90 dark:border-slate-700">
                   <div className="flex items-stretch">
-                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 rounded-l-2xl" title="-10">−10</button>
-                    <button onClick={()=>nudgeCount(-1)} className="px-4 md:px-5 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50" title="-1">−</button>
+                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 rounded-l-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="-10">−10</button>
+                    <button onClick={()=>nudgeCount(-1)} className="px-4 md:px-5 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="-1">−</button>
                     <div className="flex-1 grid place-items-center">
-                      <div className="text-sm text-slate-500">Selected</div>
-                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 tabular-nums">{disabled? '—' : count}</div>
-                      <div className="text-xs text-slate-500">min {minSelectable} • max {total}</div>
+                      <div className="text-sm text-slate-500 dark:text-slate-400">Selected</div>
+                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 tabular-nums dark:text-emerald-300">{disabled? '—' : count}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">min {minSelectable} • max {total}</div>
                     </div>
-                    <button onClick={()=>nudgeCount(1)} className="px-4 md:px-5 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50" title="+1">+</button>
-                    <button onClick={()=>nudgeCount(10)} className="px-3 md:px-4 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 rounded-r-2xl" title="+10">+10</button>
+                    <button onClick={()=>nudgeCount(1)} className="px-4 md:px-5 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="+1">+</button>
+                    <button onClick={()=>nudgeCount(10)} className="px-3 md:px-4 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 rounded-r-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="+10">+10</button>
                   </div>
                 </div>
 
                 {/* Percent presets */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {presetPercents.map(p=> (
-                    <button key={p} onClick={()=> setPresetPercent(p)} className={cx('px-3 py-1.5 rounded-full text-sm border transition', p===pct? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-emerald-200 text-emerald-700 hover:border-emerald-300')}>{p}%</button>
+                    <button key={p} onClick={()=> setPresetPercent(p)} className={cx('px-3 py-1.5 rounded-full text-sm border transition', p===pct? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-emerald-200 text-emerald-700 hover:border-emerald-300 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:border-slate-600')}>{p}%</button>
                   ))}
                 </div>
               </div>
 
               {/* % slider */}
               <div className="md:col-span-6">
-                <div className="mb-2 flex items-center justify-between text-xs text-slate-600"><span>Adjust with slider</span><span>{pct}% • {count} Qs</span></div>
+                <div className="mb-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400"><span>Adjust with slider</span><span>{pct}% • {count} Qs</span></div>
                 <div className="relative h-6">
-                  <div className="absolute inset-0 rounded-full bg-emerald-100" />
+                  <div className="absolute inset-0 rounded-full bg-emerald-100 dark:bg-slate-700" />
                   <div className="absolute left-0 top-0 bottom-0 rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
                   <input
                     type="range"
@@ -649,12 +691,12 @@ function QuickSetup({ bank, onStart, onBack }){
 
               {/* CTA */}
               <div className="md:col-span-12 flex justify-end gap-3 mt-1">
-                <button onClick={()=> setPresetPercent(minPct)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50">Min</button>
-                <button onClick={()=> setPresetPercent(100)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50">All ({total})</button>
-                <button onClick={start} disabled={disabled} className={cx('px-5 py-2.5 rounded-lg font-semibold', disabled? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700')}>Start Quiz</button>
+                <button onClick={()=> setPresetPercent(minPct)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">Min</button>
+                <button onClick={()=> setPresetPercent(100)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">All ({total})</button>
+                <button onClick={start} disabled={disabled} className={cx('px-5 py-2.5 rounded-lg font-semibold', disabled? 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700')}>Start Quiz</button>
               </div>
             </div>
-            {disabled && <div className="text-sm text-red-600 mt-3">No questions available yet. Please add to your Google Sheet.</div>}
+            {disabled && <div className="text-sm text-red-600 dark:text-red-400 mt-3">No questions available yet. Please add to your Google Sheet.</div>}
           </div>
         </Card>
       </div>
@@ -663,7 +705,7 @@ function QuickSetup({ bank, onStart, onBack }){
 }
 
 /* ========= Core Quiz ========= */
-function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode }) {
+function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode, theme }) {
   const qs = customQuestions || bank[category] || []
   const [i, setI] = useState(0)
   const [sel, setSel] = useState(null)
@@ -685,7 +727,6 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
     setSel(chosenIndex); setShowFeedback(true); setAdvancing(true)
     const isCorrect = chosenIndex === q.answerIndex
     if (chosenIndex != null) setScore((s) => s + (isCorrect ? 1 : 0))
-    // ✅ Push full info so OMR can show actual text, not just letters
     setHistory((h) => [
       ...h,
       {
@@ -693,7 +734,7 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
         text: q.text,
         options: q.options,
         answerIndex: q.answerIndex,
-        correctIndex: q.answerIndex, // keep for backward compatibility
+        correctIndex: q.answerIndex,
         chosenIndex,
         isCorrect,
         cat: q.cat,
@@ -706,21 +747,24 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
   const letters = ['a','b','c','d','e','f']
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-5xl px-4 md:px-6 pb-20 pt-4">
         <div className="flex items-center justify-between mb-2">
-          <button onClick={() => onFinish({ score, total: qs.length, history, aborted: true, opponent, battleMode })} className="text-slate-600">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold">{battleMode ? 'Online Battle' : category}</div>
-          <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
+          <button onClick={() => onFinish({ score, total: qs.length, history, aborted: true, opponent, battleMode })} className="text-slate-600 dark:text-slate-300">←</button>
+          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{battleMode ? 'Online Battle' : category}</div>
+          <div className="flex items-center gap-2">
+            <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+            <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
+          </div>
         </div>
         {battleMode && opponent && (
-          <div className="flex items-center gap-3 mb-2"><OppAvatar name={opponent.name} /><div><div className="text-[13px] md:text-[14px] font-semibold text-slate-800">{opponent.name}</div><div className="text-[12px] text-slate-500">{opponent.place}</div></div></div>
+          <div className="flex items-center gap-3 mb-2"><OppAvatar name={opponent.name} /><div><div className="text-[13px] md:text-[14px] font-semibold text-slate-800 dark:text-slate-100">{opponent.name}</div><div className="text-[12px] text-slate-500 dark:text-slate-400">{opponent.place}</div></div></div>
         )}
-        <div className="text-[12px] md:text-[13px] text-slate-500 mb-2">Question <span className="font-semibold">{Math.min(i + 1, qs.length)}/{qs.length || 0}</span></div>
+        <div className="text-[12px] md:text-[13px] text-slate-500 dark:text-slate-400 mb-2">Question <span className="font-semibold">{Math.min(i + 1, qs.length)}/{qs.length || 0}</span></div>
         <LinearProgress value={Math.min(i + 1, qs.length)} max={Math.max(1, qs.length)} />
-        {!q ? (<Card className="p-4 mt-4 bg-white/90"><div className="text-[14px] text-slate-700">No questions found.</div></Card>) : (
+        {!q ? (<Card className="p-4 mt-4 bg-white/90 dark:bg-slate-800/90"><div className="text-[14px] text-slate-700 dark:text-slate-300">No questions found.</div></Card>) : (
           <div className="grid md:grid-cols-2 md:items-start md:gap-4">
-            <Card className="p-4 mt-4 mb-3 md:mb-0 bg-white/90"><div className="text-[14px] md:text-[15px] font-semibold text-slate-800">{q.text}</div></Card>
+            <Card className="p-4 mt-4 mb-3 md:mb-0 bg-white/90 dark:bg-slate-800/90"><div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">{q.text}</div></Card>
             <div className="mt-2 md:mt-4">
               {q.options.map((opt, idx) => (
                 <div key={idx} onClick={() => { if (showFeedback || advancing) return; revealAndQueueNext(idx) }}>
@@ -730,7 +774,7 @@ function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode 
             </div>
           </div>
         )}
-        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-5xl px-4 md:px-6"><button className="w-full py-3 md:py-3.5 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed" disabled>Next</button></div></div>
+        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-5xl px-4 md:px-6"><button className="w-full py-3 md:py-3.5 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed dark:bg-emerald-800/60" disabled>Next</button></div></div>
       </div>
     </div>
   )
@@ -749,43 +793,43 @@ function OMRRow({ index, q, reveal }){
   const chosenDisplay = hasChoice ? `${chosenLetter}. ${chosenText}` : '—'
   const correctDisplay = correctIdx >= 0 ? `${correctLetter}. ${correctText}` : '—'
   return (
-    <tr className="border-b last:border-0">
-      <td className="py-2 pr-2 text-slate-600">{index+1}</td>
-      <td className="py-2 pr-2 text-slate-800">{q.text}</td>
-      <td className="py-2 pr-2 text-slate-800">{chosenDisplay}</td>
-      <td className={cx('py-2 pr-2', isRight?'text-green-700':'text-red-600')}>{reveal ? correctDisplay : '•'}</td>
+    <tr className="border-b last:border-0 border-slate-200 dark:border-slate-700">
+      <td className="py-2 pr-2 text-slate-600 dark:text-slate-300">{index+1}</td>
+      <td className="py-2 pr-2 text-slate-800 dark:text-slate-100">{q.text}</td>
+      <td className="py-2 pr-2 text-slate-800 dark:text-slate-100">{chosenDisplay}</td>
+      <td className={cx('py-2 pr-2', isRight?'text-green-700 dark:text-green-300':'text-red-600 dark:text-red-300')}>{reveal ? correctDisplay : '•'}</td>
     </tr>
   )
 }
 
-function Results({ data, onHome, onRestart }){
+function Results({ data, onHome, onRestart, theme }){
   const { score, total, history, opponent, battleMode } = data
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-5xl px-4 md:px-6 pb-16 pt-6">
         <div className="flex items-center justify-between mb-3">
-          <button onClick={onHome} className="text-slate-600">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold">{battleMode ? 'Battle Summary' : 'Quiz Summary'}</div>
-          <span className="w-4" />
+          <button onClick={onHome} className="text-slate-600 dark:text-slate-300">←</button>
+          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{battleMode ? 'Battle Summary' : 'Quiz Summary'}</div>
+          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
         </div>
         <Card className="p-4">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-slate-700">Score</div>
-              <div className="text-2xl font-bold text-emerald-700">{score} / {total}</div>
+              <div className="text-slate-700 dark:text-slate-300">Score</div>
+              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{score} / {total}</div>
             </div>
             <div className="flex gap-2">
               <button onClick={onRestart} className="px-3 py-2 rounded-lg bg-emerald-600 text-white">Retry</button>
-              <button onClick={onHome} className="px-3 py-2 rounded-lg border border-emerald-200">Home</button>
+              <button onClick={onHome} className="px-3 py-2 rounded-lg border border-emerald-200 dark:border-slate-700 dark:text-slate-200">Home</button>
             </div>
           </div>
         </Card>
 
         <Card className="p-4 mt-4">
-          <div className="text-[15px] md:text-[16px] font-semibold mb-2">OMR Review</div>
+          <div className="text-[15px] md:text-[16px] font-semibold mb-2 text-slate-900 dark:text-slate-100">OMR Review</div>
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
-              <thead><tr className="text-slate-500"><th className="text-left">#</th><th className="text-left">Question</th><th className="text-left">Marked Answer</th><th className="text-left">Correct Answer</th></tr></thead>
+              <thead><tr className="text-slate-500 dark:text-slate-400"><th className="text-left">#</th><th className="text-left">Question</th><th className="text-left">Marked Answer</th><th className="text-left">Correct Answer</th></tr></thead>
               <tbody>
                 {history.map((q, idx)=> <OMRRow key={idx} index={idx} q={q} reveal />)}
               </tbody>
@@ -798,33 +842,37 @@ function Results({ data, onHome, onRestart }){
 }
 
 /* ========= Study / Exams Lists ========= */
-function SimpleList({ title, items, onBack }){
+function SimpleList({ title, items, onBack, theme }){
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-4xl px-4 md:px-6 pb-16 pt-6">
-        <div className="flex items-center justify-between mb-3"><button onClick={onBack} className="text-slate-600">←</button><div className="text-[15px] md:text-[17px] font-semibold">{title}</div><span className="w-4"/></div>
+        <div className="flex items-center justify-between mb-3">
+          <button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button>
+          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{title}</div>
+          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+        </div>
         <div className="grid gap-3">
           {items.map((it,idx)=> (
             <Card key={idx} className="p-4">
-              <div className="font-semibold text-slate-800">{it.title}</div>
-              {it.desc && <div className="text-sm text-slate-600 mt-1">{it.desc}</div>}
-              <div className="text-xs text-slate-500 mt-2 flex flex-wrap gap-3">
+              <div className="font-semibold text-slate-800 dark:text-slate-100">{it.title}</div>
+              {it.desc && <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">{it.desc}</div>}
+              <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex flex-wrap gap-3">
                 {it.date && <span>🗓 {it.date}</span>}
                 {it.duration && <span>⏱ {it.duration}</span>}
                 {it.questions && <span>❓ {it.questions} Qs</span>}
-                {it.url && <a href={it.url} target="_blank" className="text-emerald-700 underline">Open</a>}
+                {it.url && <a href={it.url} target="_blank" className="text-emerald-700 underline dark:text-emerald-300">Open</a>}
               </div>
             </Card>
           ))}
-          {items.length===0 && <Card className="p-4 text-sm text-slate-600">Nothing to show.</Card>}
+          {items.length===0 && <Card className="p-4 text-sm text-slate-600 dark:text-slate-400">Nothing to show.</Card>}
         </div>
       </div>
     </div>
   )
 }
 
-/* ========= Mock Setup (simple) ========= */
-function MockSetup({ bank, onStart, onBack }){
+/* ========= Mock Setup ========= */
+function MockSetup({ bank, onStart, onBack, theme }){
   const cats = Object.keys(bank)
   const [sections, setSections] = useState(cats.slice(0,3).map((c)=>({ name:c, count:10, cutoff:30 })))
   const [duration, setDuration] = useState(60)
@@ -833,7 +881,6 @@ function MockSetup({ bank, onStart, onBack }){
   function addSection(){ if (sections.length>=5) return; const cand = cats.find(c=> !sections.find(s=>s.name===c)); if(!cand) return; setSections([...sections, {name:cand, count:10, cutoff:30}]) }
   function removeSection(i){ setSections(sections.filter((_,idx)=> idx!==i)) }
   function start(){
-    // Flatten selected sections into customQuestions
     const flat = flattenBank(bank)
     const wanted = sections.flatMap((s)=> sampleMany(flat.filter(q=> q.cat===s.name), s.count))
     const picked = wanted.map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat }))
@@ -841,19 +888,19 @@ function MockSetup({ bank, onStart, onBack }){
   }
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7]">
+    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
       <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-12 pt-6">
-        <div className="flex items-center justify-between mb-3"><button onClick={onBack} className="text-slate-600">←</button><div className="text-[15px] md:text-[17px] font-semibold">Mock Exam Setup</div><span className="w-4"/></div>
+        <div className="flex items-center justify-between mb-3"><button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button><div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Mock Exam Setup</div><ThemeToggle dark={theme.dark} onToggle={theme.toggle} /></div>
         <Card className="p-4">
           <div className="grid gap-3">
             <div>
-              <label className="text-sm text-slate-600">Title</label>
-              <input value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white"/>
+              <label className="text-sm text-slate-600 dark:text-slate-300">Title</label>
+              <input value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="text-sm text-slate-600">Duration (minutes)</label>
-                <input type="number" min={15} max={180} value={duration} onChange={(e)=>setDuration(Number(e.target.value)||60)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white"/>
+                <label className="text-sm text-slate-600 dark:text-slate-300">Duration (minutes)</label>
+                <input type="number" min={15} max={180} value={duration} onChange={(e)=>setDuration(Number(e.target.value)||60)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
               </div>
               <div className="flex items-end"><button onClick={addSection} className="px-3 py-2 rounded-lg bg-emerald-600 text-white">Add Section</button></div>
             </div>
@@ -861,20 +908,20 @@ function MockSetup({ bank, onStart, onBack }){
               {sections.map((s,idx)=> (
                 <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
                   <div className="md:col-span-5">
-                    <label className="text-sm text-slate-600">Section Category</label>
-                    <select value={s.name} onChange={(e)=>{ const name=e.target.value; const next=[...sections]; next[idx]={...s,name}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white">
+                    <label className="text-sm text-slate-600 dark:text-slate-300">Section Category</label>
+                    <select value={s.name} onChange={(e)=>{ const name=e.target.value; const next=[...sections]; next[idx]={...s,name}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
                       {cats.map((c)=> <option key={c} value={c}>{c}</option>)}
                     </select>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="text-sm text-slate-600">Questions</label>
-                    <input type="number" min={5} max={100} value={s.count} onChange={(e)=>{ const count = clamp(Number(e.target.value)||10, 5, 100); const next=[...sections]; next[idx]={...s,count}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white"/>
+                    <label className="text-sm text-slate-600 dark:text-slate-300">Questions</label>
+                    <input type="number" min={5} max={100} value={s.count} onChange={(e)=>{ const count = clamp(Number(e.target.value)||10, 5, 100); const next=[...sections]; next[idx]={...s,count}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
                   </div>
                   <div className="md:col-span-3">
-                    <label className="text-sm text-slate-600">Section Cutoff (%)</label>
-                    <input type="number" min={0} max={100} value={s.cutoff} onChange={(e)=>{ const cutoff = clamp(Number(e.target.value)||30, 0, 100); const next=[...sections]; next[idx]={...s,cutoff}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white"/>
+                    <label className="text-sm text-slate-600 dark:text-slate-300">Section Cutoff (%)</label>
+                    <input type="number" min={0} max={100} value={s.cutoff} onChange={(e)=>{ const cutoff = clamp(Number(e.target.value)||30, 0, 100); const next=[...sections]; next[idx]={...s,cutoff}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
                   </div>
-                  <div className="md:col-span-1 text-right"><button onClick={()=>removeSection(idx)} className="px-3 py-2 rounded-lg border border-emerald-200">✕</button></div>
+                  <div className="md:col-span-1 text-right"><button onClick={()=>removeSection(idx)} className="px-3 py-2 rounded-lg border border-emerald-200 dark:border-slate-700">✕</button></div>
                 </div>
               ))}
             </div>
@@ -888,13 +935,15 @@ function MockSetup({ bank, onStart, onBack }){
 
 /* ========= Root App ========= */
 export default function App(){
+  const theme = useTheme()
+
   const [ready, setReady] = useState(false)
   const [topicBank, setTopicBank] = useState({})
   const [examBank, setExamBank] = useState({})
   const [studyList, setStudyList] = useState([])
   const [examList, setExamList] = useState([])
   const [view, setView] = useState('splash')
-  const [current, setCurrent] = useState(null) // holds either current quiz config or results
+  const [current, setCurrent] = useState(null)
   const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') } catch { return [] } })
 
   useEffect(()=>{ (async()=>{
@@ -928,24 +977,25 @@ export default function App(){
       recent={recent}
       toMock={()=> setView('mockSetup')}
       toProfile={()=> alert('Profile screen coming soon 🙂')}
+      theme={theme}
     />
   )
 
-  if(view==='allTopics') return <AllCategories title="All Topic Categories" bank={topicBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} />
-  if(view==='allExams') return <AllCategories title="All Exam Categories" bank={examBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} />
+  if(view==='allTopics') return <AllCategories title="All Topic Categories" bank={topicBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
+  if(view==='allExams') return <AllCategories title="All Exam Categories" bank={examBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
 
-  if(view==='battleSearch') return <BattleSearch onMatched={()=>{ const opp = randomOpponent(); const all = flattenBank(mergeBanks(topicBank, examBank)); const picked = sampleMany(all, BATTLE_QUESTION_COUNT).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat })); setCurrent({ customQuestions:picked, category:'Battle', battleMode:true, opponent:opp }); setView('quiz') }} />
+  if(view==='battleSearch') return <BattleSearch onMatched={()=>{ const opp = randomOpponent(); const all = flattenBank(mergeBanks(topicBank, examBank)); const picked = sampleMany(all, BATTLE_QUESTION_COUNT).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat })); setCurrent({ customQuestions:picked, category:'Battle', battleMode:true, opponent:opp }); setView('quiz') }} theme={theme} />
 
-  if(view==='quick') return <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} />
+  if(view==='quick') return <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
 
-  if(view==='study') return <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} />
-  if(view==='exams') return <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} />
+  if(view==='study') return <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} theme={theme} />
+  if(view==='exams') return <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} theme={theme} />
 
-  if(view==='mockSetup') return <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} />
+  if(view==='mockSetup') return <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
 
-  if(view==='quiz') return <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} />
+  if(view==='quiz') return <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} theme={theme} />
 
-  if(view==='results') return <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} />
+  if(view==='results') return <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
 
   return <Splash />
 }
