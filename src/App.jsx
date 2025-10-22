@@ -6,6 +6,13 @@
 // - Fixes: validated JSX, no unterminated strings, +/- stepper works, OMR shows full text.
 
 import { useEffect, useMemo, useState } from 'react'
+import NotificationTicker from "./components/NotificationTicker.jsx";
+
+// ...
+<section style={{ marginTop: 16 }}>
+  <NotificationTicker limit={40} />
+</section>
+
 
 /* ========================= CONFIG ========================= */
 const DEFAULT_FILE_ID = '16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o'
