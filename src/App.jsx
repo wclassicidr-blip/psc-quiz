@@ -486,75 +486,98 @@ async function loadAnswerKeyList(){
   try{
     const res = await fetch(ANSWERKEY_SRC, { cache: 'no-store' })
     if(!res.ok) throw new Error(`HTTP ${res.status}`)
-    const text = await res.text()
+    const md = await res.text()
 
-    // Try table-first parsing
-    const tables = extractMarkdownTables(text)
-    const target = tables.find(t => t.headers.some(h => /post/i.test(h)) && t.headers.some(h => /detail/i.test(h)))
-    if (target){
-      const H = target.headers.map(h => lower(h))
-      const idxPost = H.findIndex(h => /post/.test(h))
-      const idxDetails = H.findIndex(h => /detail/.test(h))
-      const idxFinalKey = H.findIndex(h => /(final.*answer.*key|final key)/.test(h))
-      const idxKey = idxFinalKey !== -1 ? idxFinalKey : H.findIndex(h => /(answer.*key)/.test(h))
-      const idxCat = H.findIndex(h => /(category)/.test(h))
-      const idxDate = H.findIndex(h => /(date.*test|date)/.test(h))
+    // Helpers (scoped to this function)
+    const pickUrl = (cell='') => {
+      // prefer any link that mentions "final" in the link text or url
+      const links = [...cell.matchAll(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi)]
+        .map(m => ({ label: (m[1]||'').trim(), url: normalizeUrl(m[2]||'') }))
+        .filter(l => l.url && !/\.(png|jpe?g|gif|webp|svg)$/i.test(l.url))
+      if (!links.length) {
+        const u = firstLink(cell); // bare url fallback
+        return u && !/\.(png|jpe?g|gif|webp|svg)$/i.test(u) ? normalizeUrl(u) : ''
+      }
+      const final = links.find(l => /final/i.test(l.label) || /final/i.test(l.url))
+      return (final?.url || links[0].url)
+    }
+    const cleanText = (s='') => stripMarkdown(s).replace(/\s+/g,' ').trim()
+    const isBareDetails = (t) => /^details?$/i.test((t||'').trim())
 
-      const items = []
-      for(const row of target.rows){
-        const post = stripMarkdown(row[idxPost] || '')
+    // 1) Try proper markdown table(s) first
+    const tables = extractMarkdownTables(md)
+    const table = tables.find(t => t.headers.some(h => /post/i.test(h)))
+    let items = []
+    if (table){
+      const H = table.headers.map(h => h.toLowerCase())
+      const idx = {
+        post: H.findIndex(h => /post/.test(h)),
+        details: H.findIndex(h => /detail/.test(h)),
+        final: H.findIndex(h => /(final.*answer.*key|final key)/.test(h)),
+        key: H.findIndex(h => /(answer.*key)/.test(h)),
+        cat: H.findIndex(h => /(category.*no|category no|cat(egory)?\.?\s*no)/.test(h)),
+        date: H.findIndex(h => /(date.*test|date)/.test(h)),
+      }
+
+      for (const row of table.rows){
+        const post = cleanText(row[idx.post] || '')
         if (!post) continue
-        const detailsCell = row[idxDetails] || ''
-        const descCandidate = stripMarkdown(detailsCell)
-        const isBareDetails = /^details?$/i.test(descCandidate)
-        let desc = isBareDetails ? '' : descCandidate
 
-        // fallbacks to make description useful
-        if (!desc) {
-          const cat = stripMarkdown(row[idxCat] || '')
-          const date = stripMarkdown(row[idxDate] || '')
-          const bits = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean)
-          desc = bits.join(' • ')
+        const url = pickUrl(row[idx.final] || '') || pickUrl(row[idx.key] || '')
+        if (!url) continue
+
+        let desc = cleanText(row[idx.details] || '')
+        if (!desc || isBareDetails(desc)) {
+          const cat = cleanText(row[idx.cat] || '')
+          const date = cleanText(row[idx.date] || '')
+          desc = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean).join(' • ')
         }
 
-        const keyCell = row[idxKey] || ''
-        let url = firstLink(keyCell)
-        if (!url) continue
-        if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
-        items.push({ title: post, url: normalizeUrl(url), desc, date: '', duration: '', questions: '' })
-      }
-
-      if (items.length){
-        return dedupeBy(items, it => it.url).slice(0, 200)
+        items.push({ title: post, url, desc, date: '', duration: '', questions: '' })
       }
     }
 
-    // Fallback: link scraping (skip images)
-    const items = []
-    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
-      const idx = m.index ?? -1
-      if (idx > 0 && text[idx-1] === '!') continue // skip images
-      const title = norm(m[1]); const url = normalizeUrl(m[2])
-      if (!title || !url) continue
-      if (/answer\s*key|answerkey|final\s*key|\.pdf/i.test(url+title))
-        items.push({ title, url, desc: '', date: '', duration: '', questions: '' })
-    }
-    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
-      const url = m[0]
-      if(/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
-      if(!/keralapsc\.gov\.in/i.test(url)) continue
-      if(!/(answer[-_ ]?key|final[-_ ]?key|\.pdf)/i.test(url)) continue
-      const tail = url.split('/').pop() || 'Answer Key'
-      const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'Answer Key'
-      items.push({ title, url, desc: '', date: '', duration: '', questions: '' })
+    // 2) Fallback: block parser (when page isn’t rendered as a md table)
+    if (!items.length){
+      const lines = md.split('\n').map(l => l.trim()).filter(Boolean)
+      const startIdx = lines.reduce((a,l,i)=>{ if(/^post\b/i.test(l)) a.push(i); return a }, [])
+      startIdx.push(lines.length)
+
+      for (let s = 0; s < startIdx.length-1; s++){
+        const seg = lines.slice(startIdx[s], startIdx[s+1])
+        const rec = { post:'', cat:'', date:'', key:'', final:'', details:'' }
+
+        for (const ln of seg){
+          if (/^post\b/i.test(ln)) rec.post = cleanText(ln.replace(/^post\s*[:|]?\s*/i,''))
+          else if (/^category\s*no\b/i.test(ln)) rec.cat = cleanText(ln.replace(/^category\s*no\s*[:|]?\s*/i,''))
+          else if (/^date\b/i.test(ln) || /^date of test\b/i.test(ln)) rec.date = cleanText(ln.replace(/^date( of test)?\s*[:|]?\s*/i,''))
+          else if (/^final\s*answer\s*key\b/i.test(ln)) rec.final = pickUrl(ln)
+          else if (/^answer\s*key\b/i.test(ln)) rec.key = pickUrl(ln)
+          else if (/^details\b/i.test(ln)) rec.details = cleanText(ln.replace(/^details\s*[:|]?\s*/i,''))
+        }
+
+        const url = rec.final || rec.key
+        if (rec.post && url){
+          const desc = (!rec.details || isBareDetails(rec.details))
+            ? [rec.cat && `Category: ${rec.cat}`, rec.date && `Date: ${rec.date}`].filter(Boolean).join(' • ')
+            : rec.details
+          items.push({ title: rec.post, url: normalizeUrl(url), desc, date:'', duration:'', questions:'' })
+        }
+      }
     }
 
-    return dedupeBy(items, it => it.url).slice(0, 200)
+    // de-dupe + cap
+    items = dedupeBy(items, it => it.url).slice(0, 200)
+    if (items.length) return items
+
+    // final fallback
+    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date:'', duration:'', questions:'' }]
   }catch(e){
     console.warn('AnswerKey load failed', e)
-    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date: '', duration: '', questions: '' }]
+    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date:'', duration:'', questions:'' }]
   }
 }
+
 
 /* ---- PSC Bulletin: ignore ANY image items ---- */
 async function loadBulletinList(){
