@@ -481,104 +481,117 @@ function extractMarkdownTables(md=''){
   })
 }
 
-/* ---- Answer Keys: title=Post, desc from Details, link prefers Final Answer Key ---- */
+/* ---- Answer Keys: title=Post, desc from Details, prefer Final Answer Key link ---- */
 async function loadAnswerKeyList(){
   try{
     const res = await fetch(ANSWERKEY_SRC, { cache: 'no-store' })
-    if(!res.ok) throw new Error(`HTTP ${res.status}`)
+    if (!res.ok) throw new Error(`HTTP ${res.status}`)
     const md = await res.text()
 
-    // Helpers (scoped to this function)
+    // Helper inside: pick a usable URL from a cell (prefer ones labeled "Final")
     const pickUrl = (cell='') => {
-      // prefer any link that mentions "final" in the link text or url
-      const links = [...cell.matchAll(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi)]
+      // grab all links (markdown or bare)
+      const links = [...cell.matchAll(/\[([^\]]*)]\((https?:\/\/[^\s)]+)\)/gi)]
         .map(m => ({ label: (m[1]||'').trim(), url: normalizeUrl(m[2]||'') }))
-        .filter(l => l.url && !/\.(png|jpe?g|gif|webp|svg)$/i.test(l.url))
-      if (!links.length) {
-        const u = firstLink(cell); // bare url fallback
-        return u && !/\.(png|jpe?g|gif|webp|svg)$/i.test(u) ? normalizeUrl(u) : ''
+      if (!links.length){
+        const raw = firstLink(cell)
+        return raw ? normalizeUrl(raw) : ''
       }
+      // prefer anything indicating "final"
       const final = links.find(l => /final/i.test(l.label) || /final/i.test(l.url))
       return (final?.url || links[0].url)
     }
-    const cleanText = (s='') => stripMarkdown(s).replace(/\s+/g,' ').trim()
+    const clean = (s) => stripMarkdown(s || '').replace(/\s+/g, ' ').trim()
     const isBareDetails = (t) => /^details?$/i.test((t||'').trim())
 
-    // 1) Try proper markdown table(s) first
+    let items = []
+
+    // 1) Use markdown tables if r.jina.ai gave us a table
     const tables = extractMarkdownTables(md)
     const table = tables.find(t => t.headers.some(h => /post/i.test(h)))
-    let items = []
     if (table){
       const H = table.headers.map(h => h.toLowerCase())
       const idx = {
-        post: H.findIndex(h => /post/.test(h)),
-        details: H.findIndex(h => /detail/.test(h)),
+        post:  H.findIndex(h => /post/.test(h)),
+        details:H.findIndex(h => /detail/.test(h)),
         final: H.findIndex(h => /(final.*answer.*key|final key)/.test(h)),
-        key: H.findIndex(h => /(answer.*key)/.test(h)),
-        cat: H.findIndex(h => /(category.*no|category no|cat(egory)?\.?\s*no)/.test(h)),
-        date: H.findIndex(h => /(date.*test|date)/.test(h)),
+        key:   H.findIndex(h => /(answer.*key)/.test(h)),
+        cat:   H.findIndex(h => /(category\s*no|cat.*no)/.test(h)),
+        date:  H.findIndex(h => /(date.*test|date)/.test(h)),
       }
 
       for (const row of table.rows){
-        const post = cleanText(row[idx.post] || '')
+        const post = clean(row[idx.post] || '')
         if (!post) continue
 
         const url = pickUrl(row[idx.final] || '') || pickUrl(row[idx.key] || '')
         if (!url) continue
 
-        let desc = cleanText(row[idx.details] || '')
-        if (!desc || isBareDetails(desc)) {
-          const cat = cleanText(row[idx.cat] || '')
-          const date = cleanText(row[idx.date] || '')
+        let desc = clean(row[idx.details] || '')
+        if (!desc || isBareDetails(desc)){
+          const cat = clean(row[idx.cat] || '')
+          const date = clean(row[idx.date] || '')
           desc = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean).join(' • ')
         }
 
-        items.push({ title: post, url, desc, date: '', duration: '', questions: '' })
+        items.push({ title: post, url, desc, date:'', duration:'', questions:'' })
       }
     }
 
-    // 2) Fallback: block parser (when page isn’t rendered as a md table)
+    // 2) Fallback: block parser for non-table text (labels like "Post", "Details", etc.)
     if (!items.length){
       const lines = md.split('\n').map(l => l.trim()).filter(Boolean)
-      const startIdx = lines.reduce((a,l,i)=>{ if(/^post\b/i.test(l)) a.push(i); return a }, [])
-      startIdx.push(lines.length)
-
-      for (let s = 0; s < startIdx.length-1; s++){
-        const seg = lines.slice(startIdx[s], startIdx[s+1])
-        const rec = { post:'', cat:'', date:'', key:'', final:'', details:'' }
-
-        for (const ln of seg){
-          if (/^post\b/i.test(ln)) rec.post = cleanText(ln.replace(/^post\s*[:|]?\s*/i,''))
-          else if (/^category\s*no\b/i.test(ln)) rec.cat = cleanText(ln.replace(/^category\s*no\s*[:|]?\s*/i,''))
-          else if (/^date\b/i.test(ln) || /^date of test\b/i.test(ln)) rec.date = cleanText(ln.replace(/^date( of test)?\s*[:|]?\s*/i,''))
-          else if (/^final\s*answer\s*key\b/i.test(ln)) rec.final = pickUrl(ln)
-          else if (/^answer\s*key\b/i.test(ln)) rec.key = pickUrl(ln)
-          else if (/^details\b/i.test(ln)) rec.details = cleanText(ln.replace(/^details\s*[:|]?\s*/i,''))
+      let cur = null
+      const flush = () => {
+        if (!cur) return
+        const url = cur.finalUrl || cur.keyUrl
+        if (cur.post && url){
+          let desc = cur.details && stripMarkdown(cur.details)
+          if (!desc || isBareDetails(desc)) {
+            const parts = []
+            if (cur.cat) parts.push(`Category: ${stripMarkdown(cur.cat)}`)
+            if (cur.date) parts.push(`Date: ${stripMarkdown(cur.date)}`)
+            desc = parts.join(' • ')
+          }
+          items.push({ title: stripMarkdown(cur.post), url: normalizeUrl(url), desc, date:'', duration:'', questions:'' })
         }
-
-        const url = rec.final || rec.key
-        if (rec.post && url){
-          const desc = (!rec.details || isBareDetails(rec.details))
-            ? [rec.cat && `Category: ${rec.cat}`, rec.date && `Date: ${rec.date}`].filter(Boolean).join(' • ')
-            : rec.details
-          items.push({ title: rec.post, url: normalizeUrl(url), desc, date:'', duration:'', questions:'' })
-        }
+        cur = null
       }
+
+      const getUrl = (s) => normalizeUrl(firstLink(s))
+
+      for (const ln of lines){
+        if (/^post\b/i.test(ln)){ flush(); cur = { post: ln.replace(/^post\s*[:|]?\s*/i,'').trim() } }
+        else if (/^category\s*no\b/i.test(ln)){ cur ??= {}; cur.cat = ln.replace(/^category\s*no\s*[:|]?\s*/i,'').trim() }
+        else if (/^(date|date of test)\b/i.test(ln)){ cur ??= {}; cur.date = ln.replace(/^(date|date of test)\s*[:|]?\s*/i,'').trim() }
+        else if (/^final\s*answer\s*key\b/i.test(ln)){ cur ??= {}; cur.finalUrl = getUrl(ln) }
+        else if (/^answer\s*key\b/i.test(ln)){ cur ??= {}; cur.keyUrl = getUrl(ln) }
+        else if (/^details\b/i.test(ln)){ cur ??= {}; cur.details = ln.replace(/^details\s*[:|]?\s*/i,'').trim() }
+      }
+      flush()
     }
 
-    // de-dupe + cap
-    items = dedupeBy(items, it => it.url).slice(0, 200)
+    // cleanup & return
+    items = dedupeBy(items, it => it.url).filter(Boolean)
     if (items.length) return items
 
-    // final fallback
-    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date:'', duration:'', questions:'' }]
-  }catch(e){
+    // last resort (what you were seeing earlier)
+    return [{
+      title: 'Kerala PSC Answer Keys — Official Page',
+      url: 'https://www.keralapsc.gov.in/answerkey_onlineexams',
+      desc: 'Browse available answer keys for online exams.',
+      date:'', duration:'', questions:''
+    }]
+  } catch (e){
     console.warn('AnswerKey load failed', e)
-    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date:'', duration:'', questions:'' }]
+    return [{
+      title: 'Kerala PSC Answer Keys — Official Page',
+      url: 'https://www.keralapsc.gov.in/answerkey_onlineexams',
+      desc: 'Browse available answer keys for online exams.',
+      date:'', duration:'', questions:''
+    }]
   }
 }
-
-
 /* ---- PSC Bulletin: ignore ANY image items ---- */
 async function loadBulletinList(){
   try{
