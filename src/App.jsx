@@ -3,7 +3,7 @@
 // - Keeps features: Mock Exams (timer + section cutoffs), OMR-style review w/ actual answers,
 //   Daily goals & streaks, XP/levels, badges, Battle mode, Random Quick Quiz with % slider,
 //   Topic & Exam categories from Google Sheets.
-// - Adds: Syllabus card on Home (loads from https://www.keralapsc.gov.in/syllabus1 via CORS-safe proxy)
+// - Adds: Syllabus, Answer Key, PSC Bulletin cards on Home (loaded from official site via CORS-safe proxy)
 // - Fixes: validated JSX, no unterminated strings, +/- stepper works, OMR shows full text.
 
 import { useEffect, useMemo, useState } from 'react'
@@ -148,7 +148,10 @@ function mapListRows(cols, rows) {
 
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i)
-  for (let i = idxs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idxs[i], idxs[j]] = [idxs[j]] }
+  for (let i = idxs.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[idxs[i], idxs[j]] = [idxs[j], idxs[i]]
+  }
   const newOptions = idxs.map((i) => arr[i])
   const newCorrect = idxs.indexOf(correctIdx)
   return { newOptions, newCorrect }
@@ -378,9 +381,11 @@ async function loadExamBank(){
 
 async function loadList(tabName) { try { const { cols, rows } = await gvizFetch({ sheetName: tabName }); return mapListRows(cols, rows) } catch (e) { console.warn('List load failed', tabName, e); return [] } }
 
-/* ========= Syllabus Loader (from site) ========= */
-// CORS-safe read-only mirror
+/* ========= Syllabus / Answer Key / Bulletin Loaders ========= */
+// CORS-safe read-only mirrors
 const SYLLABUS_SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/syllabus1'
+const ANSWERKEY_SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/answerkey_onlineexams'
+const BULLETIN_SRC  = 'https://r.jina.ai/http://www.keralapsc.gov.in/psc-bulletin'
 
 function normalizeUrl(u=''){
   const s = String(u).trim()
@@ -408,22 +413,14 @@ async function loadSyllabusList(){
     const text = await res.text()
 
     const items = []
-
-    // 1) Parse markdown-style links if present: [Title](URL)
-    const md = text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)
-    for(const m of md){
-      const title = norm(m[1])
-      const url = normalizeUrl(m[2])
+    // Markdown-style links: [Title](URL)
+    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const title = norm(m[1]); const url = normalizeUrl(m[2])
       if (!title || !url) continue
-      // Keep links likely to be syllabus or pdfs from keralapsc
-      if (/syllabus|\.pdf/i.test(url) || /syllabus/i.test(title)) {
-        items.push({ title, url })
-      }
+      if (/syllabus|\.pdf/i.test(url) || /syllabus/i.test(title)) items.push({ title, url })
     }
-
-    // 2) Fallback: pick bare URLs containing 'syllabus' with a readable title
-    const urlMatches = text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)
-    for(const m of urlMatches){
+    // Fallback: bare URLs containing 'syllabus'
+    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
       const url = m[0]
       if(!/keralapsc\.gov\.in/i.test(url)) continue
       if(!/syllabus|\.pdf/i.test(url)) continue
@@ -433,39 +430,103 @@ async function loadSyllabusList(){
     }
 
     const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
-      title: it.title,
-      url: it.url,
-      desc: '', date: '', duration: '', questions: ''
+      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
     }))
-
-    // Prefer non-empty list; otherwise show one placeholder linking to page
     if(clean.length === 0){
-      return [{
-        title: 'Kerala PSC Syllabus — Official Page',
-        url: 'https://www.keralapsc.gov.in/syllabus1',
-        desc: 'Browse all available syllabus documents on the official website.',
-        date: '', duration: '', questions: ''
-      }]
+      return [{ title: 'Kerala PSC Syllabus — Official Page', url: 'https://www.keralapsc.gov.in/syllabus1', desc: 'Browse all syllabus documents.', date: '', duration: '', questions: '' }]
     }
     return clean
   }catch(e){
     console.warn('Syllabus load failed', e)
-    return [{
-      title: 'Kerala PSC Syllabus — Official Page',
-      url: 'https://www.keralapsc.gov.in/syllabus1',
-      desc: 'Open the official syllabus page.',
-      date: '', duration: '', questions: ''
-    }]
+    return [{ title: 'Kerala PSC Syllabus — Official Page', url: 'https://www.keralapsc.gov.in/syllabus1', desc: 'Open the official syllabus page.', date: '', duration: '', questions: '' }]
+  }
+}
+
+async function loadAnswerKeyList(){
+  try{
+    const res = await fetch(ANSWERKEY_SRC, { cache: 'no-store' })
+    if(!res.ok) throw new Error(`HTTP ${res.status}`)
+    const text = await res.text()
+
+    const items = []
+    // Markdown links likely referencing answer keys
+    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const title = norm(m[1]); const url = normalizeUrl(m[2])
+      if (!title || !url) continue
+      if (/answer\s*key|answerkey|final\s*key|\.pdf/i.test(url+title)) items.push({ title, url })
+    }
+    // Fallback: bare URLs containing 'answerkey' or 'answer-key'
+    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
+      const url = m[0]
+      if(!/keralapsc\.gov\.in/i.test(url)) continue
+      if(!/(answer[-_ ]?key|final[-_ ]?key|\.pdf)/i.test(url)) continue
+      const tail = url.split('/').pop() || 'Answer Key'
+      const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'Answer Key'
+      items.push({ title, url })
+    }
+
+    const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
+      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
+    }))
+    if(clean.length === 0){
+      return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date: '', duration: '', questions: '' }]
+    }
+    return clean
+  }catch(e){
+    console.warn('AnswerKey load failed', e)
+    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Open the official answer keys page.', date: '', duration: '', questions: '' }]
+  }
+}
+
+async function loadBulletinList(){
+  try{
+    const res = await fetch(BULLETIN_SRC, { cache: 'no-store' })
+    if(!res.ok) throw new Error(`HTTP ${res.status}`)
+    const text = await res.text()
+
+    const items = []
+    // Markdown links
+    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const title = norm(m[1]); const url = normalizeUrl(m[2])
+      if (!title || !url) continue
+      if (/bulletin|psc\s*bulletin|\.pdf/i.test(url+title)) items.push({ title, url })
+    }
+    // Fallback: bare URLs
+    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
+      const url = m[0]
+      if(!/keralapsc\.gov\.in/i.test(url)) continue
+      if(!/(psc[-_ ]?bulletin|bulletin|\.pdf)/i.test(url)) continue
+      const tail = url.split('/').pop() || 'PSC Bulletin'
+      const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'PSC Bulletin'
+      items.push({ title, url })
+    }
+
+    const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
+      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
+    }))
+    if(clean.length === 0){
+      return [{ title: 'Kerala PSC Bulletin — Official Page', url: 'https://www.keralapsc.gov.in/psc-bulletin', desc: 'Read the official PSC Bulletin editions.', date: '', duration: '', questions: '' }]
+    }
+    return clean
+  }catch(e){
+    console.warn('Bulletin load failed', e)
+    return [{ title: 'Kerala PSC Bulletin — Official Page', url: 'https://www.keralapsc.gov.in/psc-bulletin', desc: 'Open the official PSC Bulletin page.', date: '', duration: '', questions: '' }]
   }
 }
 
 /* ========= Views ========= */
-function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, onSeeAllExams, onStartBattle, onQuick, openStudy, openExams, openSyllabus, recent, toMock, toProfile, theme }) {
+function Home({
+  topicBank, examBank,
+  onStartTopic, onStartExam,
+  onSeeAllTopics, onSeeAllExams,
+  onStartBattle, onQuick,
+  openStudy, openExams, openSyllabus, openAnswerKey, openBulletin,
+  recent, toMock, toProfile, theme
+}) {
   const topicCats = Object.keys(topicBank)
   const examCats = Object.keys(examBank)
   const [homeQ, setHomeQ] = useState('')
   const filteredTopics = topicCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
-  const filteredExams = examCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
   const previewTopics = filteredTopics.slice(0, 6)
 
   return (
@@ -479,7 +540,7 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
               <p className="text-[13px] md:text-[14px] text-slate-600 dark:text-slate-400">No1 PSC Learning App</p>
             </div>
           </div>
-        <div className="flex items-center gap-2">
+          <div className="flex items-center gap-2">
             <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
             <button onClick={toProfile} className="text-[13px] md:text-[14px] text-emerald-700 underline dark:text-emerald-300">Profile & Goals</button>
           </div>
@@ -581,6 +642,18 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📝</div>
             <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Syllabus</div>
             <div className="text-[12px] text-slate-500 dark:text-slate-400">Official PSC syllabus</div>
+          </button>
+          {/* NEW: Answer Key */}
+          <button onClick={openAnswerKey} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">✅</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Answer Key</div>
+            <div className="text-[12px] text-slate-500 dark:text-slate-400">Online exam keys</div>
+          </button>
+          {/* NEW: PSC Bulletin */}
+          <button onClick={openBulletin} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📰</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">PSC Bulletin</div>
+            <div className="text-[12px] text-slate-500 dark:text-slate-400">Official editions</div>
           </button>
         </div>
 
@@ -936,7 +1009,7 @@ function Results({ data, onHome, onRestart, theme }){
   )
 }
 
-/* ========= Study / Exams Lists ========= */
+/* ========= Simple List (Study / Exams / Syllabus / Answer Key / Bulletin) ========= */
 function SimpleList({ title, items, onBack, theme }){
   return (
     <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
@@ -1038,20 +1111,30 @@ export default function App(){
   const [studyList, setStudyList] = useState([])
   const [examList, setExamList] = useState([])
   const [syllabusList, setSyllabusList] = useState([]) // NEW
+  const [answerKeyList, setAnswerKeyList] = useState([]) // NEW
+  const [bulletinList, setBulletinList] = useState([]) // NEW
   const [view, setView] = useState('splash')
   const [current, setCurrent] = useState(null)
   const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') } catch { return [] } })
 
   useEffect(()=>{ (async()=>{
     try{
-      const [topics, exams, study, notices, syllabus] = await Promise.all([
+      const [topics, exams, study, notices, syllabus, answerKeys, bulletins] = await Promise.all([
         loadTopicBank(),
         loadExamBank(),
         loadList(TAB_STUDY),
         loadList(TAB_EXAMS),
-        loadSyllabusList(), // NEW
+        loadSyllabusList(),   // NEW
+        loadAnswerKeyList(),  // NEW
+        loadBulletinList(),   // NEW
       ])
-      setTopicBank(topics); setExamBank(exams); setStudyList(study); setExamList(notices); setSyllabusList(syllabus)
+      setTopicBank(topics)
+      setExamBank(exams)
+      setStudyList(study)
+      setExamList(notices)
+      setSyllabusList(syllabus)
+      setAnswerKeyList(answerKeys)
+      setBulletinList(bulletins)
     }finally{ setReady(true); setView('home') }
   })() }, [])
 
@@ -1071,7 +1154,9 @@ export default function App(){
         onQuick={()=> setView('quick')}
         openStudy={()=> setView('study')}
         openExams={()=> setView('exams')}
-        openSyllabus={()=> setView('syllabus')} // NEW
+        openSyllabus={()=> setView('syllabus')}
+        openAnswerKey={()=> setView('answerKey')}
+        openBulletin={()=> setView('bulletin')}
         recent={recent}
         toMock={()=> setView('mockSetup')}
         toProfile={()=> alert('Profile screen coming soon 🙂')}
@@ -1084,7 +1169,9 @@ export default function App(){
     else if(view==='quick') content = <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
     else if(view==='study') content = <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} theme={theme} />
     else if(view==='exams') content = <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='syllabus') content = <SimpleList title="Syllabus" items={syllabusList} onBack={()=> setView('home')} theme={theme} /> // NEW
+    else if(view==='syllabus') content = <SimpleList title="Syllabus" items={syllabusList} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='answerKey') content = <SimpleList title="Answer Key" items={answerKeyList} onBack={()=> setView('home')} theme={theme} />
+    else if(view==='bulletin') content = <SimpleList title="PSC Bulletin" items={bulletinList} onBack={()=> setView('home')} theme={theme} />
     else if(view==='mockSetup') content = <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
     else if(view==='quiz') content = <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} theme={theme} />
     else if(view==='results') content = <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
