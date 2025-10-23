@@ -4,7 +4,9 @@
 //   Daily goals & streaks, XP/levels, badges, Battle mode, Random Quick Quiz with % slider,
 //   Topic & Exam categories from Google Sheets.
 // - Adds: Syllabus, Answer Key, PSC Bulletin cards on Home (loaded from official site via CORS-safe proxy)
-// - Fixes: validated JSX, no unterminated strings, +/- stepper works, OMR shows full text.
+// - Update: Answer Key uses Post (title) + Details (description) from the official table;
+//           PSC Bulletin strips out any image entries completely.
+// - Mobile ticker spacing already fixed; mobile title shows “LATEST NOTIFICATIONS”.
 
 import { useEffect, useMemo, useState } from 'react'
 import NotificationTicker from "./components/NotificationTicker.jsx";
@@ -22,14 +24,12 @@ const TAB_EXAMS = 'Exam Notifications'
 const BATTLE_QUESTION_COUNT = 20
 const QUICK_DEFAULT_COUNT = 10
 const QUICK_MIN = 5
-const QUICK_MAX = 50
 
 /* ========================= UTILS ========================= */
 const cx = (...xs) => xs.filter(Boolean).join(' ')
 const norm = (s) => String(s ?? '').trim()
 const lower = (s) => norm(s).toLowerCase()
 const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, '')
-// Avoid \u escapes to prevent TS/JS parser issues. Use literal Unicode dashes.
 const normalizeSheetName = (s) => norm(s).replace(/[‒–—―−]/g, '-').replace(/\s+/g, ' ')
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n))
 
@@ -406,6 +406,21 @@ function dedupeBy(arr, keyFn){
   return out
 }
 
+function stripMarkdown(md=''){
+  // remove link/image markers, emphasis and extra spaces
+  return md
+    .replace(/!\[[^\]]*]\([^)]+\)/g, '')     // images
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links -> text
+    .replace(/[*_`~]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+function firstLink(md=''){
+  const m = md.match(/\((https?:\/\/[^\s)]+)\)/) || md.match(/\bhttps?:\/\/[^\s)>"']+/)
+  return m ? normalizeUrl(m[1] || m[0]) : ''
+}
+
+/* ---- Syllabus (unchanged logic, just skip image links) ---- */
 async function loadSyllabusList(){
   try{
     const res = await fetch(SYLLABUS_SRC, { cache: 'no-store' })
@@ -413,17 +428,18 @@ async function loadSyllabusList(){
     const text = await res.text()
 
     const items = []
-    // Markdown-style links: [Title](URL)
     for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const idx = m.index ?? -1
+      if (idx > 0 && text[idx-1] === '!') continue // skip images
       const title = norm(m[1]); const url = normalizeUrl(m[2])
       if (!title || !url) continue
       if (/syllabus|\.pdf/i.test(url) || /syllabus/i.test(title)) items.push({ title, url })
     }
-    // Fallback: bare URLs containing 'syllabus'
     for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
       const url = m[0]
       if(!/keralapsc\.gov\.in/i.test(url)) continue
       if(!/syllabus|\.pdf/i.test(url)) continue
+      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
       const tail = url.split('/').pop() || 'Syllabus'
       const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'Syllabus'
       items.push({ title, url })
@@ -442,42 +458,105 @@ async function loadSyllabusList(){
   }
 }
 
+/* ---- Parse markdown tables from jina.ai output ---- */
+function extractMarkdownTables(md=''){
+  const lines = md.split('\n')
+  const tables = []
+  let buf = []
+  const flush = () => {
+    if (buf.length >= 2 && /^\s*\|/.test(buf[0]) && /\|/.test(buf[1])) tables.push([...buf])
+    buf = []
+  }
+  for(const line of lines){
+    if (/^\s*\|/.test(line)) buf.push(line)
+    else flush()
+  }
+  flush()
+  return tables.map(tbl => {
+    const rows = tbl.filter(l => /^\s*\|/.test(l))
+    const head = rows[0] || ''
+    const headers = head.split('|').slice(1,-1).map(c => stripMarkdown(c).trim())
+    const data = rows.slice(2).map(r => r.split('|').slice(1,-1).map(c => c.trim()))
+    return { headers, rows: data }
+  })
+}
+
+/* ---- Answer Keys: title=Post, desc from Details, link prefers Final Answer Key ---- */
 async function loadAnswerKeyList(){
   try{
     const res = await fetch(ANSWERKEY_SRC, { cache: 'no-store' })
     if(!res.ok) throw new Error(`HTTP ${res.status}`)
     const text = await res.text()
 
+    // Try table-first parsing
+    const tables = extractMarkdownTables(text)
+    const target = tables.find(t => t.headers.some(h => /post/i.test(h)) && t.headers.some(h => /detail/i.test(h)))
+    if (target){
+      const H = target.headers.map(h => lower(h))
+      const idxPost = H.findIndex(h => /post/.test(h))
+      const idxDetails = H.findIndex(h => /detail/.test(h))
+      const idxFinalKey = H.findIndex(h => /(final.*answer.*key|final key)/.test(h))
+      const idxKey = idxFinalKey !== -1 ? idxFinalKey : H.findIndex(h => /(answer.*key)/.test(h))
+      const idxCat = H.findIndex(h => /(category)/.test(h))
+      const idxDate = H.findIndex(h => /(date.*test|date)/.test(h))
+
+      const items = []
+      for(const row of target.rows){
+        const post = stripMarkdown(row[idxPost] || '')
+        if (!post) continue
+        const detailsCell = row[idxDetails] || ''
+        const descCandidate = stripMarkdown(detailsCell)
+        const isBareDetails = /^details?$/i.test(descCandidate)
+        let desc = isBareDetails ? '' : descCandidate
+
+        // fallbacks to make description useful
+        if (!desc) {
+          const cat = stripMarkdown(row[idxCat] || '')
+          const date = stripMarkdown(row[idxDate] || '')
+          const bits = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean)
+          desc = bits.join(' • ')
+        }
+
+        const keyCell = row[idxKey] || ''
+        let url = firstLink(keyCell)
+        if (!url) continue
+        if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
+        items.push({ title: post, url: normalizeUrl(url), desc, date: '', duration: '', questions: '' })
+      }
+
+      if (items.length){
+        return dedupeBy(items, it => it.url).slice(0, 200)
+      }
+    }
+
+    // Fallback: link scraping (skip images)
     const items = []
-    // Markdown links likely referencing answer keys
     for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const idx = m.index ?? -1
+      if (idx > 0 && text[idx-1] === '!') continue // skip images
       const title = norm(m[1]); const url = normalizeUrl(m[2])
       if (!title || !url) continue
-      if (/answer\s*key|answerkey|final\s*key|\.pdf/i.test(url+title)) items.push({ title, url })
+      if (/answer\s*key|answerkey|final\s*key|\.pdf/i.test(url+title))
+        items.push({ title, url, desc: '', date: '', duration: '', questions: '' })
     }
-    // Fallback: bare URLs containing 'answerkey' or 'answer-key'
     for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
       const url = m[0]
+      if(/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
       if(!/keralapsc\.gov\.in/i.test(url)) continue
       if(!/(answer[-_ ]?key|final[-_ ]?key|\.pdf)/i.test(url)) continue
       const tail = url.split('/').pop() || 'Answer Key'
       const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'Answer Key'
-      items.push({ title, url })
+      items.push({ title, url, desc: '', date: '', duration: '', questions: '' })
     }
 
-    const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
-      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
-    }))
-    if(clean.length === 0){
-      return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date: '', duration: '', questions: '' }]
-    }
-    return clean
+    return dedupeBy(items, it => it.url).slice(0, 200)
   }catch(e){
     console.warn('AnswerKey load failed', e)
-    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Open the official answer keys page.', date: '', duration: '', questions: '' }]
+    return [{ title: 'Kerala PSC Answer Keys — Official Page', url: 'https://www.keralapsc.gov.in/answerkey_onlineexams', desc: 'Browse available answer keys for online exams.', date: '', duration: '', questions: '' }]
   }
 }
 
+/* ---- PSC Bulletin: ignore ANY image items ---- */
 async function loadBulletinList(){
   try{
     const res = await fetch(BULLETIN_SRC, { cache: 'no-store' })
@@ -485,16 +564,20 @@ async function loadBulletinList(){
     const text = await res.text()
 
     const items = []
-    // Markdown links
+    // Markdown links (skip images via `![`)
     for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
+      const idx = m.index ?? -1
+      if (idx > 0 && text[idx-1] === '!') continue // skip images
       const title = norm(m[1]); const url = normalizeUrl(m[2])
       if (!title || !url) continue
+      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
       if (/bulletin|psc\s*bulletin|\.pdf/i.test(url+title)) items.push({ title, url })
     }
-    // Fallback: bare URLs
+    // Bare URLs (skip images)
     for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
       const url = m[0]
       if(!/keralapsc\.gov\.in/i.test(url)) continue
+      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
       if(!/(psc[-_ ]?bulletin|bulletin|\.pdf)/i.test(url)) continue
       const tail = url.split('/').pop() || 'PSC Bulletin'
       const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'PSC Bulletin'
@@ -637,19 +720,16 @@ function Home({
             <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Exam Notifications</div>
             <div className="text-[12px] text-slate-500 dark:text-slate-400">Latest alerts</div>
           </button>
-          {/* NEW: Syllabus */}
           <button onClick={openSyllabus} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📝</div>
             <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Syllabus</div>
             <div className="text-[12px] text-slate-500 dark:text-slate-400">Official PSC syllabus</div>
           </button>
-          {/* NEW: Answer Key */}
           <button onClick={openAnswerKey} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">✅</div>
             <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Answer Key</div>
             <div className="text-[12px] text-slate-500 dark:text-slate-400">Online exam keys</div>
           </button>
-          {/* NEW: PSC Bulletin */}
           <button onClick={openBulletin} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
             <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📰</div>
             <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">PSC Bulletin</div>
@@ -746,7 +826,7 @@ function BattleSearch({ onMatched, theme }) {
   )
 }
 
-/* ========= Quick Setup (random N questions, % slider) ========= */
+/* ========= Quick Setup ========= */
 function QuickSetup({ bank, onStart, onBack, theme }){
   const total = useMemo(()=> flattenBank(bank).length, [bank])
   const disabled = total === 0
@@ -1110,9 +1190,9 @@ export default function App(){
   const [examBank, setExamBank] = useState({})
   const [studyList, setStudyList] = useState([])
   const [examList, setExamList] = useState([])
-  const [syllabusList, setSyllabusList] = useState([]) // NEW
-  const [answerKeyList, setAnswerKeyList] = useState([]) // NEW
-  const [bulletinList, setBulletinList] = useState([]) // NEW
+  const [syllabusList, setSyllabusList] = useState([])
+  const [answerKeyList, setAnswerKeyList] = useState([])
+  const [bulletinList, setBulletinList] = useState([])
   const [view, setView] = useState('splash')
   const [current, setCurrent] = useState(null)
   const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') } catch { return [] } })
@@ -1124,9 +1204,9 @@ export default function App(){
         loadExamBank(),
         loadList(TAB_STUDY),
         loadList(TAB_EXAMS),
-        loadSyllabusList(),   // NEW
-        loadAnswerKeyList(),  // NEW
-        loadBulletinList(),   // NEW
+        loadSyllabusList(),
+        loadAnswerKeyList(),
+        loadBulletinList(),
       ])
       setTopicBank(topics)
       setExamBank(exams)
@@ -1177,6 +1257,5 @@ export default function App(){
     else if(view==='results') content = <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
   }
 
-  // IMPORTANT: Local wrapper ensures dark mode always flips even if <html> is modified elsewhere.
   return <div className={theme.dark ? 'dark' : ''}>{content}</div>
 }
