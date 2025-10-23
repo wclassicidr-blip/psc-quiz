@@ -1,31 +1,39 @@
-// NotificationTicker.jsx — auto-scrolling Kerala PSC notifications (2025 only)
-// MOBILE FIX: tighter gaps on small screens, no-wrap pills, flex-none to prevent shrink.
-// - Works with your existing <NotificationTicker limit={40} /> in App.jsx.
+// /src/components/NotificationTicker.jsx
+// Auto-scrolling Kerala PSC notifications (2025 only)
+// - Mobile fixes: tighter gaps, no-wrap pills, flex-none to prevent overlap.
+// - Mobile header text: "LATEST NOTIFICATIONS"; desktop keeps full title.
+// - Uses a CORS-safe readable proxy (r.jina.ai) to fetch the public page text.
+// - Graceful fallback + sessionStorage caching (6 hours).
 
 import { useEffect, useMemo, useRef, useState } from "react";
 
-const SRC = "https://r.jina.ai/http://www.keralapsc.gov.in/notifications"; // CORS-friendly
+const SRC = "https://r.jina.ai/http://www.keralapsc.gov.in/notifications";
 const CACHE_KEY = "kpsc_notifs_2025_v1";
-const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
 
 function parseItemsFromText(raw) {
   const text = String(raw || "");
   const items = [];
+
+  // Primary parser: capture blocks starting at the Gazette title
   const reBlock =
     /EXTRA ORDINARY GAZETTE DATE\s+(\d{2}\/\d{2}\/\d{4})([\s\S]*?)(?=EXTRA ORDINARY GAZETTE DATE|\n##|$)/gi;
 
   let m;
   while ((m = reBlock.exec(text))) {
-    const date = m[1];
+    const date = m[1]; // dd/mm/yyyy
     if (!/\/2025$/.test(date)) continue; // Only 2025
     const block = m[2] || "";
 
+    // CAT.NO line (if present)
     const catMatch = block.match(/CAT\.?\s*NO\s*:?\s*([^\n]+)/i);
     const cats = catMatch ? catMatch[1].trim() : "";
 
+    // A "Last date" like 19-11-2025 (if present)
     const lastMatch = block.match(/\b(\d{2}-\d{2}-\d{4})\b/);
     const lastDate = lastMatch ? lastMatch[1] : "";
 
+    // Build deep link by date: ddmmyyyy -> /extra-ordinary-gazette-date-ddmmyyyy
     const slug = date.replace(/\D/g, "");
     const url = `https://www.keralapsc.gov.in/extra-ordinary-gazette-date-${slug}`;
 
@@ -38,7 +46,7 @@ function parseItemsFromText(raw) {
     });
   }
 
-  // Fallback finder if structure changes
+  // Fallback: simpler line-based detection if structure changes
   if (items.length === 0) {
     const lineRe = /EXTRA ORDINARY GAZETTE DATE\s+(\d{2}\/\d{2}\/\d{4})/gi;
     const lines = text.split(/\n+/);
@@ -62,15 +70,18 @@ function parseItemsFromText(raw) {
     }
   }
 
+  // Sort latest first
   items.sort((a, b) => {
     const [da, ma, ya] = a.date.split("/").map(Number);
     const [db, mb, yb] = b.date.split("/").map(Number);
     return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
   });
+
   return items;
 }
 
 async function fetchNotifications() {
+  // Cache first
   try {
     const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
     if (cached && Date.now() - cached.t < CACHE_TTL_MS) {
@@ -78,6 +89,7 @@ async function fetchNotifications() {
     }
   } catch {}
 
+  // Fetch fresh
   const res = await fetch(SRC, { cache: "no-store" });
   if (!res.ok) throw new Error(`HTTP ${res.status}`);
   const text = await res.text();
@@ -86,10 +98,12 @@ async function fetchNotifications() {
   try {
     sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), items }));
   } catch {}
+
   return items;
 }
 
 export default function NotificationTicker({ limit = 40, speed = 48 }) {
+  // speed = seconds for one full loop across the screen
   const [items, setItems] = useState(null);
   const [err, setErr] = useState(null);
   const wrapRef = useRef(null);
@@ -106,7 +120,9 @@ export default function NotificationTicker({ limit = 40, speed = 48 }) {
         setErr(e?.message || "Failed to load");
       }
     })();
-    return () => { on = false; };
+    return () => {
+      on = false;
+    };
   }, []);
 
   const shown = useMemo(() => {
@@ -114,12 +130,16 @@ export default function NotificationTicker({ limit = 40, speed = 48 }) {
     return items.slice(0, Math.max(1, limit));
   }, [items, limit]);
 
-  const marqueeContent = useMemo(() => (
-    <>
-      <MarqueeRow items={shown} />
-      <MarqueeRow items={shown} />
-    </>
-  ), [shown]);
+  // Build two identical rows to create a seamless looping marquee
+  const marqueeContent = useMemo(
+    () => (
+      <>
+        <MarqueeRow items={shown} />
+        <MarqueeRow items={shown} />
+      </>
+    ),
+    [shown]
+  );
 
   // Inject keyframes once
   useEffect(() => {
@@ -131,7 +151,7 @@ export default function NotificationTicker({ limit = 40, speed = 48 }) {
       style.textContent = `
         @keyframes kpsc-marquee {
           0% { transform: translateX(0); }
-          100% { transform: translateX(-50%); }
+          100% { transform: translateX(-50%); } /* track is 200% width (two copies) */
         }
       `;
       document.head.appendChild(style);
@@ -143,10 +163,16 @@ export default function NotificationTicker({ limit = 40, speed = 48 }) {
       ref={wrapRef}
       className="rounded-2xl border border-emerald-100 bg-white overflow-hidden dark:bg-slate-800 dark:border-slate-700"
     >
-      {/* Header */}
+      {/* Header with mobile-only title swap */}
       <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-emerald-50 border-b border-emerald-100 text-emerald-800 dark:bg-slate-700 dark:border-slate-600 dark:text-emerald-200">
         <span>📢</span>
-        <span>Kerala PSC — Latest Notifications (2025)</span>
+
+        {/* Mobile-only title */}
+        <span className="inline sm:hidden uppercase">LATEST NOTIFICATIONS</span>
+
+        {/* Tablet/Desktop title */}
+        <span className="hidden sm:inline">Kerala PSC — Latest Notifications (2025)</span>
+
         <a
           className="ml-auto text-emerald-700 underline dark:text-emerald-300"
           href="https://www.keralapsc.gov.in/notifications"
@@ -192,7 +218,7 @@ export default function NotificationTicker({ limit = 40, speed = 48 }) {
   );
 }
 
-/* ===== Mobile spacing & no-overlap row ===== */
+/* ===== Marquee Row (mobile spacing + no-overlap) ===== */
 function MarqueeRow({ items }) {
   return (
     <div className="flex items-center gap-3 sm:gap-4 md:gap-6 px-2 sm:px-3 py-2 min-w-[50%] flex-none">
