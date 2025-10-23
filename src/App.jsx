@@ -8,13 +8,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import NotificationTicker from "./components/NotificationTicker.jsx";
 
-// ...
-<section style={{ marginTop: 16 }}>
-  <NotificationTicker limit={40} />
-</section>
-
-
-
 /* ========================= CONFIG ========================= */
 const DEFAULT_FILE_ID = '16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o'
 const GS_FILE_ID = (import.meta?.env?.VITE_GS_FILE_ID || '').trim() || DEFAULT_FILE_ID
@@ -154,7 +147,7 @@ function mapListRows(cols, rows) {
 
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i)
-  for (let i = idxs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idxs[i], idxs[j]] = [idxs[j], idxs[i]] }
+  for (let i = idxs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idxs[i], idxs[j]] = [idxs[j]]; }
   const newOptions = idxs.map((i) => arr[i])
   const newCorrect = idxs.indexOf(correctIdx)
   return { newOptions, newCorrect }
@@ -417,8 +410,13 @@ function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, 
           </div>
         </div>
 
+        {/* ===== Notifications Ticker (2025 latest) ===== */}
+        <section style={{ marginTop: 16 }}>
+          <NotificationTicker limit={40} />
+        </section>
+
         {/* Top quick actions */}
-        <div className="grid gap-4 md:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-3 mt-4">
           <Card className="p-4 bg-gradient-to-br from-lime-400 to-emerald-600 text-white">
             <div className="flex items-center justify-between h-full">
               <div>
@@ -657,12 +655,12 @@ function QuickSetup({ bank, onStart, onBack, theme }){
               <div className="md:col-span-6">
                 <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm dark:bg-slate-800/90 dark:border-slate-700">
                   <div className="flex items-stretch">
-                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 rounded-l-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="-10">−10</button>
+                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-right border-emerald-100 hover:bg-emerald-50 rounded-l-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="-10">−10</button>
                     <button onClick={()=>nudgeCount(-1)} className="px-4 md:px-5 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="-1">−</button>
                     <div className="flex-1 grid place-items-center">
                       <div className="text-sm text-slate-500 dark:text-slate-400">Selected</div>
                       <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 tabular-nums dark:text-emerald-300">{disabled? '—' : count}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">min {minSelectable} • max {total}</div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400">min {Math.min(QUICK_MIN, total)} • max {total}</div>
                     </div>
                     <button onClick={()=>nudgeCount(1)} className="px-4 md:px-5 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="+1">+</button>
                     <button onClick={()=>nudgeCount(10)} className="px-3 md:px-4 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 rounded-r-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="+10">+10</button>
@@ -685,10 +683,10 @@ function QuickSetup({ bank, onStart, onBack, theme }){
                   <div className="absolute left-0 top-0 bottom-0 rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
                   <input
                     type="range"
-                    min={minPct}
+                    min={Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1)))}
                     max={100}
                     value={pct}
-                    onChange={(e)=> { const val = clamp(Number(e.target.value)||minPct, minPct, 100); setPct(val); setCount(countFromPct(val)) }}
+                    onChange={(e)=> { const val = clamp(Number(e.target.value)||0, Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1))), 100); setPct(val); setCount(countFromPct(val)) }}
                     className="absolute inset-0 w-full opacity-0 cursor-pointer"
                     aria-label="Percent of available questions"
                   />
@@ -700,7 +698,7 @@ function QuickSetup({ bank, onStart, onBack, theme }){
 
               {/* CTA */}
               <div className="md:col-span-12 flex justify-end gap-3 mt-1">
-                <button onClick={()=> setPresetPercent(minPct)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">Min</button>
+                <button onClick={()=> setPresetPercent(Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1))))} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">Min</button>
                 <button onClick={()=> setPresetPercent(100)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">All ({total})</button>
                 <button onClick={start} disabled={disabled} className={cx('px-5 py-2.5 rounded-lg font-semibold', disabled? 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700')}>Start Quiz</button>
               </div>
