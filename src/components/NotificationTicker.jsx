@@ -1,104 +1,221 @@
-// src/components/NotificationTicker.jsx
+// NotificationTicker.jsx — auto-scrolling Kerala PSC notifications (2025 only)
+// MOBILE FIX: tighter gaps on small screens, no-wrap pills, flex-none to prevent shrink.
+// - Works with your existing <NotificationTicker limit={40} /> in App.jsx.
+
 import { useEffect, useMemo, useRef, useState } from "react";
 
-export default function NotificationTicker({ limit = 40, className = "" }) {
-  const [items, setItems] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const rowRef = useRef(null);
-  const [rowH, setRowH] = useState(48);
+const SRC = "https://r.jina.ai/http://www.keralapsc.gov.in/notifications"; // CORS-friendly
+const CACHE_KEY = "kpsc_notifs_2025_v1";
+const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6h
+
+function parseItemsFromText(raw) {
+  const text = String(raw || "");
+  const items = [];
+  const reBlock =
+    /EXTRA ORDINARY GAZETTE DATE\s+(\d{2}\/\d{2}\/\d{4})([\s\S]*?)(?=EXTRA ORDINARY GAZETTE DATE|\n##|$)/gi;
+
+  let m;
+  while ((m = reBlock.exec(text))) {
+    const date = m[1];
+    if (!/\/2025$/.test(date)) continue; // Only 2025
+    const block = m[2] || "";
+
+    const catMatch = block.match(/CAT\.?\s*NO\s*:?\s*([^\n]+)/i);
+    const cats = catMatch ? catMatch[1].trim() : "";
+
+    const lastMatch = block.match(/\b(\d{2}-\d{2}-\d{4})\b/);
+    const lastDate = lastMatch ? lastMatch[1] : "";
+
+    const slug = date.replace(/\D/g, "");
+    const url = `https://www.keralapsc.gov.in/extra-ordinary-gazette-date-${slug}`;
+
+    items.push({
+      title: `Extra Ordinary Gazette ${date}`,
+      date,
+      cats,
+      lastDate,
+      url,
+    });
+  }
+
+  // Fallback finder if structure changes
+  if (items.length === 0) {
+    const lineRe = /EXTRA ORDINARY GAZETTE DATE\s+(\d{2}\/\d{2}\/\d{4})/gi;
+    const lines = text.split(/\n+/);
+    for (let i = 0; i < lines.length; i++) {
+      let l;
+      while ((l = lineRe.exec(lines[i]))) {
+        const date = l[1];
+        if (!/\/2025$/.test(date)) continue;
+        const lookahead = lines.slice(i, i + 6).join(" ");
+        const cat = (lookahead.match(/CAT\.?\s*NO\s*:?\s*([^\n]+)/i) || [,""])[1].trim();
+        const last = (lookahead.match(/\b(\d{2}-\d{2}-\d{4})\b/) || [,""])[1];
+        const slug = date.replace(/\D/g, "");
+        items.push({
+          title: `Extra Ordinary Gazette ${date}`,
+          date,
+          cats: cat,
+          lastDate: last,
+          url: `https://www.keralapsc.gov.in/extra-ordinary-gazette-date-${slug}`,
+        });
+      }
+    }
+  }
+
+  items.sort((a, b) => {
+    const [da, ma, ya] = a.date.split("/").map(Number);
+    const [db, mb, yb] = b.date.split("/").map(Number);
+    return new Date(yb, mb - 1, db) - new Date(ya, ma - 1, da);
+  });
+  return items;
+}
+
+async function fetchNotifications() {
+  try {
+    const cached = JSON.parse(sessionStorage.getItem(CACHE_KEY) || "null");
+    if (cached && Date.now() - cached.t < CACHE_TTL_MS) {
+      return cached.items || [];
+    }
+  } catch {}
+
+  const res = await fetch(SRC, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const text = await res.text();
+  const items = parseItemsFromText(text);
+
+  try {
+    sessionStorage.setItem(CACHE_KEY, JSON.stringify({ t: Date.now(), items }));
+  } catch {}
+  return items;
+}
+
+export default function NotificationTicker({ limit = 40, speed = 48 }) {
+  const [items, setItems] = useState(null);
+  const [err, setErr] = useState(null);
+  const wrapRef = useRef(null);
 
   useEffect(() => {
-    let alive = true;
+    let on = true;
     (async () => {
       try {
-        const r = await fetch(`/api/kpsc-notifications?limit=${limit}`);
-        const j = await r.json();
-        if (alive && Array.isArray(j.items)) setItems(j.items);
+        const data = await fetchNotifications();
+        if (!on) return;
+        setItems(data);
       } catch (e) {
-        console.error("Ticker fetch failed", e);
-      } finally {
-        if (alive) setLoading(false);
+        if (!on) return;
+        setErr(e?.message || "Failed to load");
       }
     })();
-    return () => { alive = false; };
-  }, [limit]);
+    return () => { on = false; };
+  }, []);
 
+  const shown = useMemo(() => {
+    if (!Array.isArray(items)) return [];
+    return items.slice(0, Math.max(1, limit));
+  }, [items, limit]);
+
+  const marqueeContent = useMemo(() => (
+    <>
+      <MarqueeRow items={shown} />
+      <MarqueeRow items={shown} />
+    </>
+  ), [shown]);
+
+  // Inject keyframes once
   useEffect(() => {
-    // Measure a row for smooth scroll speed
-    const el = rowRef.current;
-    if (el) {
-      const h = el.getBoundingClientRect().height;
-      if (h > 0) setRowH(h);
+    if (!wrapRef.current) return;
+    const id = "kpsc-ticker-anim";
+    if (!document.getElementById(id)) {
+      const style = document.createElement("style");
+      style.id = id;
+      style.textContent = `
+        @keyframes kpsc-marquee {
+          0% { transform: translateX(0); }
+          100% { transform: translateX(-50%); }
+        }
+      `;
+      document.head.appendChild(style);
     }
-  }, [items]);
-
-  const doubled = useMemo(() => items.concat(items), [items]);
-  const duration = Math.max(20, items.length * 2); // seconds
+  }, []);
 
   return (
-    <section
-      className={`kpsc-ticker ${className}`}
-      aria-label="Latest Kerala PSC Notifications 2025"
-      style={{ ["--row-h"]: `${rowH}px`, ["--anim-dur"]: `${duration}s` }}
+    <div
+      ref={wrapRef}
+      className="rounded-2xl border border-emerald-100 bg-white overflow-hidden dark:bg-slate-800 dark:border-slate-700"
     >
-      <div className="kpsc-ticker__head">
-        <span className="kpsc-badge">Notifications</span>
-        <a className="kpsc-viewall" href="https://www.keralapsc.gov.in/notifications" target="_blank" rel="noopener noreferrer">
-          View all
+      {/* Header */}
+      <div className="flex items-center gap-2 px-3 py-2 text-sm font-semibold bg-emerald-50 border-b border-emerald-100 text-emerald-800 dark:bg-slate-700 dark:border-slate-600 dark:text-emerald-200">
+        <span>📢</span>
+        <span>Kerala PSC — Latest Notifications (2025)</span>
+        <a
+          className="ml-auto text-emerald-700 underline dark:text-emerald-300"
+          href="https://www.keralapsc.gov.in/notifications"
+          target="_blank"
+          rel="noreferrer"
+          title="Open official notifications page"
+        >
+          Open site
         </a>
       </div>
 
-      <div className={`kpsc-ticker__rail ${loading ? "is-loading" : ""}`} role="list" aria-live="polite">
-        {loading ? (
-          <div className="kpsc-skel">Loading latest 2025 notifications…</div>
-        ) : items.length === 0 ? (
-          <div className="kpsc-empty">
-            No 2025 notifications found. Check{" "}
-            <a href="https://www.keralapsc.gov.in/notifications" target="_blank" rel="noopener noreferrer">KPSC site</a>.
+      {/* Body */}
+      <div className="relative">
+        {!items && !err && (
+          <div className="px-3 py-3 text-sm text-slate-600 dark:text-slate-300">
+            Loading latest 2025 notifications…
           </div>
-        ) : (
-          <ul className="kpsc-loop">
-            {doubled.map((it, i) => (
-              <li key={i} className="kpsc-row" role="listitem" ref={i === 0 ? rowRef : undefined}>
-                <a href={it.pdfUrl} target="_blank" rel="noopener noreferrer" className="kpsc-link" title={it.title}>
-                  <span className="kpsc-title">{it.title}</span>
-                </a>
-                <span className="kpsc-meta">
-                  {it.catNo ? `Cat.No. ${it.catNo}` : ""}
-                  {it.gazetteDate ? ` • Gazette: ${it.gazetteDate}` : ""}
-                  {it.lastDate ? ` • Last Date: ${it.lastDate}` : ""}
-                </span>
-              </li>
-            ))}
-          </ul>
+        )}
+        {err && (
+          <div className="px-3 py-3 text-sm text-red-600 dark:text-red-400">
+            Failed to load notifications. Please try again later.
+          </div>
+        )}
+
+        {shown.length > 0 && (
+          <div className="overflow-hidden group">
+            <div
+              className="flex whitespace-nowrap"
+              style={{
+                width: "200%",
+                animation: `kpsc-marquee ${Math.max(18, Math.min(120, speed))}s linear infinite`,
+                animationPlayState: "running",
+              }}
+              onMouseEnter={(e) => (e.currentTarget.style.animationPlayState = "paused")}
+              onMouseLeave={(e) => (e.currentTarget.style.animationPlayState = "running")}
+            >
+              {marqueeContent}
+            </div>
+          </div>
         )}
       </div>
+    </div>
+  );
+}
 
-      {/* Minimal, scoped styles */}
-      <style>{`
-        .kpsc-ticker{--row-h:48px; --anim-dur:40s; border:1px solid var(--kpsc-br,#dbe7df); background:var(--kpsc-bg,#f5fbf7); border-radius:16px; padding:8px 12px; overflow:hidden}
-        .kpsc-ticker__head{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:6px 2px 8px}
-        .kpsc-badge{font-weight:600; font-size:14px; padding:4px 8px; border-radius:999px; background:var(--kpsc-badge,#e6f3ec)}
-        .kpsc-viewall{font-size:13px; text-decoration:none; opacity:.8}
-        .kpsc-ticker__rail{position:relative; height:calc(var(--row-h) * 2.5); mask-image:linear-gradient(transparent,black 12%,black 88%,transparent)}
-        .kpsc-loop{list-style:none; margin:0; padding:0; position:absolute; inset:0 auto auto 0; width:100%;
-          animation: kpsc-up var(--anim-dur) linear infinite;}
-        .kpsc-ticker__rail:hover .kpsc-loop{animation-play-state:paused}
-        .kpsc-row{display:flex; flex-direction:column; gap:2px; height:var(--row-h); align-items:flex-start; justify-content:center; padding:4px 0}
-        .kpsc-link{font-size:15px; line-height:1.25; font-weight:600; text-decoration:none}
-        .kpsc-meta{font-size:12px; opacity:.8}
-        .kpsc-skel, .kpsc-empty{height:calc(var(--row-h)*2.5); display:grid; place-items:center; font-size:14px; opacity:.8}
-        @keyframes kpsc-up {
-          0% { transform: translateY(0); }
-          100% { transform: translateY(calc(-1 * var(--row-h) * ${Math.max(1, /* will be replaced at runtime visually */ 40)})); }
-        }
-        /* Dark mode friendly */
-        @media (prefers-color-scheme: dark){
-          .kpsc-ticker{--kpsc-bg:#0f1a15; --kpsc-br:#24352c; --kpsc-badge:#183026}
-          .kpsc-link{color:#e7fff3}
-          .kpsc-viewall{color:#d0e7dc}
-        }
-      `}</style>
-    </section>
+/* ===== Mobile spacing & no-overlap row ===== */
+function MarqueeRow({ items }) {
+  return (
+    <div className="flex items-center gap-3 sm:gap-4 md:gap-6 px-2 sm:px-3 py-2 min-w-[50%] flex-none">
+      {items.map((n, idx) => (
+        <a
+          key={idx}
+          href={n.url}
+          target="_blank"
+          rel="noreferrer"
+          title={n.title}
+          /* MOBILE FIXES:
+             - whitespace-nowrap: keep each pill on one line
+             - flex-none: prevent shrinking/overlap
+             - text-xs on mobile for tighter layout
+             - leading-[1.25]: consistent line height
+          */
+          className="whitespace-nowrap flex-none inline-flex items-center gap-2 px-2 py-1.5 sm:px-2.5 sm:py-1.5 rounded-xl bg-emerald-50 text-emerald-800 border border-emerald-100 hover:bg-emerald-100 dark:bg-slate-700 dark:text-emerald-200 dark:border-slate-600 text-xs sm:text-sm leading-[1.25]"
+        >
+          <span className="font-semibold">{n.title}</span>
+          {n.cats && <span className="opacity-80">• {n.cats}</span>}
+          {n.lastDate && <span className="opacity-80">• Last date: {n.lastDate}</span>}
+        </a>
+      ))}
+    </div>
   );
 }
