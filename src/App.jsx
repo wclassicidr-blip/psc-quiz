@@ -481,36 +481,38 @@ function extractMarkdownTables(md=''){
   })
 }
 
-/* ---- Answer Keys: title=Post, desc from Details, prefer Final Answer Key link ---- */
+/* ---- Answer Keys: same UX as Syllabus (flat cards) ---- */
 async function loadAnswerKeyList(){
   try{
-    const res = await fetch(ANSWERKEY_SRC, { cache: 'no-store' })
-    if (!res.ok) throw new Error(`HTTP ${res.status}`)
+    // CORS-safe text mirror of the official page
+    const SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/answerkey_onlineexams'
+    const res = await fetch(SRC, { cache: 'no-store' })
+    if(!res.ok) throw new Error(`HTTP ${res.status}`)
     const md = await res.text()
 
-    // Helper inside: pick a usable URL from a cell (prefer ones labeled "Final")
-    const pickUrl = (cell='') => {
-      // grab all links (markdown or bare)
-      const links = [...cell.matchAll(/\[([^\]]*)]\((https?:\/\/[^\s)]+)\)/gi)]
-        .map(m => ({ label: (m[1]||'').trim(), url: normalizeUrl(m[2]||'') }))
-      if (!links.length){
-        const raw = firstLink(cell)
-        return raw ? normalizeUrl(raw) : ''
-      }
-      // prefer anything indicating "final"
-      const final = links.find(l => /final/i.test(l.label) || /final/i.test(l.url))
-      return (final?.url || links[0].url)
+    // local helpers (scoped)
+    const clean = (s='') => stripMarkdown(s).replace(/\s+/g,' ').trim()
+    const firstLinkIn = (s='') => {
+      const m1 = s.match(/\[([^\]]*)]\((https?:\/\/[^\s)]+)\)/i)
+      if (m1) return normalizeUrl(m1[2])
+      const m2 = s.match(/\bhttps?:\/\/[^\s)]+/i)
+      return m2 ? normalizeUrl(m2[0]) : ''
     }
-    const clean = (s) => stripMarkdown(s || '').replace(/\s+/g, ' ').trim()
-    const isBareDetails = (t) => /^details?$/i.test((t||'').trim())
+    const pickKeyUrl = (finalCell='', keyCell='') => {
+      const f = firstLinkIn(finalCell)
+      if (f) return { url:f, tag:'Final' }
+      const k = firstLinkIn(keyCell)
+      return k ? { url:k, tag:'Provisional' } : { url:'', tag:'' }
+    }
+    const isBare = (t) => /^details?$/i.test((t||'').trim())
+
+    // Try markdown tables first (how r.jina.ai usually exposes it)
+    const tables = extractMarkdownTables(md)
+    const relevant = tables.filter(t => t.headers.some(h => /post/i.test(h)))
 
     let items = []
-
-    // 1) Use markdown tables if r.jina.ai gave us a table
-    const tables = extractMarkdownTables(md)
-    const table = tables.find(t => t.headers.some(h => /post/i.test(h)))
-    if (table){
-      const H = table.headers.map(h => h.toLowerCase())
+    for (const t of relevant){
+      const H = t.headers.map(h => h.toLowerCase())
       const idx = {
         post:  H.findIndex(h => /post/.test(h)),
         details:H.findIndex(h => /detail/.test(h)),
@@ -519,63 +521,60 @@ async function loadAnswerKeyList(){
         cat:   H.findIndex(h => /(category\s*no|cat.*no)/.test(h)),
         date:  H.findIndex(h => /(date.*test|date)/.test(h)),
       }
-
-      for (const row of table.rows){
+      for (const row of t.rows){
         const post = clean(row[idx.post] || '')
         if (!post) continue
-
-        const url = pickUrl(row[idx.final] || '') || pickUrl(row[idx.key] || '')
+        const { url, tag } = pickKeyUrl(row[idx.final]||'', row[idx.key]||'')
         if (!url) continue
 
         let desc = clean(row[idx.details] || '')
-        if (!desc || isBareDetails(desc)){
+        if (!desc || isBare(desc)){
           const cat = clean(row[idx.cat] || '')
           const date = clean(row[idx.date] || '')
           desc = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean).join(' • ')
         }
-
-        items.push({ title: post, url, desc, date:'', duration:'', questions:'' })
+        // prefix tag so it feels like the Syllabus “language” label
+        const finalDesc = tag ? `${tag} • ${desc}` : desc
+        items.push({ title: post, url, desc: finalDesc, date:'', duration:'', questions:'' })
       }
     }
 
-    // 2) Fallback: block parser for non-table text (labels like "Post", "Details", etc.)
+    // Fallback: block-label parser (if tables aren’t present)
     if (!items.length){
-      const lines = md.split('\n').map(l => l.trim()).filter(Boolean)
+      const lines = md.split('\n').map(l => l.trim())
       let cur = null
       const flush = () => {
-        if (!cur) return
-        const url = cur.finalUrl || cur.keyUrl
-        if (cur.post && url){
-          let desc = cur.details && stripMarkdown(cur.details)
-          if (!desc || isBareDetails(desc)) {
+        if(!cur) return
+        const linkInfo = pickKeyUrl(cur.finalCell||'', cur.keyCell||'')
+        if (cur.post && linkInfo.url){
+          let desc = clean(cur.details||'')
+          if (!desc || isBare(desc)){
             const parts = []
-            if (cur.cat) parts.push(`Category: ${stripMarkdown(cur.cat)}`)
-            if (cur.date) parts.push(`Date: ${stripMarkdown(cur.date)}`)
+            if (cur.cat) parts.push(`Category: ${clean(cur.cat)}`)
+            if (cur.date) parts.push(`Date: ${clean(cur.date)}`)
             desc = parts.join(' • ')
           }
-          items.push({ title: stripMarkdown(cur.post), url: normalizeUrl(url), desc, date:'', duration:'', questions:'' })
+          const finalDesc = linkInfo.tag ? `${linkInfo.tag} • ${desc}` : desc
+          items.push({ title: clean(cur.post), url: linkInfo.url, desc: finalDesc, date:'', duration:'', questions:'' })
         }
         cur = null
       }
-
-      const getUrl = (s) => normalizeUrl(firstLink(s))
-
       for (const ln of lines){
-        if (/^post\b/i.test(ln)){ flush(); cur = { post: ln.replace(/^post\s*[:|]?\s*/i,'').trim() } }
-        else if (/^category\s*no\b/i.test(ln)){ cur ??= {}; cur.cat = ln.replace(/^category\s*no\s*[:|]?\s*/i,'').trim() }
-        else if (/^(date|date of test)\b/i.test(ln)){ cur ??= {}; cur.date = ln.replace(/^(date|date of test)\s*[:|]?\s*/i,'').trim() }
-        else if (/^final\s*answer\s*key\b/i.test(ln)){ cur ??= {}; cur.finalUrl = getUrl(ln) }
-        else if (/^answer\s*key\b/i.test(ln)){ cur ??= {}; cur.keyUrl = getUrl(ln) }
-        else if (/^details\b/i.test(ln)){ cur ??= {}; cur.details = ln.replace(/^details\s*[:|]?\s*/i,'').trim() }
+        if (/^post\b/i.test(ln)){ flush(); cur = { post: ln.replace(/^post\s*[:|]?\s*/i,'') } }
+        else if (/^category\s*no\b/i.test(ln)){ cur ??= {}; cur.cat = ln.replace(/^category\s*no\s*[:|]?\s*/i,'') }
+        else if (/^(date|date of test)\b/i.test(ln)){ cur ??= {}; cur.date = ln.replace(/^(date|date of test)\s*[:|]?\s*/i,'') }
+        else if (/^final\s*answer\s*key\b/i.test(ln)){ cur ??= {}; cur.finalCell = ln }
+        else if (/^answer\s*key\b/i.test(ln)){ cur ??= {}; cur.keyCell = ln }
+        else if (/^details\b/i.test(ln)){ cur ??= {}; cur.details = ln.replace(/^details\s*[:|]?\s*/i,'') }
       }
       flush()
     }
 
-    // cleanup & return
-    items = dedupeBy(items, it => it.url).filter(Boolean)
-    if (items.length) return items
+    // sanitize + dedupe (by URL) and cap
+    items = dedupeBy(items, it => it.url).filter(Boolean).slice(0, 300)
 
-    // last resort (what you were seeing earlier)
+    if (items.length) return items
+    // last resort (shouldn’t happen once the page shape is stable)
     return [{
       title: 'Kerala PSC Answer Keys — Official Page',
       url: 'https://www.keralapsc.gov.in/answerkey_onlineexams',
@@ -592,6 +591,7 @@ async function loadAnswerKeyList(){
     }]
   }
 }
+
 /* ---- PSC Bulletin: ignore ANY image items ---- */
 async function loadBulletinList(){
   try{
