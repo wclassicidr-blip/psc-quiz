@@ -108,3 +108,6 @@ async function loadAnswerKeyList(){
     }]
   }
 }
+// Option A (recommended):
+function App(){ /* ...the whole component contents... */ }
+export default App
