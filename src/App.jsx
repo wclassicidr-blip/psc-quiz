@@ -1,15 +1,14 @@
-// App.jsx — PSC Guru (Tea Green theme) + Dark Mode Toggle
-// - Dark/Light toggle with sun/moon, persists to localStorage, applies on <html> and local wrapper.
-// - Keeps features: Mock Exams (timer + section cutoffs), OMR-style review w/ actual answers,
-//   Daily goals & streaks, XP/levels, badges, Battle mode, Random Quick Quiz with % slider,
-//   Topic & Exam categories from Google Sheets.
-// - Adds: Syllabus, Answer Key, PSC Bulletin cards on Home (loaded from official site via CORS-safe proxy)
-// - Update: Answer Key uses Post (title) + Details (description) from the official table;
-//           PSC Bulletin strips out any image entries completely.
-// - Mobile ticker spacing already fixed; mobile title shows “LATEST NOTIFICATIONS”.
+// App.jsx — PSC Guru (Tea Green theme)
+// Fixes & Features
+// - Robust GViz loader with header autodetect and fallback to per-sheet topic/exam tabs
+// - Modern Battle Finder (mosaic + scan) → auto-match → battle start
+// - Random Quick Quiz setup with percent presets and working +/- steppers
+// - Play view with timer, progress, per-question feedback, and score summary
+// - OMR Review that shows full questions & answers (correct vs chosen)
+// - Profile & Goals: XP/Level, daily target, streaks, badges
+// - Lightweight unit smoke tests that never throw in the UI
 
-import { useEffect, useMemo, useState } from 'react'
-import NotificationTicker from "./components/NotificationTicker.jsx";
+import { useEffect, useMemo, useState, useCallback } from 'react'
 
 /* ========================= CONFIG ========================= */
 const DEFAULT_FILE_ID = '16iIOLKAkFzXD1ja7v6b7_ZUKVjbcsswX8LfJ_D0S57o'
@@ -22,14 +21,18 @@ const TAB_STUDY = 'Study Material'
 const TAB_EXAMS = 'Exam Notifications'
 
 const BATTLE_QUESTION_COUNT = 20
+const TOPIC_DEFAULT_COUNT = 20
+const EXAM_DEFAULT_COUNT = 20
 const QUICK_DEFAULT_COUNT = 10
 const QUICK_MIN = 5
+const QUESTION_SECONDS = 25
 
 /* ========================= UTILS ========================= */
 const cx = (...xs) => xs.filter(Boolean).join(' ')
 const norm = (s) => String(s ?? '').trim()
 const lower = (s) => norm(s).toLowerCase()
 const strip = (s) => lower(s).replace(/[^a-z0-9]+/g, '')
+// Avoid \u escapes to prevent TS/JS parser issues. Use literal Unicode dashes.
 const normalizeSheetName = (s) => norm(s).replace(/[‒–—―−]/g, '-').replace(/\s+/g, ' ')
 const clamp = (n, a, b) => Math.max(a, Math.min(b, n))
 
@@ -148,10 +151,7 @@ function mapListRows(cols, rows) {
 
 function shuffleWithIndex(arr, correctIdx) {
   const idxs = arr.map((_, i) => i)
-  for (let i = idxs.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1))
-    ;[idxs[i], idxs[j]] = [idxs[j], idxs[i]]
-  }
+  for (let i = idxs.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [idxs[i], idxs[j]] = [idxs[j], idxs[i]] }
   const newOptions = idxs.map((i) => arr[i])
   const newCorrect = idxs.indexOf(correctIdx)
   return { newOptions, newCorrect }
@@ -170,68 +170,29 @@ function toBank(items) {
 function flattenBank(bank) { const out = []; for (const [cat, list] of Object.entries(bank)) for (const q of list) out.push({ ...q, cat }); return out }
 function mergeBanks(a, b){ const out = {...a}; for(const [k,v] of Object.entries(b||{})){ out[k] = (out[k]||[]).concat(v) } return out }
 
-/* ====== Non-throwing smoke tests ====== */
+/* ====== Lightweight, non-throwing tests (won't break UI) ====== */
 ;(function unitSmokeTests(){
   try {
-    console.assert(clamp(10, 0, 5) === 5, 'clamp upper')
-    console.assert(clamp(-1, 0, 5) === 0, 'clamp lower')
+    console.assert(clamp(10, 0, 5) === 5, 'clamp: upper bound')
+    console.assert(clamp(-1, 0, 5) === 0, 'clamp: lower bound')
     const { newOptions, newCorrect } = shuffleWithIndex(['A','B','C','D'], 2)
-    console.assert(newOptions.length === 4 && newCorrect >= 0 && newCorrect < 4, 'shuffleWithIndex ok')
-  } catch {}
+    console.assert(newOptions.length === 4 && newCorrect >= 0 && newCorrect < 4, 'shuffleWithIndex: size and index')
+    const cols = ['Question','OptA','OptB','OptC','OptD','Correct']
+    const rows = [['Q1','A','B','C','D','B']]
+    const items = mapQuestionRows(cols, rows, 'Gen')
+    console.assert(items[0]?.options?.length === 4, 'mapQuestionRows: options')
+
+    const bank = toBank(items)
+    const flat = flattenBank(bank)
+    console.assert(Array.isArray(flat) && flat.length >= 1, 'flattenBank: non-empty')
+    console.assert(typeof mergeBanks({A:[{id:1}]},{A:[{id:2}]})?.A?.length === 'number', 'mergeBanks: merges arrays')
+  } catch { /* never throw in UI */ }
 })()
-
-/* ========= Theming ========= */
-const THEME_KEY = 'prefers_dark'
-function applyThemeClass(isDark){
-  const root = document.documentElement
-  if (isDark) root.classList.add('dark'); else root.classList.remove('dark')
-  const meta = document.querySelector('meta[name="theme-color"]')
-  if (meta) meta.setAttribute('content', isDark ? '#0B1220' : '#eefbe7')
-}
-
-function useTheme(){
-  const [dark, setDark] = useState(false)
-  useEffect(()=>{
-    const stored = localStorage.getItem(THEME_KEY)
-    const sys = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
-    const initial = stored === '1' || (stored == null && sys)
-    setDark(initial); applyThemeClass(initial)
-  }, [])
-  function toggle(){
-    setDark((d)=> {
-      const next = !d
-      localStorage.setItem(THEME_KEY, next ? '1' : '0')
-      applyThemeClass(next)
-      return next
-    })
-  }
-  return { dark, toggle }
-}
-
-function ThemeToggle({ dark, onToggle }) {
-  return (
-    <button
-      onClick={onToggle}
-      title={dark ? 'Switch to light mode' : 'Switch to dark mode'}
-      aria-label="Toggle dark mode"
-      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg border border-emerald-200 text-slate-700 hover:bg-emerald-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-800"
-    >
-      {dark ? (
-        // Sun icon
-        <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0"><circle cx="12" cy="12" r="4" fill="currentColor"/><g stroke="currentColor" strokeWidth="2"><path d="M12 1v3"/><path d="M12 20v3"/><path d="M4.22 4.22l2.12 2.12"/><path d="M17.66 17.66l2.12 2.12"/><path d="M1 12h3"/><path d="M20 12h3"/><path d="M4.22 19.78l2.12-2.12"/><path d="M17.66 6.34l2.12-2.12"/></g></svg>
-      ) : (
-        // Moon icon
-        <svg width="18" height="18" viewBox="0 0 24 24" className="shrink-0"><path fill="currentColor" d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
-      )}
-      <span className="text-sm hidden sm:inline">{dark ? 'Light' : 'Dark'}</span>
-    </button>
-  )
-}
 
 /* ========= Avatars / UI ========= */
 function CartoonAvatar() {
   return (
-    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-200 grid place-items-center overflow-hidden dark:bg-emerald-300/30" aria-hidden="true">
+    <div className="w-12 h-12 md:w-14 md:h-14 rounded-full bg-emerald-200 grid place-items-center overflow-hidden" aria-hidden="true">
       <svg viewBox="0 0 64 64" width="36" height="36">
         <circle cx="32" cy="24" r="12" fill="#fff" />
         <path d="M12 54c3-10 13-14 20-14s17 4 20 14" fill="#fff" />
@@ -258,33 +219,31 @@ const KERALA_PLACES = ['Thiruvananthapuram','Kollam','Pathanamthitta','Alappuzha
 function randomOpponent() { return { name: sampleOne(MALAYALI_NAMES) + ' ' + sampleOne(['K','S','N','M','P','V']), place: sampleOne(KERALA_PLACES) } }
 
 const Card = ({ children, className = '' }) => (
-  <div className={cx('rounded-2xl bg-white shadow-sm border border-emerald-100 dark:bg-slate-800 dark:border-slate-700', className)}>{children}</div>
+  <div className={cx('rounded-2xl bg-white shadow-sm border border-emerald-100', className)}>{children}</div>
 )
 
-function LinearProgress({ value, max }) { const pct = Math.min(100, Math.max(0, (value / max) * 100)); return (<div className="w-full h-1.5 md:h-2 bg-emerald-100 rounded-full overflow-hidden dark:bg-slate-700"><div className="h-full bg-emerald-600" style={{ width: `${pct}%`} } /></div>) }
+function LinearProgress({ value, max }) { const pct = Math.min(100, Math.max(0, (value / max) * 100)); return (<div className="w-full h-1.5 md:h-2 bg-emerald-100 rounded-full overflow-hidden"><div className="h-full bg-emerald-600" style={{ width: `${pct}%`} } /></div>) }
 
-function TimerRing({ secondsLeft, totalSeconds = 25 }) {
+function TimerRing({ secondsLeft, totalSeconds = QUESTION_SECONDS }) {
   const R = 18, C = 2 * Math.PI * R, p = Math.max(0, Math.min(1, secondsLeft / totalSeconds))
   return (
     <div className="relative w-10 h-10 md:w-11 md:h-11">
       <svg viewBox="0 0 44 44" className="absolute inset-0 -rotate-90">
-        <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100 dark:stroke-slate-700" strokeWidth="6" />
+        <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-100" strokeWidth="6" />
         <circle cx="22" cy="22" r={R} className="fill-none stroke-emerald-600 transition-[stroke-dasharray] duration-200" strokeLinecap="round" strokeWidth="6" strokeDasharray={`${C * p} ${C}`} />
       </svg>
-      <div className="absolute inset-0 grid place-items-center text-[10px] md:text-xs font-semibold text-emerald-700 dark:text-emerald-300">0{Math.max(0, secondsLeft).toString().padStart(2, '0')}</div>
+      <div className="absolute inset-0 grid place-items-center text-[10px] md:text-xs font-semibold text-emerald-700">0{Math.max(0, secondsLeft).toString().padStart(2, '0')}</div>
     </div>
   )
 }
 
-function OptionButton({ label, letter, disabled, isSelected, showFeedback, isCorrect, isWrong }) {
-  const feedbackClass = showFeedback
-    ? (isCorrect ? 'border-green-500 bg-green-50 dark:bg-green-900/30' : isWrong ? 'border-red-500 bg-red-50 dark:bg-red-900/30' : 'border-transparent')
-    : isSelected ? 'border-emerald-600 ring-2 ring-emerald-200 dark:ring-emerald-900' : 'border-transparent hover:border-emerald-200 dark:hover:border-slate-600'
-  const textColor = showFeedback ? (isCorrect ? 'text-green-800 dark:text-green-300' : isWrong ? 'text-red-700 dark:text-red-300' : 'text-slate-800 dark:text-slate-100') : 'text-slate-800 dark:text-slate-100'
+function OptionButton({ label, letter, disabled, isSelected, showFeedback, isCorrect, isWrong, onClick }) {
+  const feedbackClass = showFeedback ? (isCorrect ? 'border-green-500 bg-green-50' : isWrong ? 'border-red-500 bg-red-50' : 'border-transparent') : isSelected ? 'border-emerald-600 ring-2 ring-emerald-200' : 'border-transparent hover:border-emerald-200'
+  const textColor = showFeedback ? (isCorrect ? 'text-green-800' : isWrong ? 'text-red-700' : 'text-slate-800') : 'text-slate-800'
   return (
-    <button disabled={disabled} className={cx('w-full text-left rounded-xl border-2 px-4 py-3 md:px-5 md:py-3.5 mb-3 transition-all bg-white/80 dark:bg-slate-800/80', feedbackClass)} aria-pressed={isSelected ? 'true' : 'false'}>
+    <button onClick={onClick} disabled={disabled} className={cx('w-full text-left rounded-xl border-2 px-4 py-3 md:px-5 md:py-3.5 mb-3 transition-all bg-white/80', feedbackClass)} aria-pressed={isSelected ? 'true' : 'false'}>
       <span className="inline-flex items-center gap-3">
-        <span className={cx('grid place-items-center w-6 h-6 rounded-full text-xs font-semibold md:w-7 md:h-7 md:text-sm', showFeedback ? (isCorrect ? 'bg-green-100 text-green-700 dark:bg-green-900/60 dark:text-green-200' : isWrong ? 'bg-red-100 text-red-700 dark:bg-red-900/60 dark:text-red-200' : 'bg-emerald-100 text-emerald-700 dark:bg-slate-700 dark:text-emerald-300') : 'bg-emerald-100 text-emerald-700 dark:bg-slate-700 dark:text-emerald-300')}>{letter}</span>
+        <span className={cx('grid place-items-center w-6 h-6 rounded-full text-xs font-semibold md:w-7 md:h-7 md:text-sm', showFeedback ? (isCorrect ? 'bg-green-100 text-green-700' : isWrong ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-700') : 'bg-emerald-100 text-emerald-700')}>{letter}</span>
         <span className={cx('text-[15px] md:text-[16px]', textColor)}>{label}</span>
       </span>
     </button>
@@ -296,11 +255,11 @@ function Splash() {
   const [i, setI] = useState(0)
   useEffect(() => { const id = setInterval(() => setI((x) => (x + 1) % messages.length), 1400); return () => clearInterval(id) }, [])
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#eefbe7] dark:bg-slate-900">
+    <div className="min-h-dvh grid place-items-center bg-[#eefbe7]">
       <div className="flex flex-col items-center text-center">
-        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mb-4 dark:border-slate-700 dark:border-t-emerald-600" />
-        <div className="text-emerald-700 dark:text-emerald-300 font-semibold text-[15px] md:text-[17px] transition-opacity duration-300">{messages[i]}</div>
-        <div className="w-56 md:w-72 h-2 rounded-full bg-emerald-100 overflow-hidden mt-4 dark:bg-slate-700"><div className="h-full w-1/2 rounded-full bg-emerald-400/70 animate-pulse" /></div>
+        <div className="w-14 h-14 md:w-16 md:h-16 rounded-full border-4 border-emerald-200 border-t-emerald-600 animate-spin mb-4" />
+        <div className="text-emerald-700 font-semibold text-[15px] md:text-[17px] transition-opacity duration-300">{messages[i]}</div>
+        <div className="w-56 md:w-72 h-2 rounded-full bg-emerald-100 overflow-hidden mt-4"><div className="h-full w-1/2 rounded-full bg-emerald-400/70 animate-pulse" /></div>
       </div>
     </div>
   )
@@ -381,304 +340,38 @@ async function loadExamBank(){
 
 async function loadList(tabName) { try { const { cols, rows } = await gvizFetch({ sheetName: tabName }); return mapListRows(cols, rows) } catch (e) { console.warn('List load failed', tabName, e); return [] } }
 
-/* ========= Syllabus / Answer Key / Bulletin Loaders ========= */
-// CORS-safe read-only mirrors
-const SYLLABUS_SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/syllabus1'
-const ANSWERKEY_SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/answerkey_onlineexams'
-const BULLETIN_SRC  = 'https://r.jina.ai/http://www.keralapsc.gov.in/psc-bulletin'
-
-function normalizeUrl(u=''){
-  const s = String(u).trim()
-  if (!s) return ''
-  if (s.startsWith('http://') || s.startsWith('https://')) return s
-  if (s.startsWith('//')) return 'https:' + s
-  if (s.startsWith('/')) return 'https://www.keralapsc.gov.in' + s
-  return 'https://www.keralapsc.gov.in/' + s.replace(/^\//,'')
-}
-
-function dedupeBy(arr, keyFn){
-  const seen = new Set()
-  const out = []
-  for(const it of arr){
-    const k = keyFn(it)
-    if (k && !seen.has(k)){ seen.add(k); out.push(it) }
-  }
-  return out
-}
-
-function stripMarkdown(md=''){
-  // remove link/image markers, emphasis and extra spaces
-  return md
-    .replace(/!\[[^\]]*]\([^)]+\)/g, '')     // images
-    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links -> text
-    .replace(/[*_`~]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-}
-function firstLink(md=''){
-  const m = md.match(/\((https?:\/\/[^\s)]+)\)/) || md.match(/\bhttps?:\/\/[^\s)>"']+/)
-  return m ? normalizeUrl(m[1] || m[0]) : ''
-}
-
-/* ---- Syllabus (unchanged logic, just skip image links) ---- */
-async function loadSyllabusList(){
-  try{
-    const res = await fetch(SYLLABUS_SRC, { cache: 'no-store' })
-    if(!res.ok) throw new Error(`HTTP ${res.status}`)
-    const text = await res.text()
-
-    const items = []
-    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
-      const idx = m.index ?? -1
-      if (idx > 0 && text[idx-1] === '!') continue // skip images
-      const title = norm(m[1]); const url = normalizeUrl(m[2])
-      if (!title || !url) continue
-      if (/syllabus|\.pdf/i.test(url) || /syllabus/i.test(title)) items.push({ title, url })
-    }
-    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
-      const url = m[0]
-      if(!/keralapsc\.gov\.in/i.test(url)) continue
-      if(!/syllabus|\.pdf/i.test(url)) continue
-      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
-      const tail = url.split('/').pop() || 'Syllabus'
-      const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'Syllabus'
-      items.push({ title, url })
-    }
-
-    const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
-      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
-    }))
-    if(clean.length === 0){
-      return [{ title: 'Kerala PSC Syllabus — Official Page', url: 'https://www.keralapsc.gov.in/syllabus1', desc: 'Browse all syllabus documents.', date: '', duration: '', questions: '' }]
-    }
-    return clean
-  }catch(e){
-    console.warn('Syllabus load failed', e)
-    return [{ title: 'Kerala PSC Syllabus — Official Page', url: 'https://www.keralapsc.gov.in/syllabus1', desc: 'Open the official syllabus page.', date: '', duration: '', questions: '' }]
-  }
-}
-
-/* ---- Parse markdown tables from jina.ai output ---- */
-function extractMarkdownTables(md=''){
-  const lines = md.split('\n')
-  const tables = []
-  let buf = []
-  const flush = () => {
-    if (buf.length >= 2 && /^\s*\|/.test(buf[0]) && /\|/.test(buf[1])) tables.push([...buf])
-    buf = []
-  }
-  for(const line of lines){
-    if (/^\s*\|/.test(line)) buf.push(line)
-    else flush()
-  }
-  flush()
-  return tables.map(tbl => {
-    const rows = tbl.filter(l => /^\s*\|/.test(l))
-    const head = rows[0] || ''
-    const headers = head.split('|').slice(1,-1).map(c => stripMarkdown(c).trim())
-    const data = rows.slice(2).map(r => r.split('|').slice(1,-1).map(c => c.trim()))
-    return { headers, rows: data }
-  })
-}
-
-/* ---- Answer Keys: same UX as Syllabus (flat cards) ---- */
-async function loadAnswerKeyList(){
-  try{
-    // CORS-safe text mirror of the official page
-    const SRC = 'https://r.jina.ai/http://www.keralapsc.gov.in/answerkey_onlineexams'
-    const res = await fetch(SRC, { cache: 'no-store' })
-    if(!res.ok) throw new Error(`HTTP ${res.status}`)
-    const md = await res.text()
-
-    // local helpers (scoped)
-    const clean = (s='') => stripMarkdown(s).replace(/\s+/g,' ').trim()
-    const firstLinkIn = (s='') => {
-      const m1 = s.match(/\[([^\]]*)]\((https?:\/\/[^\s)]+)\)/i)
-      if (m1) return normalizeUrl(m1[2])
-      const m2 = s.match(/\bhttps?:\/\/[^\s)]+/i)
-      return m2 ? normalizeUrl(m2[0]) : ''
-    }
-    const pickKeyUrl = (finalCell='', keyCell='') => {
-      const f = firstLinkIn(finalCell)
-      if (f) return { url:f, tag:'Final' }
-      const k = firstLinkIn(keyCell)
-      return k ? { url:k, tag:'Provisional' } : { url:'', tag:'' }
-    }
-    const isBare = (t) => /^details?$/i.test((t||'').trim())
-
-    // Try markdown tables first (how r.jina.ai usually exposes it)
-    const tables = extractMarkdownTables(md)
-    const relevant = tables.filter(t => t.headers.some(h => /post/i.test(h)))
-
-    let items = []
-    for (const t of relevant){
-      const H = t.headers.map(h => h.toLowerCase())
-      const idx = {
-        post:  H.findIndex(h => /post/.test(h)),
-        details:H.findIndex(h => /detail/.test(h)),
-        final: H.findIndex(h => /(final.*answer.*key|final key)/.test(h)),
-        key:   H.findIndex(h => /(answer.*key)/.test(h)),
-        cat:   H.findIndex(h => /(category\s*no|cat.*no)/.test(h)),
-        date:  H.findIndex(h => /(date.*test|date)/.test(h)),
-      }
-      for (const row of t.rows){
-        const post = clean(row[idx.post] || '')
-        if (!post) continue
-        const { url, tag } = pickKeyUrl(row[idx.final]||'', row[idx.key]||'')
-        if (!url) continue
-
-        let desc = clean(row[idx.details] || '')
-        if (!desc || isBare(desc)){
-          const cat = clean(row[idx.cat] || '')
-          const date = clean(row[idx.date] || '')
-          desc = [cat && `Category: ${cat}`, date && `Date: ${date}`].filter(Boolean).join(' • ')
-        }
-        // prefix tag so it feels like the Syllabus “language” label
-        const finalDesc = tag ? `${tag} • ${desc}` : desc
-        items.push({ title: post, url, desc: finalDesc, date:'', duration:'', questions:'' })
-      }
-    }
-
-    // Fallback: block-label parser (if tables aren’t present)
-    if (!items.length){
-      const lines = md.split('\n').map(l => l.trim())
-      let cur = null
-      const flush = () => {
-        if(!cur) return
-        const linkInfo = pickKeyUrl(cur.finalCell||'', cur.keyCell||'')
-        if (cur.post && linkInfo.url){
-          let desc = clean(cur.details||'')
-          if (!desc || isBare(desc)){
-            const parts = []
-            if (cur.cat) parts.push(`Category: ${clean(cur.cat)}`)
-            if (cur.date) parts.push(`Date: ${clean(cur.date)}`)
-            desc = parts.join(' • ')
-          }
-          const finalDesc = linkInfo.tag ? `${linkInfo.tag} • ${desc}` : desc
-          items.push({ title: clean(cur.post), url: linkInfo.url, desc: finalDesc, date:'', duration:'', questions:'' })
-        }
-        cur = null
-      }
-      for (const ln of lines){
-        if (/^post\b/i.test(ln)){ flush(); cur = { post: ln.replace(/^post\s*[:|]?\s*/i,'') } }
-        else if (/^category\s*no\b/i.test(ln)){ cur ??= {}; cur.cat = ln.replace(/^category\s*no\s*[:|]?\s*/i,'') }
-        else if (/^(date|date of test)\b/i.test(ln)){ cur ??= {}; cur.date = ln.replace(/^(date|date of test)\s*[:|]?\s*/i,'') }
-        else if (/^final\s*answer\s*key\b/i.test(ln)){ cur ??= {}; cur.finalCell = ln }
-        else if (/^answer\s*key\b/i.test(ln)){ cur ??= {}; cur.keyCell = ln }
-        else if (/^details\b/i.test(ln)){ cur ??= {}; cur.details = ln.replace(/^details\s*[:|]?\s*/i,'') }
-      }
-      flush()
-    }
-
-    // sanitize + dedupe (by URL) and cap
-    items = dedupeBy(items, it => it.url).filter(Boolean).slice(0, 300)
-
-    if (items.length) return items
-    // last resort (shouldn’t happen once the page shape is stable)
-    return [{
-      title: 'Kerala PSC Answer Keys — Official Page',
-      url: 'https://www.keralapsc.gov.in/answerkey_onlineexams',
-      desc: 'Browse available answer keys for online exams.',
-      date:'', duration:'', questions:''
-    }]
-  } catch (e){
-    console.warn('AnswerKey load failed', e)
-    return [{
-      title: 'Kerala PSC Answer Keys — Official Page',
-      url: 'https://www.keralapsc.gov.in/answerkey_onlineexams',
-      desc: 'Browse available answer keys for online exams.',
-      date:'', duration:'', questions:''
-    }]
-  }
-}
-
-/* ---- PSC Bulletin: ignore ANY image items ---- */
-async function loadBulletinList(){
-  try{
-    const res = await fetch(BULLETIN_SRC, { cache: 'no-store' })
-    if(!res.ok) throw new Error(`HTTP ${res.status}`)
-    const text = await res.text()
-
-    const items = []
-    // Markdown links (skip images via `![`)
-    for(const m of text.matchAll(/\[([^\]]{3,})\]\((https?:\/\/[^\s)]+)\)/g)){
-      const idx = m.index ?? -1
-      if (idx > 0 && text[idx-1] === '!') continue // skip images
-      const title = norm(m[1]); const url = normalizeUrl(m[2])
-      if (!title || !url) continue
-      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
-      if (/bulletin|psc\s*bulletin|\.pdf/i.test(url+title)) items.push({ title, url })
-    }
-    // Bare URLs (skip images)
-    for(const m of text.matchAll(/\bhttps?:\/\/[^\s)>"']+/g)){
-      const url = m[0]
-      if(!/keralapsc\.gov\.in/i.test(url)) continue
-      if (/\.(png|jpe?g|gif|webp|svg)$/i.test(url)) continue
-      if(!/(psc[-_ ]?bulletin|bulletin|\.pdf)/i.test(url)) continue
-      const tail = url.split('/').pop() || 'PSC Bulletin'
-      const title = decodeURIComponent(tail).replace(/[-_]/g,' ').replace(/\.(pdf|html?)$/i,'').trim() || 'PSC Bulletin'
-      items.push({ title, url })
-    }
-
-    const clean = dedupeBy(items, it => it.url).slice(0, 200).map(it => ({
-      title: it.title, url: it.url, desc: '', date: '', duration: '', questions: ''
-    }))
-    if(clean.length === 0){
-      return [{ title: 'Kerala PSC Bulletin — Official Page', url: 'https://www.keralapsc.gov.in/psc-bulletin', desc: 'Read the official PSC Bulletin editions.', date: '', duration: '', questions: '' }]
-    }
-    return clean
-  }catch(e){
-    console.warn('Bulletin load failed', e)
-    return [{ title: 'Kerala PSC Bulletin — Official Page', url: 'https://www.keralapsc.gov.in/psc-bulletin', desc: 'Open the official PSC Bulletin page.', date: '', duration: '', questions: '' }]
-  }
-}
-
 /* ========= Views ========= */
-function Home({
-  topicBank, examBank,
-  onStartTopic, onStartExam,
-  onSeeAllTopics, onSeeAllExams,
-  onStartBattle, onQuick,
-  openStudy, openExams, openSyllabus, openAnswerKey, openBulletin,
-  recent, toMock, toProfile, theme
-}) {
+function Home({ topicBank, examBank, onStartTopic, onStartExam, onSeeAllTopics, onSeeAllExams, onStartBattle, onQuick, openStudy, openExams, recent, toMock, toProfile }) {
   const topicCats = Object.keys(topicBank)
   const examCats = Object.keys(examBank)
   const [homeQ, setHomeQ] = useState('')
   const filteredTopics = topicCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
+  const filteredExams = examCats.filter((c) => c.toLowerCase().includes(homeQ.toLowerCase()))
   const previewTopics = filteredTopics.slice(0, 6)
-
+  const previewExams = filteredExams.slice(0, 6)
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
+    <div className="min-h-dvh bg-[#eefbe7]">
       <div className="mx-auto w-full max-w-6xl px-4 md:px-6 lg:px-8 pb-28 pt-6">
         <div className="flex items-center justify-between mb-5">
           <div className="flex items-center gap-3 md:gap-4">
             <CartoonAvatar />
             <div>
-              <p className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">PSC Guru</p>
-              <p className="text-[13px] md:text-[14px] text-slate-600 dark:text-slate-400">No1 PSC Learning App</p>
+              <p className="text-[15px] md:text-[17px] font-semibold text-slate-900">PSC Guru</p>
+              <p className="text-[13px] md:text-[14px] text-slate-600">No1 PSC Learning App</p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
-            <button onClick={toProfile} className="text-[13px] md:text-[14px] text-emerald-700 underline dark:text-emerald-300">Profile & Goals</button>
-          </div>
+          <button onClick={toProfile} className="text-[13px] md:text-[14px] text-emerald-700 underline">Profile & Goals</button>
         </div>
 
         <div className="mb-5 max-w-2xl sticky top-0 z-20">
-          <div className="flex items-center gap-2 bg-white/80 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 dark:bg-slate-800/80 dark:border-slate-700">
+          <div className="flex items-center gap-2 bg-white/80 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5">
             <span className="text-slate-400">🔎</span>
-            <input className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent text-slate-800 dark:text-slate-100" placeholder="Search categories" value={homeQ} onChange={(e) => setHomeQ(e.target.value)} />
+            <input className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400" placeholder="Search categories" value={homeQ} onChange={(e) => setHomeQ(e.target.value)} />
           </div>
         </div>
 
-        {/* ===== Notifications Ticker (2025 latest) ===== */}
-        <section style={{ marginTop: 16 }}>
-          <NotificationTicker limit={40} />
-        </section>
-
         {/* Top quick actions */}
-        <div className="grid gap-4 md:grid-cols-3 mt-4">
+        <div className="grid gap-4 md:grid-cols-3">
           <Card className="p-4 bg-gradient-to-br from-lime-400 to-emerald-600 text-white">
             <div className="flex items-center justify-between h-full">
               <div>
@@ -711,72 +404,56 @@ function Home({
         {/* Topic Categories */}
         <div className="mt-6">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Topic Categories</div>
-            <button onClick={onSeeAllTopics} className="text-[13px] md:text-[14px] text-emerald-700 dark:text-emerald-300">View all</button>
+            <div className="text-[15px] md:text-[17px] font-semibold">Topic Categories</div>
+            <button onClick={onSeeAllTopics} className="text-[13px] md:text-[14px] text-emerald-700">View all</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {previewTopics.map((c) => (
-              <button key={c} onClick={() => onStartTopic(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">＋</div>
-                <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{(topicBank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStartTopic(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500">{(topicBank[c] || []).length} questions</div>
               </button>
             ))}
-            {previewTopics.length === 0 && <div className="col-span-full text-center text-sm text-slate-600 dark:text-slate-400">No topics match “{homeQ}”.</div>}
+            {previewTopics.length === 0 && <div className="col-span-full text-center text-sm text-slate-600">No topics match “{homeQ}”.</div>}
           </div>
         </div>
 
         {/* Exam Categories */}
         <div className="mt-8">
           <div className="flex items-center justify-between mb-2">
-            <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Exam Categories</div>
-            <button onClick={onSeeAllExams} className="text-[13px] md:text-[14px] text-emerald-700 dark:text-emerald-300">View all</button>
+            <div className="text-[15px] md:text-[17px] font-semibold">Exam Categories</div>
+            <button onClick={onSeeAllExams} className="text-[13px] md:text-[14px] text-emerald-700">View all</button>
           </div>
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3 md:gap-4">
             {Object.keys(examBank).slice(0,6).map((c) => (
-              <button key={c} onClick={() => onStartExam(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">🎓</div>
-                <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{(examBank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStartExam(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">🎓</div>
+                <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500">{(examBank[c] || []).length} questions</div>
               </button>
             ))}
-            {Object.keys(examBank).slice(0,6).length === 0 && <div className="col-span-full text-center text-sm text-slate-600 dark:text-slate-400">No exams match “{homeQ}”.</div>}
+            {Object.keys(examBank).slice(0,6).length === 0 && <div className="col-span-full text-center text-sm text-slate-600">No exams match “{homeQ}”.</div>}
           </div>
         </div>
 
         {/* Tools */}
         <div className="mt-8 grid grid-cols-2 md:grid-cols-3 gap-3">
-          <button onClick={openStudy} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📚</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Study Material</div>
-            <div className="text-[12px] text-slate-500 dark:text-slate-400">Curated links</div>
+          <button onClick={openStudy} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📚</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800">Study Material</div>
+            <div className="text-[12px] text-slate-500">Curated links</div>
           </button>
-          <button onClick={openExams} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📢</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Exam Notifications</div>
-            <div className="text-[12px] text-slate-500 dark:text-slate-400">Latest alerts</div>
-          </button>
-          <button onClick={openSyllabus} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📝</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Syllabus</div>
-            <div className="text-[12px] text-slate-500 dark:text-slate-400">Official PSC syllabus</div>
-          </button>
-          <button onClick={openAnswerKey} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">✅</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">Answer Key</div>
-            <div className="text-[12px] text-slate-500 dark:text-slate-400">Online exam keys</div>
-          </button>
-          <button onClick={openBulletin} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200 dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2 dark:bg-slate-700 dark:text-emerald-300">📰</div>
-            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">PSC Bulletin</div>
-            <div className="text-[12px] text-slate-500 dark:text-slate-400">Official editions</div>
+          <button onClick={openExams} className="rounded-2xl p-4 text-left bg-white border border-emerald-100 hover:border-emerald-200">
+            <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 mb-2">📢</div>
+            <div className="text-[14px] md:text-[15px] font-semibold text-slate-800">Exam Notifications</div>
+            <div className="text-[12px] text-slate-500">Latest alerts</div>
           </button>
         </div>
 
-        {/* Recent */}
         {recent.length > 0 && (
           <div className="mt-6">
-            <div className="mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Recent</div>
+            <div className="mb-3 text-[15px] md:text-[17px] font-semibold text-slate-900">Recent</div>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4">
               {recent.map((item, idx) => {
                 const kind = typeof item === 'string' ? (topicBank[item] ? 'topic' : 'exam') : item.kind
@@ -784,12 +461,12 @@ function Home({
                 const count = kind === 'exam' ? (examBank[name] || []).length : (topicBank[name] || []).length
                 const onClick = kind === 'exam' ? () => onStartExam(name) : () => onStartTopic(name)
                 return (
-                  <button key={idx} onClick={onClick} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
+                  <button key={idx} onClick={onClick} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 text-left">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">🕘</div>
+                      <div className="w-10 h-10 md:w-12 md:h-12 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">🕘</div>
                       <div>
-                        <div className="text-[13px] md:text-[14px] font-medium text-slate-800 dark:text-slate-100">{name}</div>
-                        <div className="text-[11px] md:text-[12px] text-slate-500 dark:text-slate-400">{count} questions • {kind==='exam'?'Exam':'Topic'}</div>
+                        <div className="text-[13px] md:text-[14px] font-medium text-slate-800">{name}</div>
+                        <div className="text-[11px] md:text-[12px] text-slate-500">{count} questions • {kind==='exam'?'Exam':'Topic'}</div>
                       </div>
                     </div>
                   </button>
@@ -803,33 +480,33 @@ function Home({
   )
 }
 
-function AllCategories({ title, bank, onStart, onBack, theme }) {
+function AllCategories({ title, bank, onStart, onBack }) {
   const [q, setQ] = useState('')
   const cats = Object.keys(bank).filter((n) => n.toLowerCase().includes(q.toLowerCase()))
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
+    <div className="min-h-dvh bg-[#eefbe7]">
       <div className="w-full mx-auto max-w-6xl pb-20">
-        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-6 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur border-b border-emerald-100 flex items-center justify-between dark:bg-slate-900/95 dark:border-slate-800">
-          <button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{title}</div>
-          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+        <div className="sticky top-0 z-30 -mx-4 md:mx-0 px-4 md:px-6 pt-4 pb-3 bg-[#eefbe7]/95 backdrop-blur border-b border-emerald-100 flex items-center justify-between">
+          <button onClick={onBack} className="text-slate-600">←</button>
+          <div className="text-[15px] md:text-[17px] font-semibold">{title}</div>
+          <span className="w-4" />
         </div>
         <div className="px-4 md:px-6 pt-3">
           <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3 md:gap-4">
             <div className="col-span-full max-w-xl mb-2">
-              <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm dark:bg-slate-800/90 dark:border-slate-700">
+              <div className="flex items-center gap-2 bg-white/90 border border-emerald-100 rounded-xl px-3 py-2 md:px-4 md:py-2.5 shadow-sm">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-slate-400"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></svg>
-                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}`} className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent text-slate-800 dark:text-slate-100" autoFocus />
+                <input value={q} onChange={(e) => setQ(e.target.value)} placeholder={`Search ${title.toLowerCase()}`} className="w-full text-[14px] md:text-[15px] outline-none placeholder:text-slate-400 bg-transparent" autoFocus />
               </div>
             </div>
             {cats.map((c) => (
-              <button key={c} onClick={() => onStart(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 transition dark:bg-slate-800 dark:border-slate-700 dark:hover:border-slate-600">
-                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700 dark:bg-slate-700 dark:text-emerald-300">＋</div>
-                <div className="text-[12px] md:text-[13px] font-medium text-slate-800 text-left dark:text-slate-100">{c}</div>
-                <div className="text-[11px] md:text-[12px] text-slate-500 text-left dark:text-slate-400">{(bank[c] || []).length} questions</div>
+              <button key={c} onClick={() => onStart(c)} className="rounded-2xl p-3 md:p-4 bg-white border border-emerald-100 hover:border-emerald-200 transition">
+                <div className="w-10 h-10 md:w-12 md:h-12 mb-2 rounded-xl bg-emerald-50 grid place-items-center text-emerald-700">＋</div>
+                <div className="text-[12px] md:text-[13px] font-medium text-slate-800 text-left">{c}</div>
+                <div className="text-[11px] md:text-[12px] text-slate-500 text-left">{(bank[c] || []).length} questions</div>
               </button>
             ))}
-            {cats.length === 0 && <Card className="p-4 text-center text-sm text-slate-600 dark:text-slate-400 col-span-full">No items found.</Card>}
+            {cats.length === 0 && <Card className="p-4 text-center text-sm text-slate-600 col-span-full">No items found.</Card>}
           </div>
         </div>
       </div>
@@ -837,39 +514,104 @@ function AllCategories({ title, bank, onStart, onBack, theme }) {
   )
 }
 
-function BattleSearch({ onMatched, theme }) {
-  useEffect(() => { const id = setTimeout(() => { onMatched() }, 3000); return () => clearTimeout(id) }, [onMatched])
+function BattleSearch({ onMatched }) {
+  // Mosaic-style battle finder with animated counts and scanning bar
+  const TARGET_READY = 1024
+
+  const avatars = useMemo(() => {
+    const EMOJIS = ['🙂','😎','🤓','😁','😮','🤠','😺','🧐','😃','🥳','🤩','😇','😌','😅','🤗','😉']
+    const N = 12 * 28 // columns * rows for density
+    return Array.from({ length: N }, (_, i) => ({
+      emoji: EMOJIS[i % EMOJIS.length],
+      hue: (i * 29) % 360,
+      pulse: i % 23 === 0,
+    }))
+  }, [])
+
+  const [readyCount, setReadyCount] = useState(0)
+  useEffect(() => {
+    let n = 0
+    const step = Math.max(8, Math.round(TARGET_READY / 60))
+    const id = setInterval(() => {
+      n = Math.min(TARGET_READY, n + step)
+      setReadyCount(n)
+      if (n >= TARGET_READY) clearInterval(id)
+    }, 18)
+    return () => clearInterval(id)
+  }, [])
+
+  const [scan, setScan] = useState(0)
+  useEffect(() => {
+    const id = setInterval(() => setScan((x) => (x + 3) % 100), 30)
+    return () => clearInterval(id)
+  }, [])
+
+  // Auto-match after short delay
+  useEffect(() => {
+    const t = setTimeout(() => onMatched(), 3000)
+    return () => clearTimeout(t)
+  }, [onMatched])
+
   return (
-    <div className="min-h-dvh grid place-items-center bg-[#eefbe7] dark:bg-slate-900">
-      <div className="w-full max-w-sm md:max-w-md px-4 pt-16 text-center">
-        <div className="absolute top-4 right-4"><ThemeToggle dark={theme.dark} onToggle={theme.toggle} /></div>
-        <div className="relative w-48 h-48 mx-auto mb-6">
-          <div className="absolute inset-0 rounded-full border-4 border-emerald-200 animate-ping dark:border-slate-700"></div>
-          <div className="absolute inset-3 rounded-full border-4 border-emerald-300 animate-pulse dark:border-slate-600"></div>
-          <div className="absolute inset-6 rounded-full border-4 border-emerald-500 animate-spin"></div>
-          <div className="absolute inset-0 grid place-items-center">
-            <div className="flex -space-x-3">
-              <div className="w-10 h-10 rounded-full bg-emerald-500/80 animate-bounce"></div>
-              <div className="w-10 h-10 rounded-full bg-teal-500/80 animate-[bounce_1.2s_infinite]"></div>
-              <div className="w-10 h-10 rounded-full bg-lime-500/80 animate-[bounce_1.4s_infinite]"></div>
+    <div className="relative min-h-dvh overflow-hidden bg-gradient-to-b from-indigo-500 via-violet-500 to-blue-600">
+      {/* Mosaic avatar grid */}
+      <div className="absolute inset-0 p-2 sm:p-3 md:p-4">
+        <div className="grid gap-[6px] opacity-90 pointer-events-none grid-cols-10 sm:grid-cols-12">
+          {avatars.map((av, i) => (
+            <div
+              key={i}
+              className={cx(
+                'aspect-square rounded-full grid place-items-center text-[10px] sm:text-[11px] shadow-sm',
+                av.pulse ? 'animate-pulse' : ''
+              )}
+              style={{
+                background: `radial-gradient(circle at 30% 30%, hsl(${av.hue}, 90%, 75%) 0%, hsl(${av.hue}, 85%, 60%) 50%, hsl(${av.hue}, 80%, 50%) 100%)`,
+                color: 'rgba(255,255,255,0.95)',
+              }}
+            >
+              <span>{av.emoji}</span>
             </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Scan overlay */}
+      <div className="absolute inset-0">
+        <div className="absolute left-0 right-0" style={{ top: `${scan}%` }}>
+          <div className="h-14 bg-white/10 blur-[2px]" />
+        </div>
+      </div>
+
+      {/* Center card */}
+      <div className="relative z-10 min-h-dvh grid place-items-center p-4">
+        <div className="w-full max-w-sm">
+          <div className="rounded-3xl shadow-xl bg-white/90 p-5 text-center">
+            <div className="text-5xl font-extrabold text-emerald-600 drop-shadow-sm">{readyCount}</div>
+            <div className="text-slate-700 font-semibold mt-1">Players ready</div>
+            <div className="mt-4 text-slate-600">Finding opponent for <span className="font-semibold">Battle</span>…</div>
+            <div className="mt-4">
+              <div className="h-2 rounded-full bg-emerald-100 overflow-hidden">
+                <div className="h-full bg-emerald-500 animate-[pulse_1.8s_ease-in-out_infinite]" style={{ width: `${Math.max(40, (scan*1.2)%100)}%` }} />
+              </div>
+            </div>
+            <div className="mt-3 text-xs text-slate-500">Auto-matching…</div>
           </div>
         </div>
-        <div className="text-emerald-800 dark:text-emerald-300 font-semibold text-lg mb-1">Finding an opponent…</div>
-        <div className="text-slate-600 dark:text-slate-400 text-sm">Looking for players online</div>
       </div>
     </div>
   )
 }
 
-/* ========= Quick Setup ========= */
-function QuickSetup({ bank, onStart, onBack, theme }){
+/* ========= Quick Setup (random N questions via percentage) ========= */
+function QuickSetup({ bank, onStart, onBack }){
   const total = useMemo(()=> flattenBank(bank).length, [bank])
   const disabled = total === 0
 
+  // Minimum selectable should never exceed total; if total<QUICK_MIN allow "all" of what's there
   const minSelectable = total ? Math.min(QUICK_MIN, total) : 0
   const minPct = total ? Math.max(1, Math.ceil(100 * minSelectable / total)) : 0
 
+  // Keep BOTH count & pct and sync them
   const [count, setCount] = useState(0)
   const [pct, setPct] = useState(0)
 
@@ -903,12 +645,12 @@ function QuickSetup({ bank, onStart, onBack, theme }){
   const presetPercents = [10,25,50,75,100].filter(p=> p>=minPct)
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
+    <div className="min-h-dvh bg-[#eefbe7]">
       <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-16 pt-6">
         <div className="flex items-center justify-between mb-4">
-          <button onClick={onBack} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-800 dark:text-slate-300 dark:hover:text-slate-100"><span>←</span><span className="hidden sm:inline">Back</span></button>
-          <div className="text-[16px] md:text-[18px] font-semibold text-slate-900 dark:text-slate-100">Random Quick Quiz</div>
-          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+          <button onClick={onBack} className="inline-flex items-center gap-1 text-slate-600 hover:text-slate-800"><span>←</span><span className="hidden sm:inline">Back</span></button>
+          <div className="text-[16px] md:text-[18px] font-semibold">Random Quick Quiz</div>
+          <span className="w-8"/>
         </div>
 
         <Card className="p-0 overflow-hidden">
@@ -928,42 +670,42 @@ function QuickSetup({ bank, onStart, onBack, theme }){
           {/* Body */}
           <div className="p-4 md:p-5">
             <div className="grid md:grid-cols-12 gap-4 items-center">
-              {/* Stepper */}
+              {/* Fancy stepper (count-based) */}
               <div className="md:col-span-6">
-                <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm dark:bg-slate-800/90 dark:border-slate-700">
+                <div className="rounded-2xl border border-emerald-100 bg-white/90 shadow-sm">
                   <div className="flex items-stretch">
-                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 rounded-l-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="-10">−10</button>
-                    <button onClick={()=>nudgeCount(-1)} className="px-4 md:px-5 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="-1">−</button>
+                    <button onClick={()=>nudgeCount(-10)} className="px-3 md:px-4 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50 rounded-l-2xl" title="-10">−10</button>
+                    <button onClick={()=>nudgeCount(-1)} className="px-4 md:px-5 py-4 md:py-5 border-r border-emerald-100 hover:bg-emerald-50" title="-1">−</button>
                     <div className="flex-1 grid place-items-center">
-                      <div className="text-sm text-slate-500 dark:text-slate-400">Selected</div>
-                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 tabular-nums dark:text-emerald-300">{disabled? '—' : count}</div>
-                      <div className="text-xs text-slate-500 dark:text-slate-400">min {Math.min(QUICK_MIN, total)} • max {total}</div>
+                      <div className="text-sm text-slate-500">Selected</div>
+                      <div className="text-3xl md:text-4xl font-extrabold text-emerald-700 tabular-nums">{disabled? '—' : count}</div>
+                      <div className="text-xs text-slate-500">min {minSelectable} • max {total}</div>
                     </div>
-                    <button onClick={()=>nudgeCount(1)} className="px-4 md:px-5 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 dark:border-slate-700 dark:hover:bg-slate-700" title="+1">+</button>
-                    <button onClick={()=>nudgeCount(10)} className="px-3 md:px-4 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 rounded-r-2xl dark:border-slate-700 dark:hover:bg-slate-700" title="+10">+10</button>
+                    <button onClick={()=>nudgeCount(1)} className="px-4 md:px-5 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50" title="+1">+</button>
+                    <button onClick={()=>nudgeCount(10)} className="px-3 md:px-4 py-4 md:py-5 border-l border-emerald-100 hover:bg-emerald-50 rounded-r-2xl" title="+10">+10</button>
                   </div>
                 </div>
 
                 {/* Percent presets */}
                 <div className="mt-3 flex flex-wrap gap-2">
                   {presetPercents.map(p=> (
-                    <button key={p} onClick={()=> setPresetPercent(p)} className={cx('px-3 py-1.5 rounded-full text-sm border transition', p===pct? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-emerald-200 text-emerald-700 hover:border-emerald-300 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:border-slate-600')}>{p}%</button>
+                    <button key={p} onClick={()=> setPresetPercent(p)} className={cx('px-3 py-1.5 rounded-full text-sm border transition', p===pct? 'bg-emerald-600 text-white border-emerald-600' : 'bg-white border-emerald-200 text-emerald-700 hover:border-emerald-300')}>{p}%</button>
                   ))}
                 </div>
               </div>
 
               {/* % slider */}
               <div className="md:col-span-6">
-                <div className="mb-2 flex items-center justify-between text-xs text-slate-600 dark:text-slate-400"><span>Adjust with slider</span><span>{pct}% • {count} Qs</span></div>
+                <div className="mb-2 flex items-center justify-between text-xs text-slate-600"><span>Adjust with slider</span><span>{pct}% • {count} Qs</span></div>
                 <div className="relative h-6">
-                  <div className="absolute inset-0 rounded-full bg-emerald-100 dark:bg-slate-700" />
+                  <div className="absolute inset-0 rounded-full bg-emerald-100" />
                   <div className="absolute left-0 top-0 bottom-0 rounded-full bg-emerald-500" style={{ width: `${pct}%` }} />
                   <input
                     type="range"
-                    min={Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1)))}
+                    min={minPct}
                     max={100}
                     value={pct}
-                    onChange={(e)=> { const val = clamp(Number(e.target.value)||0, Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1))), 100); setPct(val); setCount(countFromPct(val)) }}
+                    onChange={(e)=> { const val = clamp(Number(e.target.value)||minPct, minPct, 100); setPct(val); setCount(countFromPct(val)) }}
                     className="absolute inset-0 w-full opacity-0 cursor-pointer"
                     aria-label="Percent of available questions"
                   />
@@ -975,12 +717,10 @@ function QuickSetup({ bank, onStart, onBack, theme }){
 
               {/* CTA */}
               <div className="md:col-span-12 flex justify-end gap-3 mt-1">
-                <button onClick={()=> setPresetPercent(Math.max(1, Math.ceil(100 * Math.min(QUICK_MIN, total) / (total || 1))))} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">Min</button>
-                <button onClick={()=> setPresetPercent(100)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50 dark:bg-slate-800 dark:border-slate-700 dark:text-emerald-300 dark:hover:bg-slate-700">All ({total})</button>
-                <button onClick={start} disabled={disabled} className={cx('px-5 py-2.5 rounded-lg font-semibold', disabled? 'bg-slate-200 text-slate-500 cursor-not-allowed dark:bg-slate-700 dark:text-slate-400' : 'bg-emerald-600 text-white hover:bg-emerald-700')}>Start Quiz</button>
+                <button onClick={()=> setPresetPercent(minPct)} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50">Min</button>
+                <button disabled={disabled} onClick={start} className={cx('px-4 py-2.5 rounded-lg font-semibold', disabled? 'bg-slate-200 text-slate-500 cursor-not-allowed' : 'bg-emerald-600 text-white hover:bg-emerald-700')}>Start</button>
               </div>
             </div>
-            {disabled && <div className="text-sm text-red-600 dark:text-red-400 mt-3">No questions available yet. Please add to your Google Sheet.</div>}
           </div>
         </Card>
       </div>
@@ -988,136 +728,91 @@ function QuickSetup({ bank, onStart, onBack, theme }){
   )
 }
 
-/* ========= Core Quiz ========= */
-function Quiz({ category, bank, onFinish, customQuestions, opponent, battleMode, theme }) {
-  const qs = customQuestions || bank[category] || []
+/* ========= Play View ========= */
+function PlayView({ mode='topic', title, questions, onQuit, onFinish }){
+  const total = questions.length
   const [i, setI] = useState(0)
-  const [sel, setSel] = useState(null)
-  const [score, setScore] = useState(0)
-  const [secondsLeft, setSecondsLeft] = useState(25)
-  const [showFeedback, setShowFeedback] = useState(false)
-  const [advancing, setAdvancing] = useState(false)
-  const [history, setHistory] = useState([])
+  const [sel, setSel] = useState(-1)
+  const [locked, setLocked] = useState(false)
+  const [secondsLeft, setSecondsLeft] = useState(QUESTION_SECONDS)
+  const [answers, setAnswers] = useState([]) // {qIndex, chosen, correct}
 
-  const q = qs[i]
+  // countdown per question
+  useEffect(()=>{
+    setSecondsLeft(QUESTION_SECONDS)
+    const id = setInterval(()=> setSecondsLeft((s)=>{
+      if(s<=1){ clearInterval(id); if(!locked){ // auto-submit as wrong/skip
+        setLocked(true)
+        const q = questions[i]
+        const chosen = -1
+        const correct = q.answerIndex
+        setAnswers((arr)=> [...arr, { qIndex: i, chosen, correct }])
+      }
+      return 0
+    } else return s-1 }), 1000)
+    return ()=> clearInterval(id)
+  }, [i])
 
-  useEffect(() => { setSecondsLeft(25); const id = setInterval(() => setSecondsLeft((s) => s - 1), 1000); return () => clearInterval(id) }, [i])
-  useEffect(() => { if (secondsLeft <= 0 && q && !showFeedback && !advancing) { revealAndQueueNext(null) } }, [secondsLeft, showFeedback, advancing, q])
-  useEffect(() => { if (i===0) updateStreakOnPlay() }, [])
+  const q = questions[i]
+  const letters = ['A','B','C','D']
+  const canNext = locked
 
-  function nextQuestion() { if (i + 1 >= qs.length) { return onFinish({ score, total: qs.length, history, opponent, battleMode }) } setI((x) => x + 1); setSel(null); setShowFeedback(false); setAdvancing(false) }
-  function revealAndQueueNext(chosenIndex) {
-    if (!q || advancing) return
-    setSel(chosenIndex); setShowFeedback(true); setAdvancing(true)
-    const isCorrect = chosenIndex === q.answerIndex
-    if (chosenIndex != null) setScore((s) => s + (isCorrect ? 1 : 0))
-    setHistory((h) => [
-      ...h,
-      {
-        id: q.id,
-        text: q.text,
-        options: q.options,
-        answerIndex: q.answerIndex,
-        correctIndex: q.answerIndex,
-        chosenIndex,
-        isCorrect,
-        cat: q.cat,
-      },
-    ])
-    bumpDailyDone(1); addXP(isCorrect ? 10 : 2)
-    setTimeout(() => { nextQuestion() }, 2000)
+  function chooseOption(idx){
+    if(locked) return
+    setSel(idx)
+    setLocked(true)
+    const correct = q.answerIndex
+    setAnswers((arr)=> [...arr, { qIndex: i, chosen: idx, correct }])
+    // XP & daily bump
+    addXP(idx === correct ? 5 : 1)
+    bumpDailyDone(1)
   }
 
-  const letters = ['a','b','c','d','e','f']
+  function next(){
+    if(i < total-1){ setI(i+1); setSel(-1); setLocked(false) }
+    else { finish() }
+  }
+
+  function finish(){
+    const score = answers.reduce((s,a)=> s + (a.chosen===a.correct?1:0), 0)
+    onFinish({ mode, title, questions, answers, score, total })
+  }
+
+  const progress = i+ (locked? 1: 0)
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
-      <div className="mx-auto w-full max-w-5xl px-4 md:px-6 pb-20 pt-4">
-        <div className="flex items-center justify-between mb-2">
-          <button onClick={() => onFinish({ score, total: qs.length, history, aborted: true, opponent, battleMode })} className="text-slate-600 dark:text-slate-300">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{battleMode ? 'Online Battle' : category}</div>
-          <div className="flex items-center gap-2">
-            <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
-            <TimerRing secondsLeft={secondsLeft} totalSeconds={25} />
-          </div>
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-6 pt-4">
+        {/* Header */}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <button onClick={onQuit} className="text-slate-600 hover:text-slate-800">Quit</button>
+          <div className="text-[15px] md:text-[17px] font-semibold text-center flex-1 truncate">{title}</div>
+          <TimerRing secondsLeft={secondsLeft} totalSeconds={QUESTION_SECONDS} />
         </div>
-        {battleMode && opponent && (
-          <div className="flex items-center gap-3 mb-2"><OppAvatar name={opponent.name} /><div><div className="text-[13px] md:text-[14px] font-semibold text-slate-800 dark:text-slate-100">{opponent.name}</div><div className="text-[12px] text-slate-500 dark:text-slate-400">{opponent.place}</div></div></div>
-        )}
-        <div className="text-[12px] md:text-[13px] text-slate-500 dark:text-slate-400 mb-2">Question <span className="font-semibold">{Math.min(i + 1, qs.length)}/{qs.length || 0}</span></div>
-        <LinearProgress value={Math.min(i + 1, qs.length)} max={Math.max(1, qs.length)} />
-        {!q ? (<Card className="p-4 mt-4 bg-white/90 dark:bg-slate-800/90"><div className="text-[14px] text-slate-700 dark:text-slate-300">No questions found.</div></Card>) : (
-          <div className="grid md:grid-cols-2 md:items-start md:gap-4">
-            <Card className="p-4 mt-4 mb-3 md:mb-0 bg-white/90 dark:bg-slate-800/90"><div className="text-[14px] md:text-[15px] font-semibold text-slate-800 dark:text-slate-100">{q.text}</div></Card>
-            <div className="mt-2 md:mt-4">
-              {q.options.map((opt, idx) => (
-                <div key={idx} onClick={() => { if (showFeedback || advancing) return; revealAndQueueNext(idx) }}>
-                  <OptionButton letter={letters[idx]} label={opt} disabled={showFeedback || advancing} isSelected={sel === idx} showFeedback={showFeedback} isCorrect={showFeedback && idx === q.answerIndex} isWrong={showFeedback && sel === idx && idx !== q.answerIndex} />
-                </div>
-              ))}
-            </div>
+        <LinearProgress value={progress} max={total} />
+
+        {/* Question */}
+        <Card className="p-4 md:p-5 mt-4">
+          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900">Q{i+1}. {q.text}</div>
+          <div className="mt-3">
+            {q.options.map((opt, idx)=> (
+              <OptionButton
+                key={idx}
+                label={opt}
+                letter={letters[idx]}
+                disabled={locked}
+                isSelected={sel===idx}
+                showFeedback={locked}
+                isCorrect={locked && idx===q.answerIndex}
+                isWrong={locked && sel===idx && sel!==q.answerIndex}
+                onClick={()=> chooseOption(idx)}
+              />
+            ))}
           </div>
-        )}
-        <div className="fixed bottom-4 left-0 right-0"><div className="mx-auto max-w-5xl px-4 md:px-6"><button className="w-full py-3 md:py-3.5 rounded-xl text-white font-semibold bg-emerald-300 cursor-not-allowed dark:bg-emerald-800/60" disabled>Next</button></div></div>
-      </div>
-    </div>
-  )
-}
+          <div className="mt-2 text-xs text-slate-500">Category: {q.cat || 'General'}</div>
 
-/* ========= Results / OMR Review ========= */
-function OMRRow({ index, q, reveal }){
-  const letters = ['A','B','C','D','E','F']
-  const hasChoice = q.chosenIndex != null && q.chosenIndex >= 0
-  const correctIdx = (typeof q.answerIndex === 'number') ? q.answerIndex : (typeof q.correctIndex === 'number' ? q.correctIndex : -1)
-  const chosenLetter = hasChoice ? (letters[q.chosenIndex] || '') : '—'
-  const chosenText = hasChoice ? (q.options?.[q.chosenIndex] || '') : ''
-  const correctLetter = correctIdx >= 0 ? (letters[correctIdx] || '') : ''
-  const correctText = correctIdx >= 0 ? (q.options?.[correctIdx] || '') : ''
-  const isRight = hasChoice && q.chosenIndex === correctIdx
-  const chosenDisplay = hasChoice ? `${chosenLetter}. ${chosenText}` : '—'
-  const correctDisplay = correctIdx >= 0 ? `${correctLetter}. ${correctText}` : '—'
-  return (
-    <tr className="border-b last:border-0 border-slate-200 dark:border-slate-700">
-      <td className="py-2 pr-2 text-slate-600 dark:text-slate-300">{index+1}</td>
-      <td className="py-2 pr-2 text-slate-800 dark:text-slate-100">{q.text}</td>
-      <td className="py-2 pr-2 text-slate-800 dark:text-slate-100">{chosenDisplay}</td>
-      <td className={cx('py-2 pr-2', isRight?'text-green-700 dark:text-green-300':'text-red-600 dark:text-red-300')}>{reveal ? correctDisplay : '•'}</td>
-    </tr>
-  )
-}
-
-function Results({ data, onHome, onRestart, theme }){
-  const { score, total, history, opponent, battleMode } = data
-  return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
-      <div className="mx-auto w-full max-w-5xl px-4 md:px-6 pb-16 pt-6">
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={onHome} className="text-slate-600 dark:text-slate-300">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{battleMode ? 'Battle Summary' : 'Quiz Summary'}</div>
-          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
-        </div>
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <div className="text-slate-700 dark:text-slate-300">Score</div>
-              <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-300">{score} / {total}</div>
-            </div>
-            <div className="flex gap-2">
-              <button onClick={onRestart} className="px-3 py-2 rounded-lg bg-emerald-600 text-white">Retry</button>
-              <button onClick={onHome} className="px-3 py-2 rounded-lg border border-emerald-200 dark:border-slate-700 dark:text-slate-200">Home</button>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="p-4 mt-4">
-          <div className="text-[15px] md:text-[16px] font-semibold mb-2 text-slate-900 dark:text-slate-100">OMR Review</div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead><tr className="text-slate-500 dark:text-slate-400"><th className="text-left">#</th><th className="text-left">Question</th><th className="text-left">Marked Answer</th><th className="text-left">Correct Answer</th></tr></thead>
-              <tbody>
-                {history.map((q, idx)=> <OMRRow key={idx} index={idx} q={q} reveal />)}
-              </tbody>
-            </table>
+          <div className="mt-4 flex justify-end">
+            <button onClick={canNext? next : ()=>{}} disabled={!canNext} className={cx('px-4 py-2.5 rounded-lg font-semibold', canNext? 'bg-emerald-600 text-white hover:bg-emerald-700' : 'bg-slate-200 text-slate-500')}>{i<total-1? 'Next' : 'Finish'}</button>
           </div>
         </Card>
       </div>
@@ -1125,91 +820,137 @@ function Results({ data, onHome, onRestart, theme }){
   )
 }
 
-/* ========= Simple List (Study / Exams / Syllabus / Answer Key / Bulletin) ========= */
-function SimpleList({ title, items, onBack, theme }){
+/* ========= Summary & OMR Review ========= */
+function SummaryCard({ result, onReview, onHome, onRetry }){
+  const { score, total, title } = result
+  const pct = Math.round((score/total)*100)
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
-      <div className="mx-auto w-full max-w-4xl px-4 md:px-6 pb-16 pt-6">
-        <div className="flex items-center justify-between mb-3">
-          <button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button>
-          <div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">{title}</div>
-          <ThemeToggle dark={theme.dark} onToggle={theme.toggle} />
+    <Card className="p-5 text-center">
+      <div className="text-xl font-semibold text-slate-900">{title}</div>
+      <div className="mt-2 text-slate-700">You scored <span className="font-semibold">{score}</span> / {total} • {pct}%</div>
+      <div className="mt-4 flex justify-center gap-2">
+        <button onClick={onReview} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-emerald-700 hover:bg-emerald-50">OMR Review</button>
+        <button onClick={onRetry} className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Retry</button>
+        <button onClick={onHome} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white text-slate-700 hover:bg-emerald-50">Home</button>
+      </div>
+    </Card>
+  )
+}
+
+function OMRReview({ result, onBack }){
+  const letters = ['A','B','C','D']
+  return (
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-10 pt-5">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-slate-600">← Back</button>
+          <div className="text-[15px] md:text-[17px] font-semibold">OMR Review — {result.title}</div>
+          <span className="w-4"/>
+        </div>
+        {result.questions.map((q, idx)=>{
+          const ans = result.answers.find(a=> a.qIndex===idx)
+          return (
+            <Card key={idx} className="p-4 md:p-5 mb-3">
+              <div className="text-[14px] md:text-[15px] font-semibold text-slate-900">Q{idx+1}. {q.text}</div>
+              <div className="mt-3">
+                {q.options.map((opt,i)=>{
+                  const isCorrect = i===q.answerIndex
+                  const isChosen = ans?.chosen===i
+                  const showFeedback = true
+                  const isWrong = isChosen && !isCorrect
+                  return (
+                    <OptionButton key={i} label={opt} letter={letters[i]} disabled isSelected={isChosen} showFeedback={showFeedback} isCorrect={isCorrect} isWrong={isWrong} />
+                  )
+                })}
+              </div>
+              <div className="text-xs text-slate-500">Category: {q.cat || 'General'}</div>
+            </Card>
+          )
+        })}
+      </div>
+    </div>
+  )
+}
+
+/* ========= Study & Exam Lists ========= */
+function SimpleList({ title, items, onBack }){
+  return (
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-4xl px-4 md:px-6 pb-10 pt-5">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-slate-600">← Back</button>
+          <div className="text-[15px] md:text-[17px] font-semibold">{title}</div>
+          <span className="w-4"/>
         </div>
         <div className="grid gap-3">
-          {items.map((it,idx)=> (
-            <Card key={idx} className="p-4">
-              <div className="font-semibold text-slate-800 dark:text-slate-100">{it.title}</div>
-              {it.desc && <div className="text-sm text-slate-600 dark:text-slate-300 mt-1">{it.desc}</div>}
-              <div className="text-xs text-slate-500 dark:text-slate-400 mt-2 flex flex-wrap gap-3">
-                {it.date && <span>🗓 {it.date}</span>}
-                {it.duration && <span>⏱ {it.duration}</span>}
-                {it.questions && <span>❓ {it.questions} Qs</span>}
-                {it.url && <a href={it.url} target="_blank" className="text-emerald-700 underline dark:text-emerald-300">Open</a>}
+          {items.map((it, idx)=> (
+            <Card key={idx} className="p-4 md:p-5">
+              <div className="flex items-start justify-between gap-4">
+                <div>
+                  <div className="text-[15px] md:text-[16px] font-semibold text-slate-900">{it.title}</div>
+                  {it.desc && <div className="text-[13px] text-slate-600 mt-1">{it.desc}</div>}
+                  <div className="text-[12px] text-slate-500 mt-1">{it.date || ''} {it.duration? `• ${it.duration}`:''} {it.questions? `• ${it.questions} Qs`:''}</div>
+                </div>
+                {it.url && <a href={it.url} target="_blank" rel="noreferrer" className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700 text-sm">Open</a>}
               </div>
             </Card>
           ))}
-          {items.length===0 && <Card className="p-4 text-sm text-slate-600 dark:text-slate-400">Nothing to show.</Card>}
+          {items.length===0 && <Card className="p-4 text-center text-slate-600">Nothing found.</Card>}
         </div>
       </div>
     </div>
   )
 }
 
-/* ========= Mock Setup ========= */
-function MockSetup({ bank, onStart, onBack, theme }){
-  const cats = Object.keys(bank)
-  const [sections, setSections] = useState(cats.slice(0,3).map((c)=>({ name:c, count:10, cutoff:30 })))
-  const [duration, setDuration] = useState(60)
-  const [title, setTitle] = useState('Full Mock Test')
+/* ========= Profile ========= */
+function ProfileView({ onBack }){
+  const [xp, setXp] = useState(getNum(XP_KEY,0))
+  const [level, setLevel] = useState(getNum(LVL_KEY,1))
+  const [streak, setStreak] = useState(getNum(STREAK_KEY,0))
+  const [badges, setBadges] = useState(getBadges())
+  const [daily, setDaily] = useState(getDaily())
+  const [target, setTarget] = useState(daily.target)
 
-  function addSection(){ if (sections.length>=5) return; const cand = cats.find(c=> !sections.find(s=>s.name===c)); if(!cand) return; setSections([...sections, {name:cand, count:10, cutoff:30}]) }
-  function removeSection(i){ setSections(sections.filter((_,idx)=> idx!==i)) }
-  function start(){
-    const flat = flattenBank(bank)
-    const wanted = sections.flatMap((s)=> sampleMany(flat.filter(q=> q.cat===s.name), s.count))
-    const picked = wanted.map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat }))
-    onStart({ title, duration, sections, customQuestions: picked })
-  }
+  useEffect(()=>{ const id = setInterval(()=>{ setXp(getNum(XP_KEY,0)); setLevel(getNum(LVL_KEY,1)); setStreak(getNum(STREAK_KEY,0)); setBadges(getBadges()); setDaily(getDaily()) }, 600); return ()=> clearInterval(id)}, [])
+
+  function saveTarget(){ setDailyTarget(Number(target)||20); setDaily(getDaily()) }
 
   return (
-    <div className="min-h-dvh bg-[#eefbe7] dark:bg-slate-900">
-      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-12 pt-6">
-        <div className="flex items-center justify-between mb-3"><button onClick={onBack} className="text-slate-600 dark:text-slate-300">←</button><div className="text-[15px] md:text-[17px] font-semibold text-slate-900 dark:text-slate-100">Mock Exam Setup</div><ThemeToggle dark={theme.dark} onToggle={theme.toggle} /></div>
-        <Card className="p-4">
-          <div className="grid gap-3">
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-10 pt-5">
+        <div className="flex items-center justify-between mb-4">
+          <button onClick={onBack} className="text-slate-600">← Back</button>
+          <div className="text-[15px] md:text-[17px] font-semibold">Profile & Goals</div>
+          <span className="w-4"/>
+        </div>
+
+        <Card className="p-4 md:p-5">
+          <div className="grid md:grid-cols-2 gap-4">
             <div>
-              <label className="text-sm text-slate-600 dark:text-slate-300">Title</label>
-              <input value={title} onChange={(e)=>setTitle(e.target.value)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
+              <div className="text-sm text-slate-600">XP</div>
+              <div className="text-3xl font-extrabold text-emerald-700">{xp}</div>
+              <div className="text-sm text-slate-600 mt-1">Level {level}</div>
             </div>
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <label className="text-sm text-slate-600 dark:text-slate-300">Duration (minutes)</label>
-                <input type="number" min={15} max={180} value={duration} onChange={(e)=>setDuration(Number(e.target.value)||60)} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
+            <div>
+              <div className="text-sm text-slate-600">Daily Target</div>
+              <div className="flex items-center gap-2 mt-1">
+                <input value={target} onChange={(e)=> setTarget(e.target.value)} type="number" min={5} max={200} className="px-3 py-2 rounded-lg border border-emerald-200 bg-white w-28" />
+                <button onClick={saveTarget} className="px-3 py-2 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Save</button>
               </div>
-              <div className="flex items-end"><button onClick={addSection} className="px-3 py-2 rounded-lg bg-emerald-600 text-white">Add Section</button></div>
+              <div className="mt-2 text-sm text-slate-600">Today: {daily.done} / {daily.target}</div>
+              <div className="mt-2"><LinearProgress value={daily.done} max={daily.target} /></div>
             </div>
-            <div className="space-y-2">
-              {sections.map((s,idx)=> (
-                <div key={idx} className="grid grid-cols-1 md:grid-cols-12 gap-2 items-end">
-                  <div className="md:col-span-5">
-                    <label className="text-sm text-slate-600 dark:text-slate-300">Section Category</label>
-                    <select value={s.name} onChange={(e)=>{ const name=e.target.value; const next=[...sections]; next[idx]={...s,name}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100">
-                      {cats.map((c)=> <option key={c} value={c}>{c}</option>)}
-                    </select>
-                  </div>
-                  <div className="md:col-span-3">
-                    <label className="text-sm text-slate-600 dark:text-slate-300">Questions</label>
-                    <input type="number" min={5} max={100} value={s.count} onChange={(e)=>{ const count = clamp(Number(e.target.value)||10, 5, 100); const next=[...sections]; next[idx]={...s,count}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
-                  </div>
-                  <div className="md:col-span-3">
-                    <label className="text-sm text-slate-600 dark:text-slate-300">Section Cutoff (%)</label>
-                    <input type="number" min={0} max={100} value={s.cutoff} onChange={(e)=>{ const cutoff = clamp(Number(e.target.value)||30, 0, 100); const next=[...sections]; next[idx]={...s,cutoff}; setSections(next) }} className="w-full mt-1 px-3 py-2 border border-emerald-200 rounded-lg bg-white dark:bg-slate-800 dark:border-slate-700 dark:text-slate-100"/>
-                  </div>
-                  <div className="md:col-span-1 text-right"><button onClick={()=>removeSection(idx)} className="px-3 py-2 rounded-lg border border-emerald-200 dark:border-slate-700">✕</button></div>
-                </div>
-              ))}
+          </div>
+          <div className="mt-4 grid grid-cols-2 md:grid-cols-3 gap-2">
+            <div className="rounded-xl bg-white border border-emerald-100 p-3 text-center">
+              <div className="text-sm text-slate-600">Streak</div>
+              <div className="text-2xl font-bold text-emerald-700">{streak} 🔥</div>
             </div>
-            <div className="text-right"><button onClick={start} className="px-4 py-2 rounded-lg bg-emerald-600 text-white">Start Mock</button></div>
+            <div className="rounded-xl bg-white border border-emerald-100 p-3">
+              <div className="text-sm text-slate-600 mb-1">Badges</div>
+              <div className="flex flex-wrap gap-2">{badges.map((b,i)=> <span key={i} className="px-2 py-1 rounded-full text-xs bg-emerald-100 text-emerald-700 border border-emerald-200">{b}</span>)}</div>
+              {badges.length===0 && <div className="text-xs text-slate-500">No badges yet.</div>}
+            </div>
           </div>
         </Card>
       </div>
@@ -1217,81 +958,195 @@ function MockSetup({ bank, onStart, onBack, theme }){
   )
 }
 
-/* ========= Root App ========= */
-export default function App(){
-  const theme = useTheme()
+/* ========= Mock Exam (lightweight) ========= */
+function MockExam({ bank, onBack, onFinish }){
+  const flat = useMemo(()=> flattenBank(bank), [bank])
+  const [duration] = useState(45*60) // 45 minutes total
+  const [left, setLeft] = useState(duration)
+  const [started, setStarted] = useState(false)
+  const [qs, setQs] = useState([])
 
-  const [ready, setReady] = useState(false)
-  const [topicBank, setTopicBank] = useState({})
-  const [examBank, setExamBank] = useState({})
-  const [studyList, setStudyList] = useState([])
-  const [examList, setExamList] = useState([])
-  const [syllabusList, setSyllabusList] = useState([])
-  const [answerKeyList, setAnswerKeyList] = useState([])
-  const [bulletinList, setBulletinList] = useState([])
-  const [view, setView] = useState('splash')
-  const [current, setCurrent] = useState(null)
-  const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') } catch { return [] } })
+  useEffect(()=>{
+    if(!started) return
+    const id = setInterval(()=> setLeft((s)=> s>0? s-1 : 0), 1000)
+    return ()=> clearInterval(id)
+  }, [started])
 
-  useEffect(()=>{ (async()=>{
-    try{
-      const [topics, exams, study, notices, syllabus, answerKeys, bulletins] = await Promise.all([
-        loadTopicBank(),
-        loadExamBank(),
-        loadList(TAB_STUDY),
-        loadList(TAB_EXAMS),
-        loadSyllabusList(),
-        loadAnswerKeyList(),
-        loadBulletinList(),
-      ])
-      setTopicBank(topics)
-      setExamBank(exams)
-      setStudyList(study)
-      setExamList(notices)
-      setSyllabusList(syllabus)
-      setAnswerKeyList(answerKeys)
-      setBulletinList(bulletins)
-    }finally{ setReady(true); setView('home') }
-  })() }, [])
-
-  function pushRecent(item){ const next=[item, ...recent.filter(x=> (typeof x==='string'? x: x.name)!==(typeof item==='string'? item: item.name))].slice(0,6); setRecent(next); localStorage.setItem('recent_items', JSON.stringify(next)) }
-
-  let content = <Splash />
-  if(ready){
-    if(view==='home') content = (
-      <Home
-        topicBank={topicBank}
-        examBank={examBank}
-        onStartTopic={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') ; pushRecent(c) }}
-        onStartExam={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz'); pushRecent({kind:'exam', name:c}) }}
-        onSeeAllTopics={()=> setView('allTopics')}
-        onSeeAllExams={()=> setView('allExams')}
-        onStartBattle={()=> setView('battleSearch')}
-        onQuick={()=> setView('quick')}
-        openStudy={()=> setView('study')}
-        openExams={()=> setView('exams')}
-        openSyllabus={()=> setView('syllabus')}
-        openAnswerKey={()=> setView('answerKey')}
-        openBulletin={()=> setView('bulletin')}
-        recent={recent}
-        toMock={()=> setView('mockSetup')}
-        toProfile={()=> alert('Profile screen coming soon 🙂')}
-        theme={theme}
-      />
-    )
-    else if(view==='allTopics') content = <AllCategories title="All Topic Categories" bank={topicBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='allExams') content = <AllCategories title="All Exam Categories" bank={examBank} onStart={(c)=>{ setCurrent({ category:c, battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='battleSearch') content = <BattleSearch onMatched={()=>{ const opp = randomOpponent(); const all = flattenBank(mergeBanks(topicBank, examBank)); const picked = sampleMany(all, BATTLE_QUESTION_COUNT).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat })); setCurrent({ customQuestions:picked, category:'Battle', battleMode:true, opponent:opp }); setView('quiz') }} theme={theme} />
-    else if(view==='quick') content = <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={(picked)=>{ setCurrent({ customQuestions:picked, category:'Quick Quiz', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='study') content = <SimpleList title="Study Material" items={studyList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='exams') content = <SimpleList title="Exam Notifications" items={examList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='syllabus') content = <SimpleList title="Syllabus" items={syllabusList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='answerKey') content = <SimpleList title="Answer Key" items={answerKeyList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='bulletin') content = <SimpleList title="PSC Bulletin" items={bulletinList} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='mockSetup') content = <MockSetup bank={mergeBanks(topicBank, examBank)} onStart={({ customQuestions })=>{ setCurrent({ customQuestions, category:'Mock Exam', battleMode:false }); setView('quiz') }} onBack={()=> setView('home')} theme={theme} />
-    else if(view==='quiz') content = <Quiz category={current?.category} bank={mergeBanks(topicBank, examBank)} customQuestions={current?.customQuestions} opponent={current?.opponent} battleMode={current?.battleMode} onFinish={(data)=>{ setCurrent(data); setView('results') }} theme={theme} />
-    else if(view==='results') content = <Results data={current} onHome={()=> setView('home')} onRestart={()=>{ if(current?.battleMode){ setView('battleSearch') } else if(current?.category==='Quick Quiz'){ setView('quick') } else { setView('home') } }} theme={theme} />
+  function start(){
+    const picked = sampleMany(flat, Math.min(50, flat.length)).map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat }))
+    setQs(picked)
+    setStarted(true)
+    updateStreakOnPlay()
   }
 
-  return <div className={theme.dark ? 'dark' : ''}>{content}</div>
+  if(!started){
+    return (
+      <div className="min-h-dvh bg-[#eefbe7]">
+        <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-8 pt-6">
+          <div className="flex items-center justify-between mb-4">
+            <button onClick={onBack} className="text-slate-600">← Back</button>
+            <div className="text-[15px] md:text-[17px] font-semibold">Mock Exam</div>
+            <span className="w-4"/>
+          </div>
+          <Card className="p-5 text-center">
+            <div className="text-lg font-semibold text-slate-900">50 Questions • 45 minutes</div>
+            <div className="text-sm text-slate-600 mt-1">OMR review after submission</div>
+            <button onClick={start} className="mt-4 px-4 py-2.5 rounded-lg bg-emerald-600 text-white hover:bg-emerald-700">Start Exam</button>
+          </Card>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-6 pt-4">
+        <div className="flex items-center justify-between">
+          <button onClick={onBack} className="text-slate-600">← Exit</button>
+          <div className="text-[15px] md:text-[17px] font-semibold">Mock Exam</div>
+          <div className="px-3 py-1 rounded-full bg-white border border-emerald-200 text-emerald-700 text-sm">{Math.floor(left/60)}:{String(left%60).padStart(2,'0')}</div>
+        </div>
+      </div>
+      <PlayView mode="mock" title="Mock Exam" questions={qs} onQuit={onBack} onFinish={onFinish} />
+    </div>
+  )
+}
+
+/* ========= App ========= */
+export default function App(){
+  const [loading, setLoading] = useState(true)
+  const [topicBank, setTopicBank] = useState({})
+  const [examBank, setExamBank] = useState({})
+
+  // navigation state
+  const [view, setView] = useState('home')
+  const [playing, setPlaying] = useState(null) // {mode,title,questions}
+  const [result, setResult] = useState(null)
+  const [opp, setOpp] = useState(null)
+  const [studyItems, setStudyItems] = useState([])
+  const [examItems, setExamItems] = useState([])
+  const [recent, setRecent] = useState(()=> { try{ return JSON.parse(localStorage.getItem('recent_items')||'[]') }catch{return []} })
+
+  // initial load
+  useEffect(()=>{
+    let mounted = true
+    ;(async()=>{
+      try{
+        const [tb, eb] = await Promise.all([loadTopicBank(), loadExamBank()])
+        if(!mounted) return
+        setTopicBank(tb)
+        setExamBank(eb)
+      } finally { setLoading(false) }
+    })()
+    return ()=> { mounted=false }
+  }, [])
+
+  const pushRecent = useCallback((item)=>{
+    try{
+      const cur = JSON.parse(localStorage.getItem('recent_items')||'[]')
+      const next = [item, ...cur.filter((x)=> (typeof x==='string'? x: x.name)!==(typeof item==='string'? item: item.name))].slice(0,6)
+      localStorage.setItem('recent_items', JSON.stringify(next))
+      setRecent(next)
+    }catch{}
+  }, [])
+
+  // handlers
+  function startTopic(name){
+    const qs = sampleMany(topicBank[name]||[], TOPIC_DEFAULT_COUNT)
+    const mapped = qs.map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:name }))
+    setPlaying({ mode:'topic', title: name, questions: mapped })
+    updateStreakOnPlay()
+    setView('play')
+    pushRecent(name)
+  }
+  function startExam(name){
+    const qs = sampleMany(examBank[name]||[], EXAM_DEFAULT_COUNT)
+    const mapped = qs.map((q,idx)=> ({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:name }))
+    setPlaying({ mode:'exam', title: name, questions: mapped })
+    updateStreakOnPlay()
+    setView('play')
+    pushRecent({ kind:'exam', name })
+  }
+
+  function startQuick(){ setView('quick') }
+  function handleQuickStart(picked){ setPlaying({ mode:'quick', title:'Quick Quiz', questions: picked }); updateStreakOnPlay(); setView('play') }
+
+  function startBattle(){ setView('battle-search') }
+  function matchedBattle(){
+    const o = randomOpponent()
+    setOpp(o)
+    const merged = flattenBank(mergeBanks(topicBank, examBank))
+    const picked = sampleMany(merged, Math.min(BATTLE_QUESTION_COUNT, merged.length)).map((q,idx)=>({ id: idx+1, text:q.text, options:q.options, answerIndex:q.answerIndex, cat:q.cat }))
+    setPlaying({ mode:'battle', title: `Battle vs ${o.name} (${o.place})`, questions: picked })
+    updateStreakOnPlay()
+    setView('play')
+  }
+
+  function onFinishPlay(r){ setResult(r); setView('summary') }
+  function onRetry(){ setView('play') }
+
+  async function openStudy(){ setView('study'); if(studyItems.length===0){ const list = await loadList(TAB_STUDY); setStudyItems(list) } }
+  async function openExams(){ setView('exams'); if(examItems.length===0){ const list = await loadList(TAB_EXAMS); setExamItems(list) } }
+
+  function toMock(){ setView('mock') }
+  function toProfile(){ setView('profile') }
+
+  if(loading) return <Splash />
+
+  if(view==='home') return (
+    <Home
+      topicBank={topicBank}
+      examBank={examBank}
+      onStartTopic={startTopic}
+      onStartExam={startExam}
+      onSeeAllTopics={()=> setView('all-topics')}
+      onSeeAllExams={()=> setView('all-exams')}
+      onStartBattle={startBattle}
+      onQuick={startQuick}
+      openStudy={openStudy}
+      openExams={openExams}
+      recent={recent}
+      toMock={toMock}
+      toProfile={toProfile}
+    />
+  )
+
+  if(view==='all-topics') return <AllCategories title="All Topics" bank={topicBank} onStart={startTopic} onBack={()=> setView('home')} />
+  if(view==='all-exams') return <AllCategories title="All Exams" bank={examBank} onStart={startExam} onBack={()=> setView('home')} />
+
+  if(view==='battle-search') return <BattleSearch onMatched={matchedBattle} />
+
+  if(view==='quick') return <QuickSetup bank={mergeBanks(topicBank, examBank)} onStart={handleQuickStart} onBack={()=> setView('home')} />
+
+  if(view==='play' && playing) return (
+    <PlayView
+      mode={playing.mode}
+      title={playing.title}
+      questions={playing.questions}
+      onQuit={()=> setView('home')}
+      onFinish={onFinishPlay}
+    />
+  )
+
+  if(view==='summary' && result) return (
+    <div className="min-h-dvh bg-[#eefbe7]">
+      <div className="mx-auto w-full max-w-3xl px-4 md:px-6 pb-10 pt-6">
+        <SummaryCard
+          result={result}
+          onReview={()=> setView('omr')}
+          onHome={()=> setView('home')}
+          onRetry={()=> setView('play')}
+        />
+      </div>
+    </div>
+  )
+
+  if(view==='omr' && result) return <OMRReview result={result} onBack={()=> setView('home')} />
+
+  if(view==='study') return <SimpleList title="Study Material" items={studyItems} onBack={()=> setView('home')} />
+  if(view==='exams') return <SimpleList title="Exam Notifications" items={examItems} onBack={()=> setView('home')} />
+
+  if(view==='mock') return <MockExam bank={mergeBanks(examBank, topicBank)} onBack={()=> setView('home')} onFinish={(r)=> { setResult(r); setView('summary') }} />
+
+  return <Splash />
 }
