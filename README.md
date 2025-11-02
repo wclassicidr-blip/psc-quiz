@@ -20,3 +20,4 @@ npm run preview
 - Framework preset: Vite
 - Build: `npm run build`
 - Output: `dist`
+hi
