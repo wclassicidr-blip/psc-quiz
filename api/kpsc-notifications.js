@@ -1,35 +1,3 @@
-// /api/kpsc-notifications.js
-// Fetches latest 2025 Kerala PSC notifications from the official site and returns JSON.
-
-const ORIGIN = "https://www.keralapsc.gov.in";
-const INDEX_URL = `${ORIGIN}/notifications`;
-
-function abs(u) { return u.startsWith("http") ? u : ORIGIN + u; }
-function pick(re, s) { const m = re.exec(s); return m ? m[1] : null; }
-
-export default async function handler(req, res) {
-  try {
-    const limit = Math.max(5, Math.min(100, Number(req.query.limit) || 40));
-
-    // 1) Fetch the main notifications index
-    const ixResp = await fetch(INDEX_URL, {
-      headers: { "User-Agent": "Mozilla/5.0 (compatible; PSC-Guru/1.0)" }
-    });
-    const ixHtml = await ixResp.text();
-
-    // 2) Grab the most recent "EXTRA ORDINARY GAZETTE DATE" pages for 2025
-    // Example match: <a href="/extra-ordinary-gazette-date-15102025">EXTRA ORDINARY GAZETTE DATE 15/10/2025</a>
-    const gazetteLinkRe = /<a[^>]+href="([^"]+extra-ordinary-gazette-date-[^"]+)"[^>]*>\s*EXTRA\s+ORDINARY\s+GAZETTE\s+DATE\s+(\d{2}\/\d{2}\/\d{4})\s*<\/a>/gi;
-
-    const gazettes = [];
-    let m;
-    while ((m = gazetteLinkRe.exec(ixHtml)) && gazettes.length < 4) {
-      const url = abs(m[1]);
-      const date = m[2]; // dd/mm/yyyy
-      if (date.endsWith("/2025")) gazettes.push({ url, date });
-    }
-
-    // 3) For each gazette page, extract the Notification links (PDFs) for 2025
     const items = [];
     for (const g of gazettes) {
       const gzResp = await fetch(g.url, {
